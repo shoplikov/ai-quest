@@ -93,7 +93,7 @@ task: build it, run its checks, tick the box, commit.
       `ssh-tunnel`, in the hand-drawn style of the design spec.
 - [x] **3.3 Port playground.** Logic in `src/lib/ports.ts` with one test
       per rule in `docs/spec/widgets.md`; then the view.
-- [ ] **3.4 Request journey.** Stepper plus the "Where would it break?" part.
+- [x] **3.4 Request journey.** Stepper plus the "Where would it break?" part.
 - [ ] **3.5 Error quiz.**
 - [ ] **3.6 Cheat sheet page** for a level, with print styles.
       *Check for phase 3:* walk Level 2 end to end in Chrome, in English
