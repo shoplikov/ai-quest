@@ -1,0 +1,86 @@
+---
+// One printable page per level (docs/spec/product.md → /cheatsheets/[id]):
+// the level's `cheatsheet` rows plus its traps table. Print: A4, one page.
+import Base from '../../../layouts/Base.astro';
+import { fill, getDict, languages, localePath, type Lang } from '../../../i18n';
+import { getLevelEntries } from '../../../lib/levels';
+import { renderInline } from '../../../lib/md';
+import '../../../styles/cheatsheet.css';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const lang of languages) {
+    for (const entry of await getLevelEntries(lang)) {
+      paths.push({ params: { lang, id: String(entry.data.id) }, props: { entry } });
+    }
+  }
+  return paths;
+}
+
+const { entry } = Astro.props;
+const lang = Astro.params.lang as Lang;
+const dict = getDict(lang);
+const C = dict.cheatsheet;
+const L = dict.level;
+const d = entry.data;
+const n = d.id;
+---
+
+<Base lang={lang} title={fill(C.pageTitle, { title: d.title })} description={d.tagline} active="cheatsheets">
+  <article class="cheatsheet">
+    <header class="cs-header">
+      <p class="cs-kicker">{fill(C.kicker, { n })}</p>
+      <h1>{d.title}</h1>
+      <p class="cs-intro no-print">{fill(C.intro, { n })}</p>
+      <p class="cs-actions no-print">
+        <button type="button" class="btn btn-primary btn-small" data-print>🖨 {C.print}</button>
+        <a class="btn btn-ghost btn-small" href={localePath(lang, `/level/${n}`)}>← {fill(C.back, { n })}</a>
+      </p>
+    </header>
+
+    <section aria-labelledby="cs-commands">
+      <h2 id="cs-commands" class="cs-title">{C.commands}</h2>
+      <table class="cs-table cs-commands">
+        <thead>
+          <tr><th scope="col">{C.command}</th><th scope="col">{C.does}</th></tr>
+        </thead>
+        <tbody>
+          {
+            d.cheatsheet.map((row) => (
+              <tr>
+                <td data-label={C.command}><code>{row.cmd}</code></td>
+                <td data-label={C.does} set:html={renderInline(row.does)} />
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="cs-traps">
+      <h2 id="cs-traps" class="cs-title">{L.sections.traps}</h2>
+      <table class="cs-table cs-traps">
+        <thead>
+          <tr><th scope="col">{L.trapError}</th><th scope="col">{L.trapMeaning}</th><th scope="col">{L.trapFirst}</th></tr>
+        </thead>
+        <tbody>
+          {
+            d.traps.map((t) => (
+              <tr>
+                <td data-label={L.trapError}><code>{t.error}</code></td>
+                <td data-label={L.trapMeaning}>{t.meaning}</td>
+                <td data-label={L.trapFirst} set:html={renderInline(t.firstMove)} />
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <p class="cs-print-footer">{fill(C.printFooter, { n, title: d.title })}</p>
+  </article>
+</Base>
+
+<script>
+  document.querySelector('[data-print]')?.addEventListener('click', () => window.print());
+</script>

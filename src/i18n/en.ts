@@ -155,6 +155,17 @@ export const en = {
     badgeBody: 'Level {n} is done. This badge is yours: {name}.',
     badgeClose: 'Yay! Show me the note',
   },
+  cheatsheet: {
+    kicker: 'Cheat sheet · Level {n}',
+    pageTitle: 'Cheat sheet: {title}',
+    intro: 'Everything from Level {n} that fits on one page. Print it and keep it next to your keyboard.',
+    print: 'Print this page',
+    back: 'Back to Level {n}',
+    commands: 'Commands',
+    command: 'Command',
+    does: 'What it does',
+    printFooter: 'AI Engineer Quest · Level {n}: {title}',
+  },
   analogy: {
     kicker: 'Think of it like…',
   },

@@ -1,0 +1,170 @@
+/* Cheat sheet page (/cheatsheets/[id]). Screen: cards and tables.
+   Print: A4, black on white, fits one page (print.css does the rest). */
+.cheatsheet {
+  max-width: var(--prose);
+  margin: 0 auto;
+}
+.cs-header {
+  margin-bottom: var(--s5);
+}
+.cs-kicker {
+  margin: 0 0 var(--s1);
+  font-weight: 800;
+  font-size: var(--fs-small);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+.cs-header h1 {
+  margin: 0 0 var(--s2);
+}
+.cs-intro {
+  color: var(--ink-soft);
+  margin: 0 0 var(--s4);
+}
+.cs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  margin: 0;
+}
+.cs-title {
+  font-size: 1.25rem;
+  margin: var(--s5) 0 var(--s3);
+}
+.cs-table code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.cs-commands td:first-child {
+  width: 46%;
+}
+.cs-print-footer {
+  display: none;
+}
+
+/* Phones: each row becomes a small card. */
+@media (max-width: 640px) {
+  .cs-table,
+  .cs-table tbody,
+  .cs-table tr,
+  .cs-table td {
+    display: block;
+    width: 100% !important;
+  }
+  .cs-table {
+    border: none;
+    background: none;
+    border-radius: 0;
+  }
+  .cs-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .cs-table tr {
+    background: var(--card);
+    border: var(--border);
+    border-radius: var(--r-card);
+    margin-bottom: var(--s3);
+    padding: var(--s2) 0;
+  }
+  .cs-table td {
+    border: none;
+    padding: var(--s1) var(--s4);
+  }
+  .cs-traps td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+  }
+}
+
+@media print {
+  main.page {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  .cheatsheet {
+    max-width: none;
+    font-size: 9.5pt;
+    line-height: 1.35;
+  }
+  .cs-header {
+    margin-bottom: 3mm;
+  }
+  .cs-header h1 {
+    font-size: 17pt;
+    margin: 0;
+  }
+  .cs-kicker {
+    font-size: 8.5pt;
+    color: #333;
+  }
+  .cs-title {
+    font-size: 12pt;
+    margin: 4mm 0 2mm;
+  }
+  .cs-table {
+    display: table !important;
+    font-size: 9pt;
+    margin: 0;
+    border: 1px solid #999;
+    border-radius: 0;
+  }
+  .cs-table thead {
+    position: static;
+    width: auto;
+    height: auto;
+    clip: auto;
+    display: table-header-group;
+  }
+  .cs-table tbody {
+    display: table-row-group !important;
+  }
+  .cs-table tr {
+    display: table-row !important;
+    border: none;
+    padding: 0;
+    margin: 0;
+    break-inside: avoid;
+  }
+  .cs-table th,
+  .cs-table td {
+    display: table-cell !important;
+    padding: 1.2mm 2mm;
+    border-bottom: 1px solid #ccc;
+    background: #fff;
+    color: #000;
+  }
+  .cs-table th {
+    background: #eee !important;
+  }
+  .cs-table td::before {
+    content: none !important;
+  }
+  .cs-table code {
+    font-size: 8.5pt;
+    background: none !important;
+    border: none !important;
+    padding: 0;
+    color: #000;
+  }
+  .cs-commands td:first-child {
+    width: 48% !important;
+  }
+  .cs-print-footer {
+    display: block;
+    margin: 4mm 0 0;
+    font-size: 8pt;
+    color: #444;
+    text-align: right;
+  }
+}

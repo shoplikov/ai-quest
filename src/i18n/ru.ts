@@ -156,6 +156,17 @@ export const ru: Dict = {
     badgeBody: 'Уровень {n} пройден. Этот значок теперь твой: {name}.',
     badgeClose: 'Ура! Покажи записку',
   },
+  cheatsheet: {
+    kicker: 'Шпаргалка · Уровень {n}',
+    pageTitle: 'Шпаргалка: {title}',
+    intro: 'Всё главное из уровня {n} на одной странице. Распечатай и положи рядом с клавиатурой.',
+    print: 'Распечатать',
+    back: 'Назад к уровню {n}',
+    commands: 'Команды',
+    command: 'Команда',
+    does: 'Что делает',
+    printFooter: 'AI Engineer Quest · Уровень {n}: {title}',
+  },
   analogy: {
     kicker: 'Представь себе…',
   },
