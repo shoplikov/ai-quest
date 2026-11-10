@@ -58,7 +58,7 @@ export function level(p: Progress, id: string | number): LevelProgress {
 }
 
 export function cleanHero(name: string): string {
-  return name.replace(/\s+/g, ' ').trim().slice(0, HERO_MAX);
+  return Array.from(name.replace(/\s+/g, ' ').trim()).slice(0, HERO_MAX).join('').trim();
 }
 
 // ---------- validation ----------

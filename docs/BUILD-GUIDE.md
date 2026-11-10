@@ -61,7 +61,7 @@ task: build it, run its checks, tick the box, commit.
 
 ## Phase 2 — Progress and map
 
-- [ ] **2.1 Progress store.** `src/lib/progress.ts` per the product spec:
+- [x] **2.1 Progress store.** `src/lib/progress.ts` per the product spec:
       load, save, subscribe, derived values (current level, XP, rank,
       streak, badges), share-link encode/decode, view mode, reset.
       Pure functions, no DOM access outside small wrappers.
