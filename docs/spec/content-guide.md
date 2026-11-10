@@ -63,7 +63,7 @@ breaks:                    # 3–4
     see: "exact error text"
     why: "markdown"
     fix: "markdown"
-traps:                     # 4–6
+traps:                     # 4–8
   - error: "exact text"
     meaning: "plain sentence"
     firstMove: "command or action"

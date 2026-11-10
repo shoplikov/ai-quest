@@ -49,7 +49,7 @@ const levelSchema = z.object({
     )
     .min(3)
     .max(4),
-  traps: z.array(z.object({ error: text, meaning: text, firstMove: text })).min(4).max(6),
+  traps: z.array(z.object({ error: text, meaning: text, firstMove: text })).min(4).max(8),
   deliverable: z.object({ repo: text, sketch: text, demo: text }),
   selfCheck: z.array(text).min(4).max(5),
   quiz: z
