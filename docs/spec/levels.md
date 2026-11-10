@@ -1,6 +1,9 @@
 # Level facts (source of truth)
 
-Level 2 is already written in full: `src/content/levels/2-ports.mdx`.
+Level 2 is already written in full, in both languages:
+`src/content/levels/en/2-ports.mdx` and `src/content/levels/ru/2-ports.mdx`.
+Every level below must also be written in both. Write the English file
+first, then the Russian one following `docs/spec/i18n.md`.
 This file gives the facts for levels 1 and 3–8. Turn each into a level file
 with the same schema, depth and voice as Level 2. Write full sentences and
 full mission steps; the notes here are compressed.

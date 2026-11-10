@@ -8,7 +8,8 @@ task: build it, run its checks, tick the box, commit.
 - [x] Repo created, dependencies installed: `astro@7`, `@astrojs/mdx`,
       `@astrojs/preact`, `preact`, `@astrojs/check`, `typescript`.
 - [x] All specs in `docs/spec/`.
-- [x] Level 2 content: `src/content/levels/2-ports.mdx`.
+- [x] Level 2 content in both languages: `src/content/levels/en/2-ports.mdx`
+      and `src/content/levels/ru/2-ports.mdx`.
 - [x] `Dockerfile`, `.dockerignore`, `nginx.conf`, `compose.yaml`,
       `Caddyfile`, `scripts/deploy.sh`, `scripts/rollback.sh`,
       `.github/workflows/ci.yml`. Do not change their behaviour;
@@ -31,9 +32,17 @@ task: build it, run its checks, tick the box, commit.
 
 - [ ] **1.1 Project config.** `astro.config.mjs` with MDX and Preact,
       static output. `tsconfig.json` extending Astro's strict preset with
-      Preact JSX. Install `vitest` and the three `@fontsource-variable/*`
-      packages named in the design spec. Add the scripts above.
+      Preact JSX. Install `vitest`, `@fontsource-variable/nunito` and
+      `@fontsource-variable/jetbrains-mono`. Set up i18n routing for
+      `en` and `ru`, both prefixed, per `docs/spec/i18n.md`. Add the scripts above.
       *Check:* `npm run build` succeeds on an empty index page.
+- [ ] **1.1b Languages.** `src/i18n/en.ts` and `ru.ts` typed
+      dictionaries with a `t()` helper and plural helper; the `/`
+      redirect page; the EN | RU switcher; `<html lang>` and `hreflang`.
+      From here on, every string you add goes into both dictionaries.
+      *Check:* `/` redirects by browser language and by saved choice;
+      the switcher keeps you on the same page; Vitest tests for Russian
+      plurals (1, 2, 5, 11, 21, 22).
 - [ ] **1.2 Design tokens and base styles.** `src/styles/tokens.css`,
       `base.css`, `print.css` exactly as in `docs/spec/design.md`. Theme
       script in `<head>` to avoid a flash.
@@ -62,7 +71,10 @@ task: build it, run its checks, tick the box, commit.
 - [ ] **2.2 Content collection.** Zod schema for level frontmatter from
       `docs/spec/content-guide.md`; glossary collection.
       *Check:* `npm run check` passes with `2-ports.mdx`; removing a
-      required field makes it fail (then put it back).
+      required field makes it fail (then put it back). Add
+      `tests/content-parity.test.ts` from `docs/spec/i18n.md`.
+      *Check:* the parity test passes for Level 2 and fails if you delete
+      one mission from the Russian file (then put it back).
 - [ ] **2.3 Quest map.** Desktop and phone SVG layouts, landmarks, node
       states, welcome card, XP bar, streak, badges row, "Today's next
       step", share button.
@@ -84,8 +96,8 @@ task: build it, run its checks, tick the box, commit.
 - [ ] **3.4 Request journey.** Stepper plus the "Where would it break?" part.
 - [ ] **3.5 Error quiz.**
 - [ ] **3.6 Cheat sheet page** for a level, with print styles.
-      *Check for phase 3:* walk Level 2 end to end in Chrome at desktop and
-      phone width, both themes: tick every mission, reveal every break,
+      *Check for phase 3:* walk Level 2 end to end in Chrome, in English
+      and in Russian, at desktop and phone width, both themes: tick every mission, reveal every break,
       play every rule of the port playground, finish the quiz, finish the
       level, see confetti and the kind note, reload — everything stayed.
       Print preview of the cheat sheet fits one page.
@@ -95,9 +107,11 @@ task: build it, run its checks, tick the box, commit.
 
 ## Phase 4 — Remaining content
 
-One task per level. For each: write the level file from
+One task per level. For each: write the English level file from
 `docs/spec/levels.md` (full sentences, full steps, same depth as Level 2),
-draw its diagrams, build its widget if it has one.
+then the Russian file (natural Russian, terms and voice from
+`docs/spec/i18n.md`), draw its diagrams with labels in both languages,
+build its widget if it has one.
 
 - [ ] **4.1 Level 1 — Terminal.** Diagrams: `file-tree`, `pipe`, `permissions`.
 - [ ] **4.2 Level 3 — Backend.** Diagrams: `request-response`, `event-loop`, `project-layout`.
@@ -110,7 +124,8 @@ draw its diagrams, build its widget if it has one.
       (logic + tests first). Write the Otter Café handbook sample text.
 - [ ] **4.7 Level 8 — Ship it.** Diagrams: `health-vs-ready`, `p95`, `deploy-rollback`.
 
-*Check for every level:* `npm run check` passes; the page reads well top
+*Check for every level:* `npm run check` and the parity test pass; the
+Russian page was read top to bottom as Russian, not as a translation; the page reads well top
 to bottom; every command in it was checked against official docs; every
 quiz has exactly 5 questions with the right answer marked; no banned
 words from the content guide (`grep -rniE "\b(simply|obviously|just|easy)\b" src/content`
@@ -124,7 +139,7 @@ words from the content guide (`grep -rniE "\b(simply|obviously|just|easy)\b" src
 - [ ] **5.3 Glossary** with filter.
 - [ ] **5.4 Cheat sheets index.**
 - [ ] **5.5 Mentor page.**
-- [ ] **5.6 404 page.**
+- [ ] **5.6 404 page**, one page with both languages.
 - [ ] **5.7 View mode.** Open a share link in a private window: banner
       shows, ticks are disabled, nothing is saved, Exit works.
 
@@ -146,7 +161,7 @@ words from the content guide (`grep -rniE "\b(simply|obviously|just|easy)\b" src
       diagram, not ASCII art.
 - [ ] **6.4 Final pass.** Delete `/kitchen-sink`. Run `npm run check`,
       `npm test`, `npm run build` — all clean. In Chrome, walk the whole
-      map at desktop and 360px, light and dark, with reduced motion on and
+      map in both languages at desktop and 360px, light and dark, with reduced motion on and
       off. Lighthouse desktop: performance ≥ 95, accessibility ≥ 95.
       Search the repo for personal data, real hostnames and internal IPs
       — there must be none.

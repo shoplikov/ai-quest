@@ -1,5 +1,8 @@
 # Boss, skills, glossary, mentor guide
 
+Everything here is needed in English and Russian. The text below is the
+English source; write the Russian following `docs/spec/i18n.md`.
+
 ## Final boss — "Your own open book"
 
 Route `/boss`. About 1 week (week 12). Landmark: castle.
@@ -74,7 +77,7 @@ Under the chart, "What 'middle' really means" — four lines:
 
 ---
 
-## Glossary (`src/content/glossary.yaml`)
+## Glossary (`src/content/glossary/en.yaml` and `ru.yaml`)
 
 Fields: `term`, `plain`, `analogy`, `level`. Write all of these:
 

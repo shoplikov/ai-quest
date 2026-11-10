@@ -35,6 +35,9 @@ API (look it up in the docs; do not guess from memory).
 
 ## Pages
 
+Every route below exists under `/en/` and `/ru/` — see `docs/spec/i18n.md`.
+The navigation also has an EN | RU switcher.
+
 | Route | Purpose |
 |-------|---------|
 | `/` | Quest map |
@@ -177,7 +180,7 @@ also listens to the `storage` event so two open tabs stay in step.
 
 ### Share link
 
-"Share my progress" builds `<origin>/#p=<data>` where `data` is the
+"Share my progress" builds `<origin>/<lang>/#p=<data>` where `data` is the
 `Progress` object as JSON → UTF-8 → base64url. The hash is never sent to a
 server.
 

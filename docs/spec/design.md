@@ -38,8 +38,9 @@ you use and adjust a shade if one fails.
 
 ## Type
 
-- Headings: **Fredoka Variable** (`@fontsource-variable/fredoka`), weight 600.
-- Body: **Nunito Variable** (`@fontsource-variable/nunito`), weight 400/700.
+- Headings and body: **Nunito Variable** (`@fontsource-variable/nunito`),
+  headings at weight 800, body at 400/700. It covers Latin and Cyrillic;
+  load both subsets. (Fredoka is not used: it has no Cyrillic.)
 - Code: **JetBrains Mono Variable** (`@fontsource-variable/jetbrains-mono`).
 - Base size 17px, line height 1.65, measure max 70ch for prose.
 - Scale: h1 2.4rem, h2 1.7rem, h3 1.25rem, small 0.9rem. Use `clamp()` so

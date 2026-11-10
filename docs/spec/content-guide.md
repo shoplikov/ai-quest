@@ -25,8 +25,10 @@ Write like a kind senior colleague who remembers being confused.
 
 ## Level file
 
-One file per level in `src/content/levels/`, named `<id>-<slug>.mdx`.
-`2-ports.mdx` is the finished example. Match its depth.
+One file per level and language: `src/content/levels/en/<id>-<slug>.mdx`
+and `src/content/levels/ru/<id>-<slug>.mdx`. The two `2-ports.mdx` files
+are the finished examples. Match their depth. The Russian voice, terms
+and the structure both files must share are in `docs/spec/i18n.md`.
 
 ### Frontmatter schema
 
@@ -116,7 +118,7 @@ lose data. Each break ends with the system working again.
 
 Specific to what she just achieved. No generic "you're amazing". Say what
 she can now do that she could not do before, and why that matters.
-Example (Level 2): see `2-ports.mdx`.
+Example (Level 2): see the two `2-ports.mdx` files.
 
 ## Links
 
