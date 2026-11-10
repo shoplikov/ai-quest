@@ -1,0 +1,35 @@
+# Build the image first:  docker build -t ai-quest .
+# Then start it:          docker compose up -d
+# Open:                   http://localhost:8080
+services:
+  web:
+    image: ai-quest:${QUEST_TAG:-latest}
+    container_name: ai-quest
+    restart: unless-stopped
+    ports:
+      # left: port on the machine, right: port inside the container
+      - "${QUEST_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # Optional HTTPS front door. Start with:  docker compose --profile https up -d
+  caddy:
+    profiles: ["https"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      QUEST_DOMAIN: ${QUEST_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:

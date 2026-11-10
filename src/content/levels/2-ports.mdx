@@ -1,0 +1,357 @@
+---
+id: 2
+slug: ports
+title: "Networking & Ports"
+tagline: "Why 'it works on my machine' and how to make it work on every machine."
+weeks: 1
+landmark: doors
+badge: { name: "Port Whisperer", emoji: "🚪" }
+skill:
+  name: "Networking"
+  junior: "I copy host and port values from someone else and hope."
+  growing: "I can find which port an app uses and test it with curl."
+  middle: "Given 'I can't reach the service', I find the broken hop myself in minutes."
+itsNormal: >
+  Networking feels like magic because you cannot see it. Every engineer has
+  lost an hour to a wrong port, and most have lost a whole day. It stops
+  being scary the moment you learn to ask three questions in order — and
+  this level is those three questions.
+analogy:
+  emoji: "🚪"
+  title: "A machine is an apartment building"
+  text: >
+    The IP address is the street address of the building. Ports are the
+    numbered doors inside — 65,535 of them. An app "listens on port 8000"
+    means it stands behind door 8000 waiting for a knock. If nobody stands
+    behind a door, a knock gets "connection refused". If a guard at the
+    entrance (the firewall) turns you away without a word, you wait and
+    wait: that is a timeout.
+missions:
+  - id: m1
+    title: "See who is home"
+    why: "You learn to look at open ports instead of guessing."
+    steps:
+      - "Start a tiny web server: `python3 -m http.server 8000 --bind 127.0.0.1`"
+      - "In a second terminal, list the listening ports: `ss -tlnp`"
+      - "Find your server in the list. Read the line out loud: which address, which port, which program?"
+      - "Knock on the door: `curl -v http://localhost:8000`. Find the line that starts with `< HTTP/`."
+      - "Stop the server with Ctrl+C. Run `ss -tlnp` again. The line is gone."
+    check: "You can point at the line `127.0.0.1:8000` in the `ss` output and say what each column means."
+  - id: m2
+    title: "Family only, or everyone?"
+    why: "You feel the difference between 127.0.0.1 and 0.0.0.0 with your own hands."
+    steps:
+      - "Find your machine's address on the network: `hostname -I` (take the first one, for example `192.168.1.20`)."
+      - "Start the server for family only: `python3 -m http.server 8000 --bind 127.0.0.1`"
+      - "Try both addresses: `curl http://127.0.0.1:8000` and `curl http://192.168.1.20:8000` (use your own address). One works. One is refused."
+      - "Stop it. Start it for everyone: `python3 -m http.server 8000 --bind 0.0.0.0`"
+      - "Try both again. Now open `http://<your address>:8000` on your phone, on the same Wi-Fi."
+    check: "Your phone shows the file list only when the server is bound to 0.0.0.0, and you can explain why in one sentence."
+  - id: m3
+    title: "Name tags"
+    why: "You see that a domain name is only a label for an IP address."
+    steps:
+      - "Ask DNS where a site lives: `dig +short example.com` (if `dig` is missing: `sudo apt install dnsutils`)."
+      - "Give your own machine a nickname. Add this line to `/etc/hosts` with `sudo nano /etc/hosts`: `127.0.0.1 quest.local`"
+      - "With your server from Mission 2 running: `curl http://quest.local:8000`"
+      - "Notice: the name chose the building. You still had to give the door number."
+    check: "`curl http://quest.local:8000` returns the file list."
+  - id: m4
+    title: "Put a receptionist at the front door"
+    why: "You set up a reverse proxy — the pattern almost every production service uses."
+    steps:
+      - "Install nginx: `sudo apt install nginx`. Check it answers: `curl -I http://localhost` (port 80 is the default for http)."
+      - "Run your app for family only again: `python3 -m http.server 8000 --bind 127.0.0.1`"
+      - |
+        Create `/etc/nginx/sites-available/quest`:
+        ```nginx
+        server {
+            listen 80;
+            server_name quest.local;
+
+            location / {
+                proxy_pass http://127.0.0.1:8000;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+            }
+        }
+        ```
+      - "Switch it on: `sudo ln -s /etc/nginx/sites-available/quest /etc/nginx/sites-enabled/`, then test and reload: `sudo nginx -t && sudo systemctl reload nginx`"
+      - "Call it with no port number: `curl http://quest.local`"
+      - "Stop the Python server and call again. Read the error. That is a `502 Bad Gateway`: the receptionist is there, the person behind door 8000 went home."
+    check: "`curl http://quest.local` shows your file list, and you can produce a 502 on purpose and explain it."
+  - id: m5
+    title: "A secret tunnel"
+    why: "You reach a service that is closed to the outside, the way engineers do every day."
+    steps:
+      - "You need any second Linux machine you can SSH into (a server at work, a small cloud instance, or a virtual machine). Ask your mentor for one if you have none."
+      - "On that machine, start a family-only server: `python3 -m http.server 9000 --bind 127.0.0.1`"
+      - "From your laptop, `curl http://<server address>:9000` fails. Good — it is private."
+      - "Open a tunnel from your laptop: `ssh -N -L 9000:127.0.0.1:9000 <user>@<server address>`"
+      - "In another terminal on your laptop: `curl http://localhost:9000`. You are now knocking on the server's private door from your own machine."
+      - "Say the tunnel out loud: 'my port 9000 → through SSH → the server's 127.0.0.1:9000'."
+    check: "The file list of the remote machine appears on `localhost:9000` on your laptop, and disappears when you close the tunnel."
+breaks:
+  - id: b1
+    title: "Two apps, one door"
+    do: "Start `python3 -m http.server 8000` in one terminal. Start the same command in a second terminal."
+    see: "OSError: [Errno 98] Address already in use"
+    why: "One door, one listener. The first app holds port 8000, so the second cannot have it."
+    fix: "Find who holds it: `ss -tlnp | grep :8000`. Stop that program, or start yours on another port: `python3 -m http.server 8001`."
+  - id: b2
+    title: "Knock on an empty door"
+    do: "With nothing running on port 8123: `curl http://localhost:8123`"
+    see: "curl: (7) Failed to connect to localhost port 8123 after 0 ms: Connection refused"
+    why: "The building is there, the door is there, nobody stands behind it. The machine says so at once — look at `0 ms`. Refused is fast."
+    fix: "Start the app, or call the port the app really listens on. `ss -tlnp` tells you which."
+  - id: b3
+    title: "Knock where nobody answers at all"
+    do: "`curl -m 5 http://10.255.255.1:8000` (an address that does not answer)"
+    see: "curl: (28) Connection timed out after 5001 milliseconds"
+    why: "No 'yes', no 'no' — silence. That is what a firewall drop, a wrong IP, or a machine that is off looks like. Timeout is slow; refused is fast. This one difference solves half of all network puzzles."
+    fix: "Check the address first, then the firewall or security group, then whether the machine is up."
+  - id: b4
+    title: "The door that needs a key"
+    do: "As a normal user: `python3 -m http.server 80`"
+    see: "PermissionError: [Errno 13] Permission denied"
+    why: "On Linux, ports below 1024 are reserved for the system. A normal user may not open them."
+    fix: "Use a port above 1024 for your app and let nginx (which is allowed) hold port 80 — exactly what you built in Mission 4."
+traps:
+  - error: "Connection refused"
+    meaning: "The machine is reachable, but nothing listens on that address and port."
+    firstMove: "ss -tlnp on the server — is the app up, on which address?"
+  - error: "Connection timed out"
+    meaning: "Your request got no answer at all: wrong IP, firewall, or machine down."
+    firstMove: "ping the address, then check firewall or security group rules."
+  - error: "Could not resolve host"
+    meaning: "The name has no address. DNS problem or a typo."
+    firstMove: "dig +short <name>"
+  - error: "Address already in use"
+    meaning: "Another program already holds that port."
+    firstMove: "ss -tlnp | grep :<port>"
+  - error: "502 Bad Gateway"
+    meaning: "The reverse proxy is fine; the app behind it is down or on another port."
+    firstMove: "curl the app directly on the server: curl http://127.0.0.1:<port>"
+  - error: "Works on the server, not from my laptop"
+    meaning: "The app listens on 127.0.0.1 only, or a firewall is in the way."
+    firstMove: "ss -tlnp — look for 127.0.0.1 where you want 0.0.0.0"
+deliverable:
+  repo: "A repo `quest-level-2` with your nginx config, and a `NOTES.md` listing every command you used with one line on what it showed you."
+  sketch: "One page, drawn by hand or in any tool: your laptop, the server, nginx on port 80, the app on port 8000, the SSH tunnel — with every address and port written on the arrows."
+  demo: "Show your mentor: the app unreachable from outside, then reachable through nginx, then a 502 you cause and fix live. Then answer: 'A colleague says they can't reach my service. What three things do I check, in order?'"
+selfCheck:
+  - "I can explain 127.0.0.1 vs 0.0.0.0 to a friend who does not code."
+  - "When I see 'refused' or 'timed out', I know which one means what before I search for it."
+  - "I can find which program holds a port in under a minute."
+  - "I can read an nginx server block and say where a request goes."
+  - "I can open an SSH tunnel without copying the command from a chat message."
+quiz:
+  - q: "You call your service and get this at once. What is the most likely cause?"
+    code: "curl: (7) Failed to connect to 192.168.1.20 port 8000 after 1 ms: Connection refused"
+    options:
+      - "Nothing is listening on that address and port"
+      - "A firewall is dropping the request"
+      - "The domain name is wrong"
+    answer: 0
+    why: "Refused is a fast, clear 'nobody at this door'. A firewall drop would be slow and end in a timeout."
+  - q: "Your app runs on a server. `curl localhost:8000` works on the server, but not from your laptop. `ss -tlnp` shows `127.0.0.1:8000`. What do you change?"
+    options:
+      - "Make the app listen on 0.0.0.0"
+      - "Use a different port"
+      - "Restart the server"
+    answer: 0
+    why: "127.0.0.1 means 'family only' — callers on the same machine. 0.0.0.0 means every network interface."
+  - q: "What does this tell you?"
+    code: "curl: (28) Connection timed out after 10002 milliseconds"
+    options:
+      - "The app crashed with an error"
+      - "No answer came back: wrong IP, firewall, or machine down"
+      - "The port is used by another program"
+    answer: 1
+    why: "Silence means the knock never reached a door, or the answer never came back. Check the address and the firewall."
+  - q: "nginx returns `502 Bad Gateway`. Where is the problem?"
+    options:
+      - "In DNS"
+      - "In nginx itself — it is not running"
+      - "In the app behind nginx — down, or on a different port than nginx expects"
+    answer: 2
+    why: "If nginx were down you would get 'connection refused'. A 502 is nginx telling you it could not reach the app behind it."
+  - q: "What does `ssh -L 5433:127.0.0.1:5432 user@db-server` do?"
+    options:
+      - "Opens port 5432 on the server to the whole internet"
+      - "Makes port 5433 on my machine lead to port 5432 on the server, through SSH"
+      - "Copies the database to my machine"
+    answer: 1
+    why: "Left number: the door on your machine. Right side: where it leads, as seen from the server. Nothing is opened to the outside."
+links:
+  - title: "How DNS works (comic)"
+    url: "https://howdns.works/"
+    why: "A short, funny comic. Ten minutes and DNS stops being a mystery."
+  - title: "Julia Evans — networking posts"
+    url: "https://jvns.ca/categories/networking/"
+    why: "Friendly, drawn explanations by someone who loves this stuff."
+  - title: "nginx beginner's guide"
+    url: "https://nginx.org/en/docs/beginners_guide.html"
+    why: "The official short guide. Read the 'proxy server' part after Mission 4."
+  - title: "explainshell"
+    url: "https://explainshell.com/"
+    why: "Paste any command and see what each flag means."
+cheatsheet:
+  - { cmd: "ss -tlnp", does: "List listening TCP ports and the programs that hold them" }
+  - { cmd: "ss -tlnp | grep :8000", does: "Who holds port 8000?" }
+  - { cmd: "curl -v http://host:port/path", does: "Make a request and show every step" }
+  - { cmd: "curl -I http://host", does: "Show only the response headers" }
+  - { cmd: "curl -m 5 http://host:port", does: "Give up after 5 seconds" }
+  - { cmd: "hostname -I", does: "This machine's IP addresses" }
+  - { cmd: "ip -4 addr", does: "Network interfaces and their addresses, in detail" }
+  - { cmd: "ping -c 3 host", does: "Is the machine reachable at all?" }
+  - { cmd: "nc -zv host port", does: "Is this one port open? (no HTTP needed)" }
+  - { cmd: "dig +short name", does: "Which IP does this name point to?" }
+  - { cmd: "sudo nginx -t", does: "Check nginx config before reloading" }
+  - { cmd: "sudo systemctl reload nginx", does: "Apply nginx config without downtime" }
+  - { cmd: "ssh -N -L local:127.0.0.1:remote user@host", does: "Tunnel: my local port → the server's private port" }
+  - { cmd: "sudo ufw status", does: "Show firewall rules (Ubuntu)" }
+kindNote: >
+  You can now do something that quietly separates engineers: when a service
+  is unreachable, you don't panic and you don't guess — you check the
+  address, the port, and the path between them, in order. People will start
+  asking you "can you look at why I can't connect?" That is what trust looks
+  like at work. Porto is very proud, and slightly worried you'll take his job.
+---
+
+import PortPlayground from '../../components/widgets/PortPlayground';
+import RequestJourney from '../../components/widgets/RequestJourney';
+import Diagram from '../../components/Diagram.astro';
+import Analogy from '../../components/Analogy.astro';
+
+You wrote an app. It runs. You send the link to a colleague and they say
+"it doesn't open". Nothing is wrong with your code — the request never
+found the right door. This level is about doors.
+
+<Analogy />
+
+## An address has two parts
+
+Every network request needs two things: **which machine** and **which door
+on that machine**.
+
+```
+http://192.168.1.20:8000/health
+       └─ machine ─┘ └port┘
+```
+
+The machine part is an IP address (or a name that turns into one). The
+port is a number from 1 to 65535. Some doors have traditional jobs: 22 is
+SSH, 80 is http, 443 is https, 5432 is PostgreSQL. When a URL has no port,
+the browser quietly uses 80 or 443.
+
+<Diagram name="building-with-doors" />
+
+## Listening: standing behind a door
+
+When an app starts, it picks a door and waits. We say it **listens**. You
+can see every listener on a machine with one command:
+
+```bash
+ss -tlnp
+```
+
+```
+State   Local Address:Port   Process
+LISTEN  127.0.0.1:8000       users:(("python3",pid=4242,fd=3))
+LISTEN  0.0.0.0:22           users:(("sshd",pid=801,fd=3))
+```
+
+Read it as: "python3 stands behind door 8000; sshd stands behind door 22."
+This command is your flashlight. When something is unreachable, look here
+first — it replaces a lot of guessing.
+
+## 127.0.0.1 and 0.0.0.0 — family only, or everyone
+
+Look at the address column again. It answers a question people skip:
+**who is allowed to knock?**
+
+- `127.0.0.1` (also called `localhost`) means "only callers inside this
+  same machine". It is the building's internal intercom.
+- `0.0.0.0` means "every entrance of the building" — callers from the
+  network can reach the door too.
+
+<Diagram name="localhost-vs-all" />
+
+So when an app works on the server but not from your laptop, the usual
+reason is short: it listens on `127.0.0.1`. That is often a good default
+— a database should not answer strangers. You open things to the outside
+on purpose, never by accident.
+
+Try every combination here before you touch a real machine:
+
+<PortPlayground client:visible />
+
+## Refused or timed out? The two most useful errors
+
+They sound alike. They mean opposite things.
+
+| | Connection refused | Connection timed out |
+|---|---|---|
+| Speed | instant | slow — you wait |
+| Meaning | you reached the machine; nobody is behind that door | no answer came back at all |
+| Look at | is the app running? which address and port? | the IP, the firewall, is the machine up? |
+
+Refused is rude but honest. A timeout is being ignored. Once you can tell
+them apart, half of all "I can't connect" problems already point at their
+cause.
+
+## Names: DNS is a contact list
+
+Nobody remembers `203.0.113.10`. DNS turns a name like `example.com` into
+an address, the way your phone turns "Mum" into a number.
+
+```bash
+dig +short example.com
+```
+
+A name picks the building. It never picks the door — you still need the
+port, unless it is the default 80 or 443.
+
+## The receptionist: a reverse proxy
+
+In production you rarely let people knock on your app's door directly.
+You put **nginx** at the front door (80 and 443). It greets every visitor
+and walks them to the right app inside — your app stays on `127.0.0.1`,
+safe from the street.
+
+<Diagram name="reverse-proxy" />
+
+That is why one server can host many services under one address, and why
+you will meet `502 Bad Gateway`: the receptionist is at the desk, but the
+person she tried to call did not pick up.
+
+Follow one request through every hop:
+
+<RequestJourney client:visible />
+
+## Tunnels: a private corridor
+
+Sometimes a door is closed to the outside on purpose, and you still need
+in — to look at a database, or to test an internal API. An SSH tunnel
+gives you a private corridor:
+
+```bash
+ssh -N -L 5433:127.0.0.1:5432 user@server
+```
+
+Read it left to right: "door 5433 on **my** machine leads to
+`127.0.0.1:5432` **as the server sees it**". Nothing is opened to the
+world. Close the SSH session and the corridor is gone.
+
+<Diagram name="ssh-tunnel" />
+
+## What to remember
+
+When something is unreachable, ask three questions, in this order:
+
+1. **Is someone behind the door?** → `ss -tlnp` on the server.
+2. **Who are they answering?** → `127.0.0.1` or `0.0.0.0`.
+3. **Can the knock get there?** → right IP, right port, firewall, proxy.
+
+Three questions. That is the whole level. The missions below make them a habit.
