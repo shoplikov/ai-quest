@@ -1,0 +1,42 @@
+---
+import Frame from './Frame.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['meaningMap'];
+}
+const { t } = Astro.props;
+// Hand-placed positions: three groups by meaning.
+const dots = [
+  { x: 150, y: 96, color: 'var(--teal)' },
+  { x: 236, y: 128, color: 'var(--teal)' },
+  { x: 120, y: 178, color: 'var(--teal)' },
+  { x: 500, y: 70, color: 'var(--lilac)' },
+  { x: 520, y: 118, color: 'var(--lilac)' },
+  { x: 480, y: 160, color: 'var(--lilac)' },
+  { x: 330, y: 268, color: 'var(--sun)' },
+  { x: 440, y: 290, color: 'var(--sun)' },
+];
+const Q = { x: 196, y: 140 };
+---
+<Frame id="dg-meaning" w={720} h={340} title={t.title} desc={t.desc}>
+  <circle cx={186} cy={134} r={84} fill="var(--teal-soft)" stroke="var(--teal)" stroke-dasharray="6 6" />
+  <Label x={186} y={34} text={t.near} size={12} weight={800} color="var(--teal-ink)" />
+  <path d={`M${Q.x + 10} ${Q.y - 6} Q 360 60 ${dots[3]!.x - 12} ${dots[3]!.y + 4}`} stroke="var(--ink-soft)" stroke-width="1.6" stroke-dasharray="5 6" fill="none" />
+  <Label x={360} y={58} text={t.far} size={12} color="var(--ink-soft)" />
+  {
+    dots.map((d, i) => (
+      <g>
+        <circle cx={d.x} cy={d.y} r={7} fill={d.color} stroke="var(--ink)" class="dg-line" />
+        <Label x={d.x + 12} y={d.y} text={t.words[i]!} anchor="start" size={12} weight={700} />
+      </g>
+    ))
+  }
+  <path
+    d={`M${Q.x} ${Q.y - 12} l3.5 7.5 8 1 -6 5.5 1.6 8 -7.1 -4 -7.1 4 1.6 -8 -6 -5.5 8 -1z`}
+    fill="var(--coral)"
+    stroke="var(--ink)"
+    stroke-width="1.5"
+  />
+  <Label x={186} y={236} text={`${t.query}: “${t.words[1]}”`} size={12} weight={800} color="var(--danger-ink)" />
+</Frame>

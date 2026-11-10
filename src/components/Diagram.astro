@@ -15,6 +15,10 @@ import ProjectLayout from './diagrams/ProjectLayout.astro';
 import ImageVsContainer from './diagrams/ImageVsContainer.astro';
 import Volume from './diagrams/Volume.astro';
 import ComposeNetwork from './diagrams/ComposeNetwork.astro';
+import Join from './diagrams/Join.astro';
+import MigrationsTimeline from './diagrams/MigrationsTimeline.astro';
+import MeaningMap from './diagrams/MeaningMap.astro';
+import CacheAside from './diagrams/CacheAside.astro';
 
 interface Props {
   name: string;
@@ -22,7 +26,7 @@ interface Props {
 const { name } = Astro.props;
 const lang = isLang(Astro.params.lang) ? Astro.params.lang : isLang(Astro.currentLocale) ? Astro.currentLocale : 'en';
 const t = getDict(lang).diagrams;
-const known = ['building-with-doors', 'localhost-vs-all', 'reverse-proxy', 'ssh-tunnel', 'file-tree', 'pipe', 'permissions', 'request-response', 'event-loop', 'project-layout', 'image-vs-container', 'volume', 'compose-network'];
+const known = ['building-with-doors', 'localhost-vs-all', 'reverse-proxy', 'ssh-tunnel', 'file-tree', 'pipe', 'permissions', 'request-response', 'event-loop', 'project-layout', 'image-vs-container', 'volume', 'compose-network', 'join', 'migrations-timeline', 'meaning-map', 'cache-aside'];
 if (!known.includes(name)) throw new Error(`Unknown diagram: ${name}`);
 ---
 {name === 'building-with-doors' && <BuildingWithDoors t={t.buildingWithDoors} />}
@@ -38,3 +42,7 @@ if (!known.includes(name)) throw new Error(`Unknown diagram: ${name}`);
 {name === 'image-vs-container' && <ImageVsContainer t={t.imageVsContainer} />}
 {name === 'volume' && <Volume t={t.volume} />}
 {name === 'compose-network' && <ComposeNetwork t={t.composeNetwork} />}
+{name === 'join' && <Join t={t.join} />}
+{name === 'migrations-timeline' && <MigrationsTimeline t={t.migrationsTimeline} />}
+{name === 'meaning-map' && <MeaningMap t={t.meaningMap} />}
+{name === 'cache-aside' && <CacheAside t={t.cacheAside} />}

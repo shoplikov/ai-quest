@@ -1,0 +1,42 @@
+---
+import Frame from './Frame.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['migrationsTimeline'];
+}
+const { t } = Astro.props;
+const Y = 118;
+const points = [
+  { x: 70, text: t.empty, kind: 'empty' },
+  { x: 260, text: t.step1, kind: 'done' },
+  { x: 450, text: t.step2, kind: 'head' },
+  { x: 640, text: t.step3, kind: 'future' },
+];
+---
+<Frame id="dg-migrations" w={720} h={270} title={t.title} desc={t.desc}>
+  <path d={`M40 ${Y} H450`} stroke="var(--ink)" stroke-width="3" class="dg-line" />
+  <path d={`M450 ${Y} H680`} stroke="var(--ink-soft)" stroke-width="3" stroke-dasharray="8 7" />
+  <Arrow x1={70} y1={56} x2={446} y2={56} color="var(--teal)" />
+  <Label x={258} y={38} text="alembic upgrade head" size={12} mono weight={700} color="var(--teal-ink)" />
+  {
+    points.map((p) => (
+      <g>
+        <circle
+          cx={p.x}
+          cy={Y}
+          r={p.kind === 'head' ? 13 : 10}
+          fill={p.kind === 'done' || p.kind === 'head' ? 'var(--teal)' : 'var(--card)'}
+          stroke={p.kind === 'future' ? 'var(--ink-soft)' : 'var(--ink)'}
+          stroke-dasharray={p.kind === 'future' ? '4 4' : undefined}
+          class="dg-line"
+        />
+        <Label x={p.x} y={Y + 48} text={p.text} size={12} weight={p.kind === 'head' ? 800 : 600} color={p.kind === 'future' ? 'var(--ink-soft)' : 'var(--ink)'} mono={false} />
+      </g>
+    ))
+  }
+  <Label x={450} y={Y - 30} text={`${t.head} ← alembic current`} size={11} mono weight={700} />
+  <Arrow x1={446} y1={236} x2={264} y2={236} color="var(--coral)" />
+  <Label x={355} y={256} text="alembic downgrade -1" size={12} mono weight={700} color="var(--danger-ink)" />
+</Frame>

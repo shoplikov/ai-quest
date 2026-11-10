@@ -1,0 +1,94 @@
+---
+import Frame from './Frame.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['join'];
+}
+const { t } = Astro.props;
+const RH = 28;
+type Table = { x: number; y: number; cols: { name: string; w: number }[]; rows: string[][]; fill: string };
+const docs: Table = {
+  x: 20,
+  y: 44,
+  fill: 'var(--teal-soft)',
+  cols: [
+    { name: 'id', w: 44 },
+    { name: 'title', w: 170 },
+  ],
+  rows: [
+    ['1', t.docTitles[0]!],
+    ['2', t.docTitles[1]!],
+  ],
+};
+const chunks: Table = {
+  x: 330,
+  y: 44,
+  fill: 'var(--sun-soft)',
+  cols: [
+    { name: 'id', w: 44 },
+    { name: 'document_id', w: 108 },
+    { name: 'content', w: 218 },
+  ],
+  rows: [
+    ['10', '1', t.chunkTexts[0]!],
+    ['11', '2', t.chunkTexts[1]!],
+    ['12', '2', t.chunkTexts[2]!],
+  ],
+};
+const result: Table = {
+  x: 150,
+  y: 236,
+  fill: 'var(--card-2)',
+  cols: [
+    { name: 'title', w: 170 },
+    { name: 'content', w: 250 },
+  ],
+  rows: chunks.rows.map((r) => [docs.rows[Number(r[1]) - 1]![1]!, r[2]!]),
+};
+const width = (tb: Table) => tb.cols.reduce((n, c) => n + c.w, 0);
+const colX = (tb: Table, i: number) => tb.x + tb.cols.slice(0, i).reduce((n, c) => n + c.w, 0);
+const rowY = (tb: Table, i: number) => tb.y + RH * (i + 1);
+const tables = [
+  { tb: docs, title: t.documents, mono: true },
+  { tb: chunks, title: t.chunks, mono: true },
+  { tb: result, title: t.result, mono: false },
+];
+---
+<Frame id="dg-join" w={720} h={372} title={t.title} desc={t.desc}>
+  {
+    tables.map(({ tb, title, mono }) => (
+      <g>
+        <Label x={tb.x} y={tb.y - 14} text={title} anchor="start" size={13} weight={800} mono={mono} color="var(--ink-soft)" />
+        <rect x={tb.x} y={tb.y} width={width(tb)} height={RH * (tb.rows.length + 1)} rx={8} fill="var(--card)" stroke="var(--ink)" class="dg-line" />
+        <rect x={tb.x} y={tb.y} width={width(tb)} height={RH} rx={8} fill={tb.fill} stroke="var(--ink)" class="dg-line" />
+        {tb.rows.map((_, i) => (
+          <path d={`M${tb.x} ${rowY(tb, i)} h${width(tb)}`} stroke="var(--line)" stroke-width="1.5" />
+        ))}
+        {tb.cols.map((c, j) => (
+          <g>
+            {j > 0 && <path d={`M${colX(tb, j)} ${tb.y} v${RH * (tb.rows.length + 1)}`} stroke="var(--line)" stroke-width="1.5" />}
+            <Label x={colX(tb, j) + 8} y={tb.y + RH / 2} text={c.name} anchor="start" size={12} mono weight={800} />
+            {tb.rows.map((r, i) => (
+              <Label x={colX(tb, j) + 8} y={rowY(tb, i) + RH / 2} text={r[j]!} anchor="start" size={12} weight={600} />
+            ))}
+          </g>
+        ))}
+      </g>
+    ))
+  }
+  {
+    chunks.rows.map((r, i) => (
+      <Arrow
+        x1={chunks.x - 4}
+        y1={rowY(chunks, i) + RH / 2}
+        x2={docs.x + width(docs) + 4}
+        y2={rowY(docs, Number(r[1]) - 1) + RH / 2}
+        bend={i === 2 ? 14 : 0}
+        color="var(--teal)"
+      />
+    ))
+  }
+  <Label x={360} y={184} text="JOIN documents ON documents.id = chunks.document_id" size={12} mono weight={700} color="var(--teal-ink)" />
+</Frame>

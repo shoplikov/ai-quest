@@ -117,7 +117,7 @@ build its widget if it has one.
 - [x] **4.2 Level 3 — Backend.** Diagrams: `request-response`, `event-loop`, `project-layout`.
 - [x] **4.3 Level 4 — Docker.** Diagrams: `image-vs-container`, `volume`,
       `compose-network`. Widget: Dockerfile layer stacker (logic + tests first).
-- [ ] **4.4 Level 5 — Data.** Diagrams: `join`, `migrations-timeline`, `meaning-map`, `cache-aside`.
+- [x] **4.4 Level 5 — Data.** Diagrams: `join`, `migrations-timeline`, `meaning-map`, `cache-aside`.
 - [ ] **4.5 Level 6 — LLM serving.** Diagrams: `context-window`, `streaming-timeline`.
 - [ ] **4.6 Level 7 — RAG.** Diagrams: `rag-two-pipelines`, `hybrid-fusion`,
       `eval-loop`. Widgets: chunking visualiser, RAG pipeline walkthrough

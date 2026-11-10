@@ -1,0 +1,33 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['cacheAside'];
+}
+const { t } = Astro.props;
+---
+<Frame id="dg-cache" w={720} h={310} title={t.title} desc={t.desc}>
+  <Box x={20} y={110} w={160} h={90} fill="var(--card)" seed={171} />
+  <Label x={100} y={155} text={t.api} size={14} weight={800} />
+
+  <Box x={480} y={20} w={220} h={84} fill="var(--sun-soft)" seed={172} />
+  <Label x={590} y={62} text={t.redis} size={14} weight={800} />
+
+  <Box x={480} y={206} w={220} h={84} fill="var(--card-2)" seed={173} />
+  <Label x={590} y={248} text={t.work} size={13} weight={800} />
+
+  <Arrow x1={184} y1={124} x2={476} y2={48} color="var(--teal)" />
+  <Label x={300} y={62} text={t.look} size={12} weight={800} color="var(--teal-ink)" />
+
+  <Arrow x1={476} y1={86} x2={186} y2={150} color="var(--teal)" dashed />
+  <Label x={350} y={138} text={t.hit} size={12} weight={800} color="var(--teal-ink)" />
+
+  <Arrow x1={184} y1={184} x2={476} y2={248} color="var(--coral)" />
+  <Label x={300} y={242} text={t.miss} size={12} weight={800} color="var(--danger-ink)" />
+
+  <Arrow x1={600} y1={202} x2={600} y2={108} color="var(--ink-soft)" />
+  <Label x={588} y={156} text={t.store} anchor="end" size={12} weight={800} color="var(--ink-soft)" />
+</Frame>

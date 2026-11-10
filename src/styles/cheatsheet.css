@@ -87,6 +87,10 @@
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 10mm 11mm;
+  }
   main.page {
     padding: 0 !important;
     margin: 0 !important;
@@ -94,8 +98,8 @@
   }
   .cheatsheet {
     max-width: none;
-    font-size: 9.5pt;
-    line-height: 1.35;
+    font-size: 9pt;
+    line-height: 1.28;
   }
   .cs-header {
     margin-bottom: 3mm;
@@ -109,12 +113,13 @@
     color: #333;
   }
   .cs-title {
-    font-size: 12pt;
-    margin: 4mm 0 2mm;
+    font-size: 11.5pt;
+    margin: 3mm 0 1.5mm;
   }
   .cs-table {
     display: table !important;
-    font-size: 9pt;
+    table-layout: fixed;
+    font-size: 8.5pt;
     margin: 0;
     border: 1px solid #999;
     border-radius: 0;
@@ -139,7 +144,7 @@
   .cs-table th,
   .cs-table td {
     display: table-cell !important;
-    padding: 1.2mm 2mm;
+    padding: 0.8mm 1.6mm;
     border-bottom: 1px solid #ccc;
     background: #fff;
     color: #000;
@@ -151,14 +156,25 @@
     content: none !important;
   }
   .cs-table code {
-    font-size: 8.5pt;
+    font-size: 8pt;
     background: none !important;
     border: none !important;
     padding: 0;
     color: #000;
   }
+  .cs-commands th:first-child,
   .cs-commands td:first-child {
     width: 48% !important;
+  }
+  .cs-traps th:nth-child(1),
+  .cs-traps td:nth-child(1) {
+    width: 30% !important;
+  }
+  .cs-traps th:nth-child(2),
+  .cs-traps td:nth-child(2),
+  .cs-traps th:nth-child(3),
+  .cs-traps td:nth-child(3) {
+    width: 35% !important;
   }
   .cs-print-footer {
     display: block;
