@@ -196,7 +196,7 @@ describe('badges', () => {
 
 describe('share link', () => {
   const sample = (): Progress => {
-    let p = { ...base(), hero: 'Ада Лавлейс 🚀', theme: 'dark' as const };
+    let p: Progress = { ...base(), hero: 'Ада Лавлейс 🚀', theme: 'dark' };
     p = setTick(p, 2, 'mission', 'm1', true, '2026-11-10');
     p = recordQuiz(p, 2, 4);
     p = finishLevel(p, 1, NOW);
@@ -227,7 +227,7 @@ describe('share link', () => {
 
   it('rejects the wrong version or shape', () => {
     const enc = (o: unknown) =>
-      Buffer.from(JSON.stringify(o)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     expect(decodeShare(enc({ ...base(), v: 2 }))).toBeNull();
     expect(decodeShare(enc({ ...base(), levels: { '9': emptyLevel() } }))).toBeNull();
     expect(decodeShare(enc({ ...base(), levels: { '1': { ...emptyLevel(), quizBest: -1 } } }))).toBeNull();

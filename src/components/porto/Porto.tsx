@@ -38,7 +38,6 @@ function Paw({ x, y }: { x: number; y: number }) {
 }
 
 export default function Porto({ mood = 'hello', size = 120, label, class: cls }: Props): JSX.Element {
-  const a11y = label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': 'true' as const };
   const eyesClosed = mood === 'cozy';
   return (
     <svg
@@ -46,7 +45,9 @@ export default function Porto({ mood = 'hello', size = 120, label, class: cls }:
       width={size}
       height={size * (124 / 120)}
       class={['porto', `porto-${mood}`, cls].filter(Boolean).join(' ')}
-      {...a11y}
+      role={label ? 'img' : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : 'true'}
     >
       {/* tail */}
       <path d="M80 104 Q104 108 108 90 Q110 82 102 84 Q100 98 78 96 Z" fill={FUR_DARK} />

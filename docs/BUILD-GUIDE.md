@@ -68,7 +68,7 @@ task: build it, run its checks, tick the box, commit.
       *Check:* Vitest unit tests for XP, rank thresholds, streak (today,
       yesterday, broken), current level, badges, share-link round trip,
       and rejection of broken share data.
-- [ ] **2.2 Content collection.** Zod schema for level frontmatter from
+- [x] **2.2 Content collection.** Zod schema for level frontmatter from
       `docs/spec/content-guide.md`; glossary collection.
       *Check:* `npm run check` passes with `2-ports.mdx`; removing a
       required field makes it fail (then put it back). Add
