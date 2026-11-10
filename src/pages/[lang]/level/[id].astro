@@ -38,7 +38,7 @@ const { Content } = await render(entry);
 
 const prev = all.find((e) => e.data.id === d.id - 1);
 const next = all.find((e) => e.data.id === d.id + 1);
-const cheatsheetExists = Object.keys(import.meta.glob('../cheatsheets/[id].astro')).length > 0;
+const cheatsheetExists = Object.keys(import.meta.glob('../cheatsheets/*.astro')).some((p) => p.endsWith('/[id].astro'));
 const bossExists = Object.keys(import.meta.glob('../boss.astro')).length > 0;
 
 // Widgets used in the body, in order, for the "Play with it" anchor.
