@@ -106,13 +106,13 @@ missions:
     steps:
       - "Install the settings helper: `pip install pydantic-settings`, then `pip freeze > requirements.txt` again."
       - |
-        Write `app/config.py`:
+        Write `app/config.py`. The `extra="ignore"` lets `.env` also hold values meant for other programs, such as the database password in Level 4:
         ```python
         from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
         class Settings(BaseSettings):
-            model_config = SettingsConfigDict(env_file=".env")
+            model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
             app_name: str = "quest-api"
             log_level: str = "INFO"

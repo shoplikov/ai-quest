@@ -106,13 +106,13 @@ missions:
     steps:
       - "Установи помощника для настроек: `pip install pydantic-settings` и снова `pip freeze > requirements.txt`."
       - |
-        Напиши `app/config.py`:
+        Напиши `app/config.py`. `extra="ignore"` разрешает хранить в `.env` и значения для других программ — например, пароль базы данных на уровне 4:
         ```python
         from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
         class Settings(BaseSettings):
-            model_config = SettingsConfigDict(env_file=".env")
+            model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
             app_name: str = "quest-api"
             log_level: str = "INFO"
