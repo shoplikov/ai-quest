@@ -1,0 +1,38 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import { fill, type Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['imageVsContainer'];
+}
+const { t } = Astro.props;
+const boxes = [58, 148, 238];
+---
+<Frame id="dg-image" w={720} h={310} title={t.title} desc={t.desc}>
+  <Box x={10} y={98} w={118} h={96} fill="var(--card)" seed={141} />
+  <Label x={69} y={130} text="Dockerfile" size={14} mono weight={800} />
+  <Label x={69} y={164} text={t.recipe} size={12} color="var(--ink-soft)" />
+
+  <Arrow x1={132} y1={146} x2={222} y2={146} color="var(--teal)" />
+  <Label x={177} y={126} text="docker build" size={11} mono color="var(--teal-ink)" />
+
+  <Box x={226} y={86} w={152} h={120} fill="var(--card-2)" seed={142} />
+  <Label x={302} y={116} text={t.image} size={15} weight={800} />
+  <Label x={302} y={162} text={t.imageNote} size={12} color="var(--ink-soft)" />
+  <Label x={302} y={186} text="❄" size={14} color="var(--sky)" />
+
+  <Label x={430} y={20} text="docker run" size={11} mono color="var(--teal-ink)" />
+  {
+    boxes.map((y, i) => (
+      <g>
+        <Arrow x1={382} y1={146} x2={476} y2={y} bend={i === 0 ? -10 : i === 2 ? 10 : 0} color="var(--teal)" />
+        <Box x={480} y={y - 30} w={222} h={60} fill="var(--teal-soft)" seed={143 + i} />
+        <Label x={591} y={y - 10} text={fill(t.container, { n: i + 1 })} size={13} weight={800} />
+        <Label x={591} y={y + 12} text={t.containerNote} size={11} color="var(--ink-soft)" />
+      </g>
+    ))
+  }
+  <Label x={360} y={292} text={t.many} size={12} color="var(--ink-soft)" />
+</Frame>

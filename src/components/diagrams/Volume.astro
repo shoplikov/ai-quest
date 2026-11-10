@@ -1,0 +1,28 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['volume'];
+}
+const { t } = Astro.props;
+---
+<Frame id="dg-volume" w={720} h={300} title={t.title} desc={t.desc}>
+  <Box x={30} y={30} w={290} h={170} fill="var(--card)" dashed seed={151} />
+  <Label x={175} y={56} text={t.container} size={15} weight={800} />
+  <Box x={50} y={92} w={250} h={44} fill="var(--card-2)" seed={152} />
+  <Label x={175} y={114} text="/var/lib/postgresql/data" size={12} mono />
+  <Label x={175} y={170} text={t.containerNote} size={12} color="var(--ink-soft)" />
+
+  <Arrow x1={304} y1={114} x2={420} y2={114} color="var(--teal)" both />
+
+  <Box x={424} y={58} w={270} h={112} fill="var(--teal-soft)" seed={153} />
+  <Label x={559} y={84} text={t.volume} size={15} weight={800} mono />
+  <Label x={559} y={130} text={t.volumeNote} size={12} />
+  <path d="M424 178 H694" stroke="var(--ink)" stroke-width="5" stroke-linecap="round" class="dg-line" />
+
+  <Label x={30} y={240} text={t.down} anchor="start" size={13} mono color="var(--teal-ink)" />
+  <Label x={30} y={272} text={t.downV} anchor="start" size={13} mono color="var(--danger-ink)" />
+</Frame>

@@ -1,0 +1,408 @@
+---
+id: 4
+slug: docker
+title: "Docker & Compose"
+tagline: "Pack your app with everything it needs, so it runs the same everywhere."
+weeks: 1
+landmark: harbour
+badge: { name: "Container Tamer", emoji: "📦" }
+skill:
+  name: "Containers"
+  junior: "I run `docker compose up` and hope."
+  growing: "I write a Dockerfile and read container logs."
+  middle: "I design a compose stack, keep data safe in volumes, and debug a container that will not start."
+itsNormal: >
+  Docker adds a second, invisible computer inside your computer. Being
+  confused about "which localhost is this?" is the standard experience,
+  not a personal failing. Everyone asks it. The good news: the answer is
+  always the same, and by the end of this level you will say it out loud
+  before anyone asks.
+analogy:
+  emoji: "🍱"
+  title: "A container is a lunchbox"
+  text: >
+    The image is the recipe plus the packed box waiting in the freezer. A
+    container is one box taken out and opened. The box has its own little
+    world inside: its own files, its own `localhost`. A volume is a shelf in
+    the real kitchen that the box may use, so the food survives after the
+    box is thrown away. And `-p 8080:8000` cuts a door in the side of the box.
+missions:
+  - id: m1
+    title: "Pack the lunchbox"
+    why: "You put `quest-api` in a box that runs without your laptop's Python."
+    steps:
+      - "Check that Docker works: `docker run --rm hello-world`. If it says `permission denied` on the Docker socket, ask your mentor to add you to the `docker` group, then log out and back in."
+      - "With the venv active, make sure the shopping list is current: `pip freeze > requirements.txt`."
+      - |
+        Write `Dockerfile` in the project folder:
+        ```dockerfile
+        FROM python:3.12-slim
+        WORKDIR /app
+        COPY requirements.txt .
+        RUN pip install --no-cache-dir -r requirements.txt
+        COPY . .
+        CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+        ```
+      - |
+        Write `.dockerignore`, so the box stays small and secrets stay out:
+        ```
+        .venv
+        .git
+        __pycache__
+        .env
+        ```
+      - "Build the image: `docker build -t quest-api .` Watch the steps go by: one per line of the Dockerfile."
+      - "Run a box from it: `docker run --rm -p 8000:8000 quest-api`"
+      - "In another terminal, leave the venv with `deactivate` and call it: `curl -s localhost:8000/health`. The box brought its own Python."
+    check: "`curl -s localhost:8000/health` prints `{\"status\":\"ok\"}` while no venv is active."
+  - id: m2
+    title: "Look inside"
+    why: "You open the box and see that it is a separate little world."
+    steps:
+      - "Start the box in the background with a name: `docker run -d --rm --name quest -p 8000:8000 quest-api`. Check it with `docker ps`."
+      - "Open the box: `docker exec -it quest sh`. The prompt changes to `#` — you are inside."
+      - "Look around with `ls`: your project is there, but no `.venv` and no `.env`. That is `.dockerignore` at work."
+      - "Ask two questions: `hostname`, then `env | sort`. Leave with `exit`."
+      - "Ask the same two questions on your own machine, outside the box. Compare the answers."
+      - "Call the service a few times, then read what it wrote: `docker logs -f quest`. Leave with Ctrl+C, and stop the box with `docker stop quest` (`--rm` removes it for you)."
+    check: "You can name three things that are different inside the box: the hostname, the files and the environment."
+  - id: m3
+    title: "Fast rebuilds"
+    why: "You see with a stopwatch why the order of Dockerfile lines matters."
+    steps:
+      - |
+        Make a slow copy of your Dockerfile, `Dockerfile.slow`, where the code is copied before the packages are installed:
+        ```dockerfile
+        FROM python:3.12-slim
+        WORKDIR /app
+        COPY . .
+        RUN pip install --no-cache-dir -r requirements.txt
+        CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+        ```
+      - "Build it once to fill the cache: `docker build -f Dockerfile.slow -t quest-api:slow .`"
+      - "Change one line of code, for example the text in `fake_answer`. Rebuild with a stopwatch: `time docker build -f Dockerfile.slow -t quest-api:slow .` Notice that `RUN pip install` runs again."
+      - "Change the line once more and rebuild with your good Dockerfile: `time docker build -t quest-api .` Find the word `CACHED` next to the `pip install` step."
+      - "Compare the two times. Then delete `Dockerfile.slow`."
+    check: "The good order rebuilds in seconds, and you can say why in one sentence."
+  - id: m4
+    title: "Two boxes"
+    why: "You run the API and a real database side by side, and the API checks that it can reach it."
+    steps:
+      - "Add the PostgreSQL driver: `pip install \"psycopg[binary]\"`, then `pip freeze > requirements.txt`."
+      - "In `app/config.py`, add one field to `Settings`: `database_url: str = \"postgresql://postgres:postgres@localhost:5432/postgres\"`."
+      - |
+        Add a readiness check to `app/main.py` (with `import psycopg` and `HTTPException` imported at the top):
+        ```python
+        @app.get("/ready")
+        def ready():
+            try:
+                with psycopg.connect(settings.database_url, connect_timeout=2) as conn:
+                    conn.execute("SELECT 1")
+            except psycopg.OperationalError as error:
+                log.warning("database not ready: %s", error)
+                raise HTTPException(status_code=503, detail="database not reachable")
+            return {"status": "ready"}
+        ```
+      - |
+        Add two lines to `.env` (choose your own password) and the same keys, without the real password, to `.env.example`:
+        ```
+        POSTGRES_PASSWORD=change-me
+        DATABASE_URL=postgresql://postgres:change-me@db:5432/postgres
+        ```
+      - |
+        Write `compose.yaml`. The `api` gets its own healthcheck, so you can see both boxes are well:
+        ```yaml
+        services:
+          api:
+            build: .
+            ports: ["8000:8000"]
+            env_file: .env
+            depends_on:
+              db:
+                condition: service_healthy
+            healthcheck:
+              test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+              interval: 5s
+              retries: 5
+          db:
+            image: postgres:17
+            environment:
+              POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            volumes: ["pgdata:/var/lib/postgresql/data"]
+            healthcheck:
+              test: ["CMD-SHELL", "pg_isready -U postgres"]
+              interval: 5s
+              retries: 10
+        volumes:
+          pgdata:
+        ```
+      - "Start both: `docker compose up -d --build`. Wait a few seconds, then `docker compose ps` — both lines end in `(healthy)`."
+      - "Ask the API: `curl -s localhost:8000/ready` gives `{\"status\":\"ready\"}`. Stop the database with `docker compose stop db` and ask again: 503. `docker compose logs api` says why. Start it again: `docker compose start db`."
+    check: "`docker compose ps` shows both services healthy, `/ready` answers 200, and with the database stopped it answers 503."
+  - id: m5
+    title: "Data that survives"
+    why: "You see where database data really lives, and what deletes it."
+    steps:
+      - "Open the database shell: `docker compose exec db psql -U postgres`. The prompt becomes `postgres=#`."
+      - "Make a table and a row: `CREATE TABLE notes (id serial PRIMARY KEY, text text);` then `INSERT INTO notes (text) VALUES ('hello from the box');` then `SELECT * FROM notes;`. Leave with `\\q`."
+      - "Throw the boxes away: `docker compose down`. Then `docker volume ls`: the volume `quest-api_pgdata` is still there."
+      - "Bring everything back with `docker compose up -d`, wait for healthy, and look: `docker compose exec db psql -U postgres -c \"SELECT * FROM notes;\"`. Your row is still there."
+      - "Now, carefully, and only on this toy project: `docker compose down -v`, then `up -d` and the same `SELECT`. It answers `ERROR:  relation \"notes\" does not exist`. The `-v` took the shelf away."
+    check: "You can explain where the row lived, and why `down` kept it and `down -v` did not."
+breaks:
+  - id: b1
+    title: "Family only, in a box"
+    do: "Start the box with the app bound to 127.0.0.1: `docker run --rm -p 8000:8000 quest-api uvicorn app.main:app --host 127.0.0.1 --port 8000`. In another terminal: `curl localhost:8000/health`"
+    see: "curl: (56) Recv failure: Connection reset by peer"
+    why: "Inside the box, 127.0.0.1 is the box itself. Docker's door brings your knock in from outside the box, and nobody listens there. It is Level 2's \"family only\" again — one floor deeper."
+    fix: "Bind to `--host 0.0.0.0`, as your Dockerfile's `CMD` already does."
+  - id: b2
+    title: "The box that closes at once"
+    do: "Start a box with a typo in the module name: `docker run -d --name broken quest-api uvicorn app.mian:app --host 0.0.0.0`. Run `docker ps`: it is not there. Run `docker ps -a`."
+    see: "Exited (3) 2 seconds ago"
+    why: "A container lives exactly as long as its main process. The process stopped with an error, so the box closed. Docker does not guess why; the program said so in the logs."
+    fix: "`docker logs broken` shows `Error loading ASGI app. Could not import module \"app.mian\".` Fix the name, and remove the dead box with `docker rm broken`. When a box dies, the logs come first, always."
+  - id: b3
+    title: "Which localhost?"
+    do: "In `.env`, change `@db:5432` to `@localhost:5432`. Run `docker compose up -d`, then `curl -s localhost:8000/ready` and `docker compose logs api`."
+    see: "connection failed: connection to server at \"127.0.0.1\", port 5432 failed: Connection refused"
+    why: "`localhost` inside the API's box is the API's box. There is no database in there. Inside compose, every box is reached by its service name."
+    fix: "Put `@db:5432` back and run `docker compose up -d` again. `/ready` answers 200."
+  - id: b4
+    title: "Door already taken"
+    do: "With the box from Mission 2 running (`docker run -d --rm --name quest -p 8000:8000 quest-api`), start a second one on the same door: `docker run --rm -p 8000:8000 quest-api`"
+    see: "Bind for 0.0.0.0:8000 failed: port is already allocated"
+    why: "Port 8000 on your machine is one door, and the first box already has it. Inside, both boxes could use 8000 — the problem is only on the left side of `-p`."
+    fix: "`docker ps` shows who has the door. Stop it with `docker stop quest`, or give the second box another door: `-p 8001:8000`."
+traps:
+  - error: "port is already allocated"
+    meaning: "Another container or program already holds that port on your machine."
+    firstMove: "`docker ps`, then `ss -tlnp | grep :<port>`"
+  - error: "Exited (1), or any number but 0"
+    meaning: "The main process stopped with an error, so the container stopped too."
+    firstMove: "`docker logs <name>`"
+  - error: "Exited (137)"
+    meaning: "The process was killed from outside, usually for using too much memory."
+    firstMove: "`docker stats` while it runs; give it more memory or make it use less."
+  - error: "failed to compute cache key: … \"/requirements.txt\": not found"
+    meaning: "`COPY` could not find the file: it is outside the build folder, or `.dockerignore` excludes it."
+    firstMove: "Check both: where you run `docker build`, and `.dockerignore`."
+  - error: "Cannot connect to the Docker daemon"
+    meaning: "Docker is not running. (If it says `permission denied` instead, you are not in the `docker` group.)"
+    firstMove: "`sudo systemctl status docker`; `groups` shows whether you are in `docker`."
+  - error: "exec format error"
+    meaning: "The image was built for another type of CPU."
+    firstMove: "Build for the server's CPU: `docker build --platform linux/amd64 …`"
+  - error: "My change is not in the container"
+    meaning: "The container runs the old image. You did not rebuild."
+    firstMove: "`docker compose up -d --build`"
+deliverable:
+  repo: "`quest-api` now has a `Dockerfile`, `.dockerignore` and `compose.yaml`, and the README says how to run everything with one command."
+  sketch: "One page: your machine, the two boxes, the compose network, the volume — with every port written on every arrow."
+  demo: "Clone the repo into a fresh folder, run `docker compose up -d`, and show that everything works. Then cause one break from this level and fix it."
+selfCheck:
+  - "I can explain image vs container without the word \"virtual\"."
+  - "I know which `localhost` I mean, every time."
+  - "When a container dies, I read its logs before anything else."
+  - "My data is in a named volume."
+  - "I can read someone else's compose file and draw it."
+quiz:
+  - q: "The app runs in a container started with `-p 8000:8000`, and curl gives this. Why?"
+    code: "curl: (56) Recv failure: Connection reset by peer"
+    options:
+      - "The app listens on 127.0.0.1 inside the container"
+      - "A firewall blocks the port"
+      - "The image name is wrong"
+    answer: 0
+    why: "The door in the box is there, so curl gets in — and then finds nobody, because the app answers only inside the box. Bind it to 0.0.0.0."
+  - q: "In compose, the API container cannot reach Postgres at `localhost:5432`. What do you change?"
+    options:
+      - "Use the service name: `db:5432`"
+      - "Publish port 5432"
+      - "Restart Docker"
+    answer: 0
+    why: "Inside a box, `localhost` is that box. Compose lets every box find the others by service name."
+  - q: "`docker ps` shows nothing right after `docker run -d`. What happened?"
+    options:
+      - "The container exited — look with `docker ps -a` and `docker logs`"
+      - "Docker is slow to start containers"
+      - "The port is wrong"
+    answer: 0
+    why: "`docker ps` lists only running containers. A container that stopped at once is still listed by `docker ps -a`, and its logs say why."
+  - q: "Every code change reinstalls all packages during the build. Why?"
+    options:
+      - "`COPY . .` is above `pip install`; copy `requirements.txt` first"
+      - "There is no internet connection"
+      - "The machine has too little RAM"
+    answer: 0
+    why: "Once a layer changes, every layer after it rebuilds. Your code changes often, so it must come after the slow, rarely changing install."
+  - q: "After `docker compose down -v`, the database is empty. Why?"
+    options:
+      - "`-v` deleted the volume"
+      - "A bug in Postgres"
+      - "The password was wrong"
+    answer: 0
+    why: "The data lived on the shelf, the volume. `down` throws away the boxes; `down -v` throws away the shelf too."
+links:
+  - title: "Docker: Get started"
+    url: "https://docs.docker.com/get-started/"
+    why: "The official tour, from the first container to compose."
+  - title: "Dockerfile reference"
+    url: "https://docs.docker.com/reference/dockerfile/"
+    why: "Every instruction, exactly. Look things up here, not in old blog posts."
+  - title: "Compose file reference"
+    url: "https://docs.docker.com/reference/compose-file/"
+    why: "What every key in `compose.yaml` means."
+  - title: "Docker roadmap"
+    url: "https://roadmap.sh/docker"
+    why: "A visual map of what to learn next, and in which order."
+cheatsheet:
+  - { cmd: "docker build -t name .", does: "Build an image from the Dockerfile here" }
+  - { cmd: "docker run --rm -p H:C name", does: "Start a box; machine port H → box port C" }
+  - { cmd: "docker ps -a", does: "All containers, the stopped ones too" }
+  - { cmd: "docker logs -f name", does: "Follow what a container prints" }
+  - { cmd: "docker exec -it name sh", does: "Open a shell inside a running box" }
+  - { cmd: "docker compose up -d --build", does: "Rebuild and start everything in the background" }
+  - { cmd: "docker compose logs -f svc", does: "Follow the logs of one service" }
+  - { cmd: "docker compose ps", does: "Services, their state and health" }
+  - { cmd: "docker compose down", does: "Remove the boxes; volumes stay (-v deletes them too)" }
+  - { cmd: "docker stats", does: "Live CPU and memory use per container" }
+  - { cmd: "docker system df", does: "How much disk images, containers and volumes use" }
+  - { cmd: "docker image prune", does: "Delete dangling images nobody uses" }
+kindNote: >
+  "It works on my machine" is no longer your sentence. You can hand anyone
+  a box that runs the same everywhere, keep its data on a shelf that
+  survives, and when a box refuses to start you open its logs before you
+  open a search engine. And you know which localhost is which — something
+  many people never fully learn. Porto has started labelling his lunchboxes.
+---
+
+import PortPlayground from '../../../components/widgets/PortPlayground';
+import DockerfileStacker from '../../../components/widgets/DockerfileStacker';
+import Diagram from '../../../components/Diagram.astro';
+import Analogy from '../../../components/Analogy.astro';
+
+Your service runs on your laptop. On the server it needs the same Python,
+the same packages, the same settings — and something is always slightly
+different. Docker's answer is simple to say: don't describe your machine,
+ship it.
+
+<Analogy />
+
+## Ship the machine
+
+You write the recipe once, in a `Dockerfile`. `docker build` follows it
+and packs an **image**: your code, Python and every package, frozen. `docker
+run` takes one box out and opens it: a **container**. You can open as many
+as you like from the same image, here or on any server.
+
+<Diagram name="image-vs-container" />
+
+## A Dockerfile, line by line
+
+```dockerfile
+FROM python:3.12-slim                  # start from a small box with Python
+WORKDIR /app                           # work in /app inside the box
+COPY requirements.txt .                # bring the shopping list
+RUN pip install -r requirements.txt    # buy everything on it
+COPY . .                               # bring your code
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+Each line makes a **layer**, and Docker remembers layers. On the next build
+it reuses every layer whose input did not change — until the first one
+that did. From there on, everything is built again. So the slow line that
+rarely changes (installing packages) goes above the fast line that changes
+all the time (your code).
+
+Try it yourself. The lines start in a bad order:
+
+<DockerfileStacker client:visible strings={props.ui.dockerfileStacker} />
+
+## Build it, run it, look inside
+
+```bash
+docker build -t quest-api .                 # follow the recipe
+docker run --rm -p 8000:8000 quest-api      # open a box
+docker ps                                   # which boxes are running?
+docker logs -f <name>                       # what is it saying?
+docker exec -it <name> sh                   # open the box and look inside
+```
+
+A `.dockerignore` file keeps things out of the box: `.venv` (the box has
+its own packages), `.git`, caches, and `.env` with your secrets. Smaller
+boxes build faster and leak nothing. The `-slim` base image helps too.
+
+## Ports, one floor deeper
+
+`-p 8000:8000` cuts a door in the box. **Left is your machine, right is the
+box.** `-p 8080:8000` means "door 8080 on my machine leads to door 8000 in
+the box".
+
+And Level 2 comes back: inside the box, `127.0.0.1` is the box itself.
+Docker's door brings visitors in from outside, so the app in the box must
+listen on `0.0.0.0`. Switch it to Docker mode:
+
+<PortPlayground client:visible strings={props.ui.portPlayground} />
+
+## Data lives on a shelf
+
+Containers are disposable. You remove one, and everything written inside
+it is gone. That is a feature: a fresh box is always clean. But a database
+must not forget. Anything worth keeping goes into a **volume**, a shelf in
+the real kitchen that survives the box.
+
+<Diagram name="volume" />
+
+## Compose: boxes that know each other
+
+A real service is several boxes: the API, a database, later a cache.
+`compose.yaml` describes them all, and one command starts them together:
+
+```yaml
+services:
+  api:
+    build: .
+    ports: ["8000:8000"]
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:
+```
+
+Compose puts the boxes in one network where they find each other **by
+service name**. The API reaches the database at `db:5432` — never
+`localhost:5432`, which is the API's own box.
+
+<Diagram name="compose-network" />
+
+Everyday commands: `docker compose up -d --build` (start, rebuilding what
+changed), `docker compose logs -f api`, `docker compose ps`, `docker
+compose exec api sh`, `docker compose down`.
+
+> ⚠️ `docker compose down -v` also deletes the volumes — your database
+> data with them. On a real project, stop and read the command twice.
+
+## You can read this website now
+
+This website runs in Docker too. Open its `Dockerfile` and `compose.yaml`
+in the repo and read them. A few weeks ago they were noise. Now you can
+say what every line does.
+
+## What to remember
+
+1. **Image = recipe and packed box. Container = one opened box.**
+2. **Slow, stable lines first; your code last.** Then rebuilds take seconds.
+3. **Inside a box, `localhost` is the box.** Listen on `0.0.0.0`; call other boxes by service name.
+4. **Data worth keeping lives in a volume.** And `down -v` deletes it.

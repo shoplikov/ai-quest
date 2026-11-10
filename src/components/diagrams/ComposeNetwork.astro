@@ -1,0 +1,38 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['composeNetwork'];
+}
+const { t } = Astro.props;
+---
+<Frame id="dg-compose" w={760} h={330} title={t.title} desc={t.desc}>
+  <Box x={8} y={8} w={744} h={314} fill="var(--card)" seed={161} />
+  <Label x={28} y={32} text={t.machine} anchor="start" size={14} weight={800} color="var(--ink-soft)" />
+
+  <Box x={232} y={52} w={502} h={196} fill="none" dashed seed={162} />
+  <Label x={250} y={74} text={t.network} anchor="start" size={13} weight={800} color="var(--lilac-ink)" />
+
+  <Box x={20} y={108} w={112} h={84} fill="var(--card-2)" seed={163} />
+  <Label x={76} y={150} text={t.you} size={12} weight={700} />
+  <Arrow x1={136} y1={150} x2={258} y2={150} color="var(--teal)" />
+  <Label x={183} y={174} text="localhost:8000" size={11} mono color="var(--teal-ink)" />
+
+  <Box x={262} y={108} w={166} h={84} fill="var(--teal-soft)" seed={164} />
+  <Label x={345} y={150} text={t.api} size={13} weight={800} />
+
+  <Arrow x1={432} y1={150} x2={532} y2={150} color="var(--teal)" />
+  <Label x={482} y={132} text="db:5432" size={12} mono weight={800} color="var(--teal-ink)" />
+
+  <Box x={536} y={108} w={176} h={84} fill="var(--sun-soft)" seed={165} />
+  <Label x={624} y={150} text={t.db} size={13} weight={800} />
+
+  <Label x={482} y={222} text={t.byName} size={12} color="var(--ink-soft)" />
+
+  <Arrow x1={624} y1={196} x2={624} y2={266} color="var(--ink-soft)" both />
+  <Box x={544} y={268} w={160} h={40} fill="var(--card-2)" seed={166} />
+  <Label x={624} y={288} text={t.volume} size={12} mono weight={700} />
+</Frame>
