@@ -9,6 +9,9 @@ import SshTunnel from './diagrams/SshTunnel.astro';
 import FileTree from './diagrams/FileTree.astro';
 import Pipe from './diagrams/Pipe.astro';
 import Permissions from './diagrams/Permissions.astro';
+import RequestResponse from './diagrams/RequestResponse.astro';
+import EventLoop from './diagrams/EventLoop.astro';
+import ProjectLayout from './diagrams/ProjectLayout.astro';
 
 interface Props {
   name: string;
@@ -16,7 +19,7 @@ interface Props {
 const { name } = Astro.props;
 const lang = isLang(Astro.params.lang) ? Astro.params.lang : isLang(Astro.currentLocale) ? Astro.currentLocale : 'en';
 const t = getDict(lang).diagrams;
-const known = ['building-with-doors', 'localhost-vs-all', 'reverse-proxy', 'ssh-tunnel', 'file-tree', 'pipe', 'permissions'];
+const known = ['building-with-doors', 'localhost-vs-all', 'reverse-proxy', 'ssh-tunnel', 'file-tree', 'pipe', 'permissions', 'request-response', 'event-loop', 'project-layout'];
 if (!known.includes(name)) throw new Error(`Unknown diagram: ${name}`);
 ---
 {name === 'building-with-doors' && <BuildingWithDoors t={t.buildingWithDoors} />}
@@ -26,3 +29,6 @@ if (!known.includes(name)) throw new Error(`Unknown diagram: ${name}`);
 {name === 'file-tree' && <FileTree t={t.fileTree} />}
 {name === 'pipe' && <Pipe t={t.pipe} />}
 {name === 'permissions' && <Permissions t={t.permissions} />}
+{name === 'request-response' && <RequestResponse t={t.requestResponse} />}
+{name === 'event-loop' && <EventLoop t={t.eventLoop} />}
+{name === 'project-layout' && <ProjectLayout t={t.projectLayout} />}

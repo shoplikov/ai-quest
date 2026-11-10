@@ -1,0 +1,46 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['eventLoop'];
+}
+const { t } = Astro.props;
+const tables = [60, 170, 280];
+---
+<Frame id="dg-eventloop" w={720} h={330} title={t.title} desc={t.desc}>
+  <g>
+    <Label x={170} y={22} text={t.good} size={15} weight={800} color="var(--teal-ink)" />
+    {tables.map((x, i) => (
+      <g>
+        <Box x={x - 40} y={52} w={80} h={46} fill="var(--card)" seed={120 + i} />
+        <Label x={x} y={75} text={String(i + 1)} size={16} weight={800} />
+        <Arrow x1={170} y1={186} x2={x} y2={104} bend={i === 1 ? 0 : i === 0 ? 12 : -12} color="var(--teal)" />
+      </g>
+    ))}
+    <circle cx={170} cy={212} r={24} fill="var(--teal-soft)" stroke="var(--ink)" class="dg-line" />
+    <Label x={170} y={252} text={t.waiter} size={12} weight={800} />
+    <Label x={170} y={296} text={t.goodNote} size={12} color="var(--ink-soft)" />
+  </g>
+
+  <path d="M360 30 V300" stroke="var(--line)" stroke-width="2" stroke-dasharray="6 6" fill="none" />
+
+  <g transform="translate(380 0)">
+    <Label x={170} y={22} text={t.bad} size={14} weight={800} color="var(--danger-ink)" mono />
+    {tables.map((x, i) => (
+      <g>
+        <Box x={x - 40} y={52} w={80} h={46} fill={i === 0 ? 'var(--card)' : 'var(--coral-soft)'} seed={130 + i} />
+        <Label x={x} y={75} text={String(i + 1)} size={16} weight={800} />
+        {i > 0 && <Label x={x} y={118} text={t.waiting} size={12} weight={800} color="var(--danger-ink)" />}
+      </g>
+    ))}
+    <path d="M60 186 V104" class="dg-line" stroke="var(--danger)" fill="none" />
+    <circle cx={60} cy={212} r={24} fill="var(--coral-soft)" stroke="var(--ink)" class="dg-line" />
+    <Label x={60} y={252} text={t.waiter} size={12} weight={800} />
+    <Label x={104} y={204} text="time.sleep(5)" anchor="start" size={12} mono color="var(--danger-ink)" />
+    <Label x={104} y={224} text="zzz…" anchor="start" size={12} color="var(--ink-soft)" />
+    <Label x={170} y={296} text={t.badNote} size={12} color="var(--ink-soft)" />
+  </g>
+</Frame>

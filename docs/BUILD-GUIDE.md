@@ -114,7 +114,7 @@ then the Russian file (natural Russian, terms and voice from
 build its widget if it has one.
 
 - [x] **4.1 Level 1 — Terminal.** Diagrams: `file-tree`, `pipe`, `permissions`.
-- [ ] **4.2 Level 3 — Backend.** Diagrams: `request-response`, `event-loop`, `project-layout`.
+- [x] **4.2 Level 3 — Backend.** Diagrams: `request-response`, `event-loop`, `project-layout`.
 - [ ] **4.3 Level 4 — Docker.** Diagrams: `image-vs-container`, `volume`,
       `compose-network`. Widget: Dockerfile layer stacker (logic + tests first).
 - [ ] **4.4 Level 5 — Data.** Diagrams: `join`, `migrations-timeline`, `meaning-map`, `cache-aside`.

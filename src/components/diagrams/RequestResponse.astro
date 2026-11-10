@@ -1,0 +1,58 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['requestResponse'];
+}
+const { t } = Astro.props;
+// HTTP lines are code and stay in English; the side labels are translated.
+const cards = [
+  {
+    y: 20,
+    title: t.request,
+    fill: 'var(--teal-soft)',
+    rows: [
+      [t.methodPath, 'POST /ask'],
+      [t.headers, 'Content-Type: application/json'],
+      [t.body, '{"question": "When do you open?"}'],
+    ],
+  },
+  {
+    y: 164,
+    title: t.response,
+    fill: 'var(--sun-soft)',
+    rows: [
+      [t.status, '200 OK'],
+      [t.headers, 'Content-Type: application/json'],
+      [t.body, '{"answer": "…", "sources": []}'],
+    ],
+  },
+];
+---
+<Frame id="dg-reqres" w={760} h={300} title={t.title} desc={t.desc}>
+  <Box x={14} y={20} w={132} h={260} fill="var(--card)" seed={101} />
+  <Label x={80} y={150} text={t.client} size={13} weight={800} />
+  <Box x={614} y={20} w={132} h={260} fill="var(--card)" seed={102} />
+  <Label x={680} y={150} text={t.server} size={13} weight={800} />
+  {
+    cards.map((c, i) => (
+      <g>
+        <Box x={188} y={c.y} w={384} h={116} fill={c.fill} seed={110 + i} />
+        <Label x={202} y={c.y + 22} text={c.title} anchor="start" size={14} weight={800} />
+        {c.rows.map(([label, code], j) => (
+          <g>
+            <Label x={202} y={c.y + 50 + j * 24} text={label!} anchor="start" size={11} color="var(--ink-soft)" />
+            <Label x={300} y={c.y + 50 + j * 24} text={code!} anchor="start" size={12} mono weight={600} />
+          </g>
+        ))}
+      </g>
+    ))
+  }
+  <Arrow x1={148} y1={78} x2={184} y2={78} color="var(--teal)" />
+  <Arrow x1={574} y1={78} x2={610} y2={78} color="var(--teal)" />
+  <Arrow x1={610} y1={222} x2={574} y2={222} color="var(--teal)" />
+  <Arrow x1={184} y1={222} x2={148} y2={222} color="var(--teal)" />
+</Frame>

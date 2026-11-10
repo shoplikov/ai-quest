@@ -1,0 +1,50 @@
+---
+import Frame from './Frame.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['projectLayout'];
+}
+const { t } = Astro.props;
+// File names are code; the notes are translated.
+const rows: { name: string; depth: number; parent: number | null; note?: string; secret?: boolean }[] = [
+  { name: 'quest-api/', depth: 0, parent: null },
+  { name: 'app/', depth: 1, parent: 0 },
+  { name: 'main.py', depth: 2, parent: 1, note: t.main },
+  { name: 'config.py', depth: 2, parent: 1, note: t.config },
+  { name: 'schemas.py', depth: 2, parent: 1, note: t.schemas },
+  { name: 'routers/ask.py', depth: 2, parent: 1, note: t.routers },
+  { name: 'services/answer.py', depth: 2, parent: 1, note: t.services },
+  { name: 'tests/test_api.py', depth: 1, parent: 0, note: t.tests },
+  { name: '.env', depth: 1, parent: 0, note: t.env, secret: true },
+  { name: '.env.example', depth: 1, parent: 0, note: t.envExample },
+  { name: 'README.md', depth: 1, parent: 0, note: t.readme },
+];
+const CH = 8.4;
+const x = (d: number) => 24 + d * 28;
+const y = (i: number) => 32 + i * 31;
+const NOTE_X = 250;
+---
+<Frame id="dg-layout" w={720} h={366} title={t.title} desc={t.desc}>
+  {
+    rows.map((r, i) =>
+      r.parent === null ? null : (
+        <path
+          d={`M${x(rows[r.parent]!.depth) + 6} ${y(r.parent) + 11} V${y(i)} H${x(r.depth) - 5}`}
+          class="dg-line"
+          stroke="var(--ink-soft)"
+          fill="none"
+          stroke-width="1.6"
+        />
+      ),
+    )
+  }
+  {
+    rows.map((r, i) => (
+      <g>
+        <Label x={x(r.depth)} y={y(i)} text={r.name} anchor="start" size={14} mono weight={r.depth < 2 && !r.note ? 800 : 600} color={r.secret ? 'var(--danger-ink)' : 'var(--ink)'} />
+        {r.note && <Label x={Math.max(NOTE_X, x(r.depth) + r.name.length * CH + 14)} y={y(i)} text={r.note} anchor="start" size={13} color={r.secret ? 'var(--danger-ink)' : 'var(--ink-soft)'} />}
+      </g>
+    ))
+  }
+</Frame>

@@ -1,0 +1,477 @@
+---
+id: 3
+slug: backend
+title: "Бэкенд на FastAPI"
+tagline: "Преврати Python-функцию в то, что может вызвать вся сеть."
+weeks: 2
+landmark: workshop
+badge: { name: "Мастер эндпоинтов", emoji: "🛠️" }
+skill:
+  name: "Бэкенд"
+  junior: "Пишу скрипты и ноутбуки."
+  growing: "Делаю эндпоинты, которые проверяют входные данные и возвращают понятные ошибки."
+  middle: "Проектирую небольшой сервис, которым другие пользуются, не задавая мне вопросов."
+itsNormal: >
+  Скрипт запускается один раз и заканчивается. Сервис работает месяцами и
+  разговаривает с незнакомцами, которые присылают ему что угодно. Это
+  другой способ думать, и чтобы он улёгся, нужно несколько недель. Если
+  твои первые эндпоинты кажутся неуклюжими — ровно такими были первые
+  эндпоинты у всех.
+analogy:
+  emoji: "🍽️"
+  title: "API — это ресторан"
+  text: >
+    Меню — это список эндпоинтов. Заказ — это запрос. Официант проверяет,
+    что заказ есть в меню и его можно прочитать, — это валидация. Кухня —
+    твой код, а тарелка, которую выносят, — ответ. Коды ответа — это
+    выражение лица официанта: 200 — улыбка, 404 — «такого не подаём», 422 —
+    «не могу разобрать ваш заказ», 500 — «на кухне пожар».
+missions:
+  - id: m1
+    title: "Привет, сервис"
+    why: "Ты делаешь настоящий сервис, запускаешь его и вызываешь двумя разными способами."
+    steps:
+      - "Создай проект и отдельный набор инструментов для него: `mkdir -p ~/quest-api/app && cd ~/quest-api`, потом `python3 -m venv .venv` и `source .venv/bin/activate`. Теперь приглашение начинается с `(.venv)`. Если Python пишет `ensurepip is not available`, выполни `sudo apt install python3-venv` и попробуй снова."
+      - "Установи FastAPI со стандартными дополнениями: `pip install \"fastapi[standard]\"`. Запиши, что установила: `pip freeze > requirements.txt`."
+      - |
+        Создай пустой `app/__init__.py` (`touch app/__init__.py`), чтобы `app` стал пакетом, и напиши `app/main.py`:
+        ```python
+        from fastapi import FastAPI
+
+        app = FastAPI()
+
+
+        @app.get("/health")
+        def health():
+            return {"status": "ok"}
+        ```
+      - "Запусти: `fastapi dev app/main.py`. Он напишет `Server started at http://127.0.0.1:8000` и начнёт следить за файлами: сохранишь изменение — он сам перезапустится. Оставь его работать."
+      - "Во втором терминале вызови сервис: `curl -s localhost:8000/health`"
+      - "Открой в браузере `http://localhost:8000/docs`. Найди `GET /health`, нажми **Try it out**, потом **Execute**. Ответ тот же, дверь другая."
+      - "Сделай из проекта репозиторий: `git init` и файл `.gitignore` — пока с одной строкой: `.venv/`"
+    check: "`curl -s localhost:8000/health` выводит `{\"status\":\"ok\"}`."
+  - id: m2
+    title: "Прими заказ"
+    why: "Ты описываешь, как выглядит правильный заказ, и официант начинает сам отказывать неправильным."
+    steps:
+      - |
+        Опиши заказ и тарелку в `app/schemas.py`:
+        ```python
+        from pydantic import BaseModel, Field
+
+
+        class AskRequest(BaseModel):
+            question: str = Field(min_length=3, max_length=500)
+            top_k: int = Field(default=5, ge=1, le=20)
+
+
+        class AskResponse(BaseModel):
+            answer: str
+            sources: list[str]
+        ```
+      - |
+        У кухни будет своё место. Выполни `mkdir -p app/services && touch app/services/__init__.py` и напиши `app/services/answer.py`:
+        ```python
+        def fake_answer(question: str) -> str:
+            return f"I will know soon. You asked: {question}"
+        ```
+      - |
+        Пункт меню живёт в роутере. Выполни `mkdir -p app/routers && touch app/routers/__init__.py` и напиши `app/routers/ask.py`:
+        ```python
+        from fastapi import APIRouter
+
+        from app.schemas import AskRequest, AskResponse
+        from app.services.answer import fake_answer
+
+        router = APIRouter()
+
+
+        @router.post("/ask", response_model=AskResponse)
+        def ask(body: AskRequest) -> AskResponse:
+            return AskResponse(answer=fake_answer(body.question), sources=[])
+        ```
+      - "Подключи роутер в `app/main.py`: `from app.routers import ask` наверху и `app.include_router(ask.router)` после `app = FastAPI()`."
+      - |
+        Отправь правильный заказ:
+        ```bash
+        curl -s -X POST localhost:8000/ask -H "Content-Type: application/json" -d '{"question":"When does the café open?"}'
+        ```
+      - "Отправь пустой вопрос: та же команда, но с `'{\"question\":\"\"}'`. Прочитай 422: `loc` говорит `[\"body\",\"question\"]`, а `msg` — `String should have at least 3 characters`."
+      - "Попроси слишком много: `'{\"question\":\"hi there\",\"top_k\":100}'`. Теперь `loc` указывает на `top_k`, а сообщение — `Input should be less than or equal to 20`."
+      - "Обнови `/docs`. В разделе **Schemas** лежат `AskRequest` и `AskResponse` со всеми ограничениями, которые ты написала."
+    check: "`/docs` показывает обе модели, а на неправильное тело приходит 422 с названием поля."
+  - id: m3
+    title: "Настройки и секреты"
+    why: "Ты меняешь поведение сервиса, не трогая код, и держишь секреты подальше от git."
+    steps:
+      - "Установи помощника для настроек: `pip install pydantic-settings` и снова `pip freeze > requirements.txt`."
+      - |
+        Напиши `app/config.py`:
+        ```python
+        from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+        class Settings(BaseSettings):
+            model_config = SettingsConfigDict(env_file=".env")
+
+            app_name: str = "quest-api"
+            log_level: str = "INFO"
+            llm_base_url: str = "http://localhost:11434/v1"
+
+
+        settings = Settings()
+        ```
+      - "Используй его в `app/main.py`: `from app.config import settings`, а приложение создавай так: `app = FastAPI(title=settings.app_name)`."
+      - |
+        Создай `.env` рядом с папкой `app/`. Каждая строка задаёт одно поле; имена те же, только заглавными:
+        ```
+        APP_NAME="Otter Café helper"
+        LOG_LEVEL=INFO
+        LLM_BASE_URL=http://localhost:11434/v1
+        ```
+      - "Скопируй его в `.env.example` — те же ключи, безобидные значения. На следующих уровнях в `.env` появятся настоящие секреты, а `.env.example` всегда показывает только имена."
+      - "Добавь `.env` в `.gitignore` и выполни `git status`. Ты видишь `.env.example`, а `.env` — нет."
+      - "Поменяй `APP_NAME` в `.env`, останови сервер через Ctrl+C и запусти снова (сам он перезапускается только из-за `.py`-файлов). Обнови `/docs`: заголовок изменился, а код ты не трогала."
+    check: "Правка `.env` меняет заголовок в `/docs` без изменений в коде, а `git status` никогда не показывает `.env`."
+  - id: m4
+    title: "Оставь след"
+    why: "Каждый запрос получает строку в логе и свой id, чтобы потом его можно было найти."
+    steps:
+      - |
+        Добавь в `app/main.py` middleware — он работает вокруг каждого запроса:
+        ```python
+        import logging
+        import time
+        import uuid
+
+        from fastapi import FastAPI, Request
+
+        logging.basicConfig(level=settings.log_level, format="%(asctime)s %(levelname)s %(message)s")
+        log = logging.getLogger("quest-api")
+
+
+        @app.middleware("http")
+        async def log_requests(request: Request, call_next):
+            request_id = uuid.uuid4().hex[:8]
+            start = time.perf_counter()
+            response = await call_next(request)
+            ms = (time.perf_counter() - start) * 1000
+            response.headers["X-Request-ID"] = request_id
+            log.info("%s %s %s %.0fms id=%s", request.method, request.url.path, response.status_code, ms, request_id)
+            return response
+        ```
+        Импорты держи в начале файла, строки с `logging` — сразу после импорта `settings`, а middleware — после `app = FastAPI(...)`.
+      - "Вызови сервис так, чтобы видеть заголовки: `curl -i localhost:8000/health`. Найди строку `x-request-id: …` и запомни id."
+      - "Посмотри в терминал сервера. Там твоя строка, например `2026-03-03 10:42:07,185 INFO GET /health 200 7ms id=c4b3ef29`, с тем же id. Рядом Uvicorn печатает свою короткую строку о запросе; твоя — та, что с id."
+      - "Отправь в `/ask` неправильный заказ и найди его строку: в статусе будет `422`."
+    check: "Каждый вызов curl добавляет в лог одну твою строку, и id в заголовке совпадает с id в этой строке."
+  - id: m5
+    title: "Докажи, что работает"
+    why: "Ты пишешь тесты, и сервис может доказать, что он в порядке, без того чтобы ты всё прокликивала."
+    steps:
+      - "Установи запускалку тестов: `pip install pytest` и `pip freeze > requirements.txt`."
+      - "Сделай тесты пакетом: `mkdir -p tests && touch tests/__init__.py`. Без этого файла `pytest` не сможет импортировать `app` и остановится с `ModuleNotFoundError: No module named 'app'`."
+      - |
+        Напиши `tests/test_api.py`:
+        ```python
+        from fastapi.testclient import TestClient
+
+        from app.main import app
+
+        client = TestClient(app)
+
+
+        def test_health():
+            response = client.get("/health")
+            assert response.status_code == 200
+            assert response.json() == {"status": "ok"}
+
+
+        def test_ask_valid():
+            response = client.post("/ask", json={"question": "When does the café open?"})
+            assert response.status_code == 200
+            assert "answer" in response.json()
+
+
+        def test_ask_empty_question():
+            response = client.post("/ask", json={"question": ""})
+            assert response.status_code == 422
+        ```
+      - "Запусти их из папки проекта: `pytest -q`. Должно быть `3 passed`."
+      - "Сломай код специально: в `/health` верни `\"okay\"` вместо `\"ok\"`. Снова запусти `pytest -q` и прочитай, какой тест упал и почему. Верни как было."
+    check: "`pytest -q` показывает 3 passed, а со сломанным кодом падает ровно один тест."
+breaks:
+  - id: b1
+    title: "Заморозь официанта"
+    do: "Добавь это в `app/main.py` (и `import time` наверху), сохрани, вызови `curl -s localhost:8000/slow` и сразу же в другом терминале `curl -s -o /dev/null -w \"%{time_total}s\\n\" localhost:8000/health`:\n```python\n@app.get(\"/slow\")\nasync def slow():\n    time.sleep(5)\n    return {\"done\": True}\n```"
+    see: "4.701862s"
+    why: "`/health` отвечает за миллисекунды, а тут ждал почти 5 секунд. `time.sleep` блокирует, и внутри `async def` он блокирует сам цикл событий: единственный официант застыл у одного столика, и ждут все остальные."
+    fix: "Используй вызов, который можно ждать: `await asyncio.sleep(5)` (и `import asyncio`). Или сделай функцию обычной `def`: тогда FastAPI запустит её в пуле потоков, подальше от официанта. Потом удали `/slow`."
+  - id: b2
+    title: "Неразборчивый заказ"
+    do: "Отправь число там, где нужен текст: `curl -s -X POST localhost:8000/ask -H \"Content-Type: application/json\" -d '{\"question\": 42}'`"
+    see: "{\"detail\":[{\"type\":\"string_type\",\"loc\":[\"body\",\"question\"],\"msg\":\"Input should be a valid string\",\"input\":42}]}"
+    why: "Валидация защищает кухню: твой код этот заказ даже не увидел. И посмотри, насколько точный отказ: какая часть (`body`), какое поле (`question`), что не так и что ты прислала."
+    fix: "Отправь строку: `{\"question\": \"42\"}`. И заметь привычку, которая так вырабатывается: сначала читать `detail`, а гадать потом."
+  - id: b3
+    title: "Пожар на кухне"
+    do: "В `fake_answer` перед `return` добавь строку `1 / 0`. Вызови `/ask` с нормальным вопросом и `curl -i`."
+    see: "HTTP/1.1 500 Internal Server Error"
+    why: "В теле только `Internal Server Error`. Так задумано: незнакомцам не нужно видеть внутренности твоего кода. Вся история — в терминале сервера: traceback, который кончается на `ZeroDivisionError: division by zero`."
+    fix: "Читай traceback снизу вверх: последняя строка — что случилось, строки выше — где. Убери `1 / 0`. Для ожидаемых проблем, например когда чего-то нет, бросай `HTTPException(status_code=404, detail=\"…\")`, а не позволяй кухне гореть."
+  - id: b4
+    title: "Не тот ящик с инструментами"
+    do: "Выйди из venv командой `deactivate` и проверь, видит ли Python FastAPI: `python3 -c \"import fastapi\"`"
+    see: "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nModuleNotFoundError: No module named 'fastapi'"
+    why: "Пакеты живут внутри `.venv`, а не в системном Python. Вне venv их не существует — даже сам `fastapi dev` превращается в `command not found`."
+    fix: "`source .venv/bin/activate`. Проверь через `which python`: путь должен заканчиваться на `.venv/bin/python`."
+traps:
+  - error: "422 Unprocessable Entity"
+    meaning: "Тело запроса не совпадает с моделью."
+    firstMove: "Прочитай `detail`: `loc` называет поле, `msg` говорит, что не так."
+  - error: "404 Not Found на маршруте, который ты написала"
+    meaning: "Не тот путь, забытый префикс роутера — или всё ещё работает старый сервер."
+    firstMove: "Открой `/docs` и посмотри на настоящие пути."
+  - error: "405 Method Not Allowed"
+    meaning: "Путь правильный, метод нет — GET там, где маршрут ждёт POST."
+    firstMove: "Проверь метод в `/docs` (его же перечисляет заголовок `allow`)."
+  - error: "500 Internal Server Error"
+    meaning: "Исключение в твоём коде."
+    firstMove: "Прочитай лог сервера: сначала нижнюю строку traceback."
+  - error: "ModuleNotFoundError"
+    meaning: "venv не активирован, или пакет не установлен."
+    firstMove: "`which python`, потом `pip list`"
+  - error: "RuntimeWarning: coroutine '…' was never awaited"
+    meaning: "Ты вызвала `async`-функцию и забыла `await`."
+    firstMove: "Добавь `await` перед вызовом."
+  - error: "blocked by CORS policy (а curl работает)"
+    meaning: "Браузеру нужны заголовки-разрешения, прежде чем страница с другого адреса сможет тебя вызвать."
+    firstMove: "Добавь `CORSMiddleware` с адресом (origin) фронтенда."
+deliverable:
+  repo: "Репозиторий `quest-api` со структурой из этого уровня, `README.md` (как запустить, как проверить, примеры вызовов curl) и проходящими тестами."
+  sketch: "Одна страница: путь одного запроса `/ask` по твоим файлам — роутер → схема → сервис → ответ — с названием файла на каждом шаге."
+  demo: "Запусти сервис, вызови его, сломай неправильным телом и прочитай 422, покажи строку лога с id запроса, потом запусти тесты."
+selfCheck:
+  - "Я могу добавить эндпоинт с валидацией входных данных, не заглядывая в туториал."
+  - "Я выбираю коды ответа осознанно."
+  - "Я понимаю, когда `async` помогает, а когда вредит."
+  - "Ни один секрет ни разу не попал в мою историю git."
+  - "Другой человек может запустить мой сервис по одному только README."
+quiz:
+  - q: "Клиент получает это на `POST /ask`. Какая причина вероятнее всего?"
+    code: "422 Unprocessable Entity"
+    options:
+      - "Тело запроса не совпадает с моделью Pydantic"
+      - "Сервер упал"
+      - "Клиент обратился не на тот порт"
+    answer: 0
+    why: "422 значит «запрос я поняла, но данные неправильные». Падение было бы 500, а на неправильном порту твоё приложение не ответило бы вообще."
+  - q: "`/health` зависает, пока другой запрос выполняет `time.sleep(10)` внутри `async def`. Почему?"
+    options:
+      - "Блокирующий вызов заморозил цикл событий"
+      - "У машины слишком мало ядер"
+      - "Проблема с сетью"
+    answer: 0
+    why: "Внутри `async def` блокирующий вызов останавливает единственного официанта. Все остальные запросы ждут, пока он закончится."
+  - q: "Где должен лежать пароль от базы данных?"
+    options:
+      - "В переменной окружения, которая загружается из `.env`, а `.env` git игнорирует"
+      - "В `config.py`"
+      - "В README"
+    answer: 0
+    why: "Всё, что попало в коммит, остаётся в истории git навсегда. Настройки приходят из окружения, а код знает только их имена."
+  - q: "curl работает, а фронтенд в браузере падает с ошибкой CORS. Что делать?"
+    options:
+      - "Добавить CORS middleware, который разрешает origin фронтенда"
+      - "Открыть порт в файрволе"
+      - "Переделать эндпоинт на GET"
+    answer: 0
+    why: "Запрос до тебя доходит в любом случае. Браузер лишь не отдаёт ответ странице, пока твой сервис не скажет, что этому origin можно."
+  - q: "Ты получаешь 500, а в ответе только «Internal Server Error». Где настоящая причина?"
+    options:
+      - "В логе сервера, внизу traceback"
+      - "В консоли браузера"
+      - "Нигде — она потеряна"
+    answer: 0
+    why: "Клиент нарочно не получает подробностей. Сервер пишет весь traceback к себе в лог."
+links:
+  - title: "Учебник FastAPI"
+    url: "https://fastapi.tiangolo.com/ru/tutorial/"
+    why: "Официальное пошаговое руководство на русском. Понятное, дружелюбное и с кучей примеров."
+  - title: "Документация Pydantic"
+    url: "https://docs.pydantic.dev/latest/"
+    why: "Всё про модели, поля и ошибки валидации. На английском."
+  - title: "Коды ответа HTTP (MDN)"
+    url: "https://developer.mozilla.org/ru/docs/Web/HTTP/Status"
+    why: "Все коды ответа: что значат и когда их использовать."
+  - title: "pytest: первые шаги"
+    url: "https://docs.pytest.org/en/stable/getting-started.html"
+    why: "Первые тесты за десять минут. На английском."
+  - title: "The Twelve-Factor App: конфигурация"
+    url: "https://12factor.net/ru/config"
+    why: "Одна короткая страница о том, почему настройки живут в окружении."
+cheatsheet:
+  - { cmd: "python3 -m venv .venv", does: "Создать отдельный набор инструментов для проекта" }
+  - { cmd: "source .venv/bin/activate", does: "Войти в него (выйти — deactivate)" }
+  - { cmd: "pip install \"fastapi[standard]\"", does: "Установить FastAPI с dev-сервером и тестовым клиентом" }
+  - { cmd: "pip freeze > requirements.txt", does: "Записать все установленные пакеты и их версии" }
+  - { cmd: "fastapi dev app/main.py", does: "Запуск для разработки: перезапуск при каждом сохранении" }
+  - { cmd: "uvicorn app.main:app --host 0.0.0.0 --port 8000", does: "Запуск по-настоящему, доступный из сети" }
+  - { cmd: "curl -s localhost:8000/health", does: "Сервис жив?" }
+  - { cmd: "curl -s -X POST localhost:8000/ask -H \"Content-Type: application/json\" -d '{\"question\":\"hi there\"}'", does: "Отправить JSON-тело через POST" }
+  - { cmd: "curl -i localhost:8000/health", does: "Показать ещё и строку статуса с заголовками" }
+  - { cmd: "pytest -q", does: "Запустить все тесты, коротко" }
+  - { cmd: "pytest -k name -x", does: "Запустить тесты с подходящим именем; остановиться на первом падении" }
+kindNote: >
+  Ты превратила Python в сервис с меню, хорошими манерами и бумажным
+  следом. Он вежливо отказывает неправильным заказам, держит секреты
+  подальше от git и умеет доказать, что работает. Теперь на твоей работе
+  могут строить другие люди, не спрашивая тебя, как она устроена, — вот
+  что на самом деле значит «бэкенд». На следующих уровнях ты упакуешь его,
+  накормишь данными и отправишь в мир.
+---
+
+import RequestJourney from '../../../components/widgets/RequestJourney';
+import Diagram from '../../../components/Diagram.astro';
+import Analogy from '../../../components/Analogy.astro';
+
+У тебя есть код на Python, который отвечает на вопрос. Пока что его можешь
+запустить только ты — руками и один раз. Этот уровень превращает его в
+**сервис**: программу, которая продолжает работать, ждёт запросов от кого
+угодно в сети и вежливо отвечает на каждый — месяцами.
+
+<Analogy />
+
+## Запрос и ответ
+
+Любое обращение к сервису — это один **запрос** (request) и один **ответ**
+(response). У запроса есть **метод** (что сделать: `GET` — прочитать,
+`POST` — что-то отправить), **путь** (какой эндпоинт: `/ask`),
+**заголовки** (заметки о запросе) и иногда **тело** — данные, обычно в
+JSON. Ответ приходит с **кодом ответа**, заголовками и своим телом.
+
+<Diagram name="request-response" />
+
+## Твой первый сервис
+
+Создай для проекта отдельный набор инструментов и поставь в него FastAPI:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install "fastapi[standard]"
+```
+
+А дальше целый сервис — это шесть строк:
+
+```python
+from fastapi import FastAPI
+app = FastAPI()
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+```
+
+Запусти `fastapi dev main.py` и открой `http://localhost:8000/docs`.
+Эту страницу FastAPI написал за тебя по твоему же коду: все эндпоинты, и
+каждый можно сразу попробовать. Ты возвращаешь словарь Python, а клиент
+получает JSON.
+
+## Официант проверяет заказ
+
+Незнакомцы пришлют тебе что угодно. Вместо того чтобы проверять каждое
+поле руками, ты описываешь правильный заказ моделью Pydantic:
+
+```python
+class AskRequest(BaseModel):
+    question: str = Field(min_length=3, max_length=500)
+    top_k: int = Field(default=5, ge=1, le=20)
+```
+
+Тело, которое не подходит под модель, до твоего кода не доходит. Клиент
+получает **422** и список `detail`, где точно сказано, какое поле не так и
+почему. Это и есть валидация.
+
+Коды ответа — это то, как ты отвечаешь. Вот те, что будут нужны
+постоянно:
+
+| Код | Значит |
+|---|---|
+| 200 | Всё хорошо, вот ответ |
+| 201 | Создано что-то новое |
+| 400 | Запрос не имеет смысла |
+| 401 | А вы кто? Сначала войдите |
+| 404 | Такого нет |
+| 422 | Не могу разобрать заказ |
+| 500 | Что-то сломалось у нас |
+
+Если ты знаешь, что чего-то нет, скажи об этом нарочно:
+`raise HTTPException(status_code=404, detail="Document not found")`.
+
+## Один официант, много столиков: `async def` и `def`
+
+FastAPI обслуживает запросы с помощью **цикла событий** (event loop):
+одного официанта, который бегает между многими столиками. Пока готовится
+один заказ — запрос в базу данных, вызов другого API, — он обслуживает
+остальных. Это работает, только пока он нигде не застывает.
+
+<Diagram name="event-loop" />
+
+Правило такое:
+
+- `async def` — только если всё медленное внутри идёт через `await`.
+- Обычная `def` — для кода, который блокирует: `time.sleep`, большинство
+  библиотек для файлов и баз данных без `async`. Такие функции FastAPI
+  запускает в пуле потоков, подальше от официанта.
+
+Блокирующий вызов внутри `async def` замораживает сразу все запросы. В
+«Сломай специально» ты устроишь ровно это — и будешь узнавать с первого
+взгляда.
+
+## Настройки и бумажный след
+
+Адреса, пароли и ключи на ноутбуке и на сервере разные. В коде им не
+место. `pydantic-settings` читает их из переменных окружения или файла
+`.env` в типизированный класс `Settings`. Файл `.env` попадает в
+`.gitignore` в первый же день: секрет, который попал в историю git, там и
+остаётся.
+
+А ещё сервис должен рассказывать, что он делал. Используй `logging`, а не
+`print`: одна строка на запрос — метод, путь, статус, сколько это заняло и
+**id запроса**. Когда кто-то скажет «мой запрос упал в 10:42», этот id
+приведёт тебя прямо к нужной строке.
+
+## Форма, которая может расти
+
+Для одного эндпоинта хватит и одного файла. Настоящему сервису нужно,
+чтобы у каждой работы было своё место:
+
+<Diagram name="project-layout" />
+
+А то, что всё работает, доказывают тесты. `TestClient` вызывает
+приложение без запуска сервера, а `pytest` прогоняет все тесты за
+секунды. Тест — это обещание, которое продолжают проверять, даже когда ты
+уже забыла подробности.
+
+## Запуск по-настоящему
+
+`fastapi dev` слушает `127.0.0.1` — только для своих, как ты узнала на
+уровне 2. На сервере его запускают так:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+`0.0.0.0` — чтобы до двери могли достучаться из сети. Сейчас ты строишь
+остановку «App»:
+
+<RequestJourney client:visible strings={props.ui.requestJourney} />
+
+## Что запомнить
+
+1. **Модель описывает правильный заказ.** На неправильный приходит 422 с названием поля.
+2. **Коды ответа — это лицо официанта.** Выбирай их осознанно.
+3. **Не блокируй официанта.** `async def` — с `await`, обычная `def` — для блокирующего кода.
+4. **Секреты живут в `.env`, а не в git. Каждый запрос оставляет одну строку в логе.**
+
+Миссии собирают `quest-api` — сервис, который будет расти следующие пять уровней.
