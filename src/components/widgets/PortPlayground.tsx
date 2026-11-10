@@ -310,7 +310,7 @@ export default function PortPlayground({ strings: t }: Props) {
         </svg>
       </figure>
 
-      <div class={`pp-result ${result.ok ? 'is-ok' : 'is-bad'}`} aria-live="polite">
+      <div class={`pp-result ${result.ok ? 'is-ok' : 'is-bad'}`} data-rule={result.rule} aria-live="polite">
         <p class="pp-result-head">{result.ok ? `✓ ${t.ok}` : t.failed}</p>
         {result.error && (
           <pre class="widget-pre pp-error">
