@@ -1,0 +1,30 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['permissions'];
+}
+const { t } = Astro.props;
+const parts = [
+  { x: 40, w: 90, text: '-', label: t.type, fill: 'var(--card-2)' },
+  { x: 150, w: 160, text: 'rwx', label: t.owner, fill: 'var(--teal-soft)' },
+  { x: 330, w: 160, text: 'r-x', label: t.group, fill: 'var(--sun-soft)' },
+  { x: 510, w: 160, text: 'r-x', label: t.others, fill: 'var(--coral-soft)' },
+];
+const legend = [t.r, t.w, t.x, t.dash];
+---
+<Frame id="dg-permissions" w={710} h={270} title={t.title} desc={t.desc}>
+  {
+    parts.map((p, i) => (
+      <g>
+        <Box x={p.x} y={30} w={p.w} h={84} fill={p.fill} seed={90 + i} />
+        <Label x={p.x + p.w / 2} y={72} text={p.text} size={36} mono weight={800} />
+        <Label x={p.x + p.w / 2} y={150} text={p.label} size={14} weight={800} />
+      </g>
+    ))
+  }
+  <path d="M30 196 H680" stroke="var(--line)" stroke-width="2" fill="none" />
+  {legend.map((l, i) => <Label x={100 + i * 170} y={230} text={l} size={14} color="var(--ink-soft)" />)}
+</Frame>

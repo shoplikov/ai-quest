@@ -1,0 +1,35 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['pipe'];
+}
+const { t } = Astro.props;
+// Little "lines of text" inside each box: many before grep, few after.
+const lines = (x: number, y: number, n: number, w: number) =>
+  Array.from({ length: n }, (_, i) => `M${x} ${y + i * 7} h${w - (i * 13) % 30}`).join(' ');
+---
+<Frame id="dg-pipe" w={720} h={210} title={t.title} desc={t.desc}>
+  <Box x={20} y={40} w={180} h={130} fill="var(--card)" seed={81} />
+  <Label x={110} y={64} text="ps aux" size={16} mono weight={800} />
+  <path d={lines(48, 86, 6, 124)} stroke="var(--ink-soft)" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5" />
+  <Label x={110} y={146} text={t.all} size={12} color="var(--ink-soft)" />
+
+  <Arrow x1={206} y1={105} x2={262} y2={105} color="var(--teal)" />
+  <Label x={234} y={26} text={t.pipe} size={13} weight={800} color="var(--teal-ink)" />
+  <path d="M234 38 V92" stroke="var(--teal)" stroke-width="1.6" stroke-dasharray="4 4" fill="none" />
+
+  <Box x={268} y={40} w={190} h={130} fill="var(--teal-soft)" seed={82} />
+  <Label x={363} y={64} text="grep python" size={16} mono weight={800} />
+  <Label x={363} y={118} text={t.filter} size={12} />
+
+  <Arrow x1={464} y1={105} x2={520} y2={105} color="var(--teal)" />
+
+  <Box x={526} y={40} w={174} h={130} fill="var(--card-2)" seed={83} />
+  <Label x={613} y={64} text={t.screen} size={15} weight={800} />
+  <path d={lines(556, 96, 2, 118)} stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" fill="none" />
+  <Label x={613} y={146} text={t.few} size={12} color="var(--ink-soft)" />
+</Frame>

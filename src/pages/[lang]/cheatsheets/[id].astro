@@ -68,7 +68,7 @@ const n = d.id;
             d.traps.map((t) => (
               <tr>
                 <td data-label={L.trapError}><code>{t.error}</code></td>
-                <td data-label={L.trapMeaning}>{t.meaning}</td>
+                <td data-label={L.trapMeaning} set:html={renderInline(t.meaning)} />
                 <td data-label={L.trapFirst} set:html={renderInline(t.firstMove)} />
               </tr>
             ))

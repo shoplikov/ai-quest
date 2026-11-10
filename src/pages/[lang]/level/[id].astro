@@ -146,7 +146,7 @@ const clientData = {
           <Porto mood="cozy" size={86} />
           <div>
             <h2 id="h-normal">{S.normal}</h2>
-            <p>{d.itsNormal}</p>
+            <p set:html={renderInline(d.itsNormal)} />
           </div>
         </Card>
       </section>
@@ -208,7 +208,7 @@ const clientData = {
             {d.traps.map((t) => (
               <tr>
                 <td data-label={L.trapError}><code>{t.error}</code></td>
-                <td data-label={L.trapMeaning}>{t.meaning}</td>
+                <td data-label={L.trapMeaning} set:html={renderInline(t.meaning)} />
                 <td data-label={L.trapFirst} set:html={renderInline(t.firstMove)} />
               </tr>
             ))}
@@ -239,7 +239,7 @@ const clientData = {
         <p class="section-intro">{L.middleIntro}</p>
         <Card>
           {d.selfCheck.map((line, i) => (
-            <TickRow id={`tick-self-${i}`} kind="selfCheck" level={d.id} item={i}>{line}</TickRow>
+            <TickRow id={`tick-self-${i}`} kind="selfCheck" level={d.id} item={i}><Fragment set:html={renderInline(line)} /></TickRow>
           ))}
         </Card>
       </section>
@@ -250,7 +250,7 @@ const clientData = {
           {d.links.map((l) => (
             <li>
               <a href={l.url} rel="noopener noreferrer">{l.title}</a>
-              <span> — {l.why}</span>
+              <span set:html={` — ${renderInline(l.why)}`} />
             </li>
           ))}
         </ul>
@@ -270,7 +270,7 @@ const clientData = {
               <p class="finished-on" data-finished-on></p>
             </div>
           </div>
-          <p>{d.kindNote}</p>
+          <p set:html={renderInline(d.kindNote)} />
           <a class="btn btn-primary" href={nextHref}>{nextLabel}</a>
         </Card>
       </section>

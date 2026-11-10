@@ -113,7 +113,7 @@ then the Russian file (natural Russian, terms and voice from
 `docs/spec/i18n.md`), draw its diagrams with labels in both languages,
 build its widget if it has one.
 
-- [ ] **4.1 Level 1 — Terminal.** Diagrams: `file-tree`, `pipe`, `permissions`.
+- [x] **4.1 Level 1 — Terminal.** Diagrams: `file-tree`, `pipe`, `permissions`.
 - [ ] **4.2 Level 3 — Backend.** Diagrams: `request-response`, `event-loop`, `project-layout`.
 - [ ] **4.3 Level 4 — Docker.** Diagrams: `image-vs-container`, `volume`,
       `compose-network`. Widget: Dockerfile layer stacker (logic + tests first).

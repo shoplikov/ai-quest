@@ -3,6 +3,7 @@
 // reads the level from the page's route (lang + id).
 import { getDict, isLang } from '../i18n';
 import { getLevelEntry } from '../lib/levels';
+import { renderInline } from '../lib/md';
 
 const lang = isLang(Astro.params.lang) ? Astro.params.lang : 'en';
 const entry = await getLevelEntry(lang, Number(Astro.params.id));
@@ -16,7 +17,7 @@ const dict = getDict(lang);
       <div>
         <p class="analogy-kicker">{dict.analogy.kicker}</p>
         <p class="analogy-title">{analogy.title}</p>
-        <p>{analogy.text}</p>
+        <p set:html={renderInline(analogy.text)} />
       </div>
     </aside>
   )

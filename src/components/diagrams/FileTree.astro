@@ -1,0 +1,68 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['fileTree'];
+}
+const { t } = Astro.props;
+
+// Folder names are code and stay as they are; only the notes are translated.
+const rows: { name: string; depth: number; parent: number | null; note?: string; here?: boolean }[] = [
+  { name: '/', depth: 0, parent: null },
+  { name: 'home/', depth: 1, parent: 0 },
+  { name: 'student/', depth: 2, parent: 1, note: t.home },
+  { name: 'quest/', depth: 3, parent: 2 },
+  { name: 'level1/', depth: 4, parent: 3, note: t.here, here: true },
+  { name: 'notes/', depth: 5, parent: 4 },
+  { name: 'first.txt', depth: 6, parent: 5 },
+  { name: 'logs/', depth: 5, parent: 4 },
+  { name: 'scripts/', depth: 5, parent: 4 },
+  { name: 'etc/', depth: 1, parent: 0, note: t.config },
+  { name: 'var/log/', depth: 1, parent: 0, note: t.logs },
+];
+const Y0 = 34;
+const STEP = 32;
+const CH = 8.4; // JetBrains Mono at 14px
+const x = (d: number) => 24 + d * 26;
+const y = (i: number) => Y0 + i * STEP;
+---
+<Frame id="dg-filetree" w={720} h={392} title={t.title} desc={t.desc}>
+  {
+    rows.map((r, i) =>
+      r.here ? <rect x={x(r.depth) - 8} y={y(i) - 14} width={r.name.length * CH + 16} height={28} rx={8} fill="var(--sun-soft)" stroke="var(--sun)" /> : null,
+    )
+  }
+  {
+    rows.map((r, i) =>
+      r.parent === null ? null : (
+        <path
+          d={`M${x(rows[r.parent]!.depth) + 5} ${y(r.parent) + 11} V${y(i)} H${x(r.depth) - 5}`}
+          class="dg-line"
+          stroke="var(--ink-soft)"
+          fill="none"
+          stroke-width="1.6"
+        />
+      ),
+    )
+  }
+  {
+    rows.map((r, i) => (
+      <g>
+        <Label x={x(r.depth)} y={y(i)} text={r.name} anchor="start" size={14} mono weight={r.here ? 800 : 600} />
+        {r.note && <Label x={x(r.depth) + r.name.length * CH + 14} y={y(i)} text={r.note} anchor="start" size={13} color={r.here ? 'var(--ink)' : 'var(--ink-soft)'} weight={r.here ? 800 : 700} />}
+      </g>
+    ))
+  }
+
+  <Box x={420} y={52} w={280} h={136} fill="var(--card)" seed={71} />
+  <Label x={560} y={78} text={t.absTitle} size={15} weight={800} />
+  <Label x={560} y={116} text={'/home/student/quest/\nlevel1/notes/first.txt'} size={13} mono color="var(--teal-ink)" />
+  <Label x={560} y={162} text={t.absNote} size={12} color="var(--ink-soft)" />
+
+  <Box x={420} y={216} w={280} h={136} fill="var(--card)" seed={72} />
+  <Label x={560} y={242} text={t.relTitle} size={15} weight={800} />
+  <Label x={560} y={274} text="notes/first.txt" size={13} mono color="var(--lilac-ink)" />
+  <Label x={560} y={318} text={t.relNote} size={12} color="var(--ink-soft)" />
+</Frame>
