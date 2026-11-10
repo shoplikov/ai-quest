@@ -11,6 +11,8 @@ import Dialog from '../../components/ui/Dialog.astro';
 import SpeechBubble from '../../components/ui/SpeechBubble.astro';
 import { languages, type Lang } from '../../i18n';
 import { renderMarkdown } from '../../lib/md';
+import Porto from '../../components/porto/Porto';
+import { portoLine } from '../../lib/porto';
 
 export function getStaticPaths() {
   return languages.map((lang) => ({ params: { lang } }));
@@ -59,8 +61,8 @@ const code = await renderMarkdown(
 
   <h2>Speech bubble</h2>
   <SpeechBubble>
-    <svg slot="mascot" viewBox="0 0 80 80" width="80" height="80" aria-hidden="true"><circle cx="40" cy="44" r="30" fill="#B5794A" /></svg>
-    One mission at a time. That's the whole trick.
+    <Porto slot="mascot" mood="hello" size={84} />
+    {portoLine(lang, 'midLevel', 0)}
   </SpeechBubble>
 
   <h2>Reveal</h2>
@@ -88,7 +90,14 @@ const code = await renderMarkdown(
   </table>
 
   <h2 id="porto">Porto</h2>
-  <slot name="porto" />
+  <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end">
+    {(['hello', 'thinking', 'cheer', 'cozy'] as const).map((mood) => (
+      <figure style="margin:0;text-align:center">
+        <Porto mood={mood} size={150} label={`Porto, ${mood}`} />
+        <figcaption>{mood}</figcaption>
+      </figure>
+    ))}
+  </div>
 
   <script>
     import { toast } from '../../lib/toast';

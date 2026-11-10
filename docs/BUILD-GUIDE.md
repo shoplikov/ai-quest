@@ -55,7 +55,7 @@ task: build it, run its checks, tick the box, commit.
       Build a temporary `/kitchen-sink` page showing all of them in both
       themes; delete it in task 6.4.
       *Check:* look at `/kitchen-sink` in Chrome, light and dark.
-- [ ] **1.5 Porto.** Four mood SVG components and `src/data/porto.ts`
+- [x] **1.5 Porto.** Four mood SVG components and `src/data/porto.ts`
       line pools (at least 6 lines per pool, in the voice of the content guide).
       *Check:* all four moods on `/kitchen-sink`; he looks like one character.
 
