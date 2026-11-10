@@ -13,6 +13,10 @@ export const ru: Dict = {
     ru: 'Русский',
     switchTo: 'Переключить на русский',
   },
+  theme: {
+    toDark: 'Включить тёмную тему',
+    toLight: 'Включить светлую тему',
+  },
   redirect: {
     title: 'AI Engineer Quest',
     choose: 'Выбери язык:',

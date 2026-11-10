@@ -43,7 +43,7 @@ task: build it, run its checks, tick the box, commit.
       *Check:* `/` redirects by browser language and by saved choice;
       the switcher keeps you on the same page; Vitest tests for Russian
       plurals (1, 2, 5, 11, 21, 22).
-- [ ] **1.2 Design tokens and base styles.** `src/styles/tokens.css`,
+- [x] **1.2 Design tokens and base styles.** `src/styles/tokens.css`,
       `base.css`, `print.css` exactly as in `docs/spec/design.md`. Theme
       script in `<head>` to avoid a flash.
       *Check:* both themes render; toggling works; no flash on reload.

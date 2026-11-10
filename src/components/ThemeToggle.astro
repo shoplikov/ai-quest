@@ -1,0 +1,81 @@
+---
+import { getDict, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+const dict = getDict(Astro.props.lang);
+---
+<button
+  type="button"
+  class="theme-toggle"
+  data-theme-toggle
+  data-to-dark={dict.theme.toDark}
+  data-to-light={dict.theme.toLight}
+  aria-label={dict.theme.toDark}
+  title={dict.theme.toDark}
+>
+  <svg class="icon-moon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+    <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="currentColor" />
+  </svg>
+  <svg class="icon-sun" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+    <circle cx="12" cy="12" r="4.5" fill="currentColor" />
+    <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+      <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" />
+    </g>
+  </svg>
+</button>
+
+<script>
+  import { currentTheme, setTheme } from '../lib/theme';
+
+  function sync(btn: HTMLButtonElement) {
+    const label = currentTheme() === 'dark' ? btn.dataset.toLight! : btn.dataset.toDark!;
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+  }
+
+  for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]')) {
+    sync(btn);
+    btn.addEventListener('click', () => {
+      setTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+      sync(btn);
+    });
+  }
+</script>
+
+<style>
+  .theme-toggle {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-ctl);
+    border: var(--border);
+    background: var(--card);
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform var(--t-fast) var(--ease);
+  }
+  .theme-toggle:hover {
+    transform: rotate(-12deg);
+  }
+  .icon-sun {
+    display: none;
+    color: var(--sun);
+  }
+  :global(:root[data-theme='dark']) .icon-sun {
+    display: block;
+  }
+  :global(:root[data-theme='dark']) .icon-moon {
+    display: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .icon-sun {
+      display: block;
+    }
+    :global(:root:not([data-theme='light'])) .icon-moon {
+      display: none;
+    }
+  }
+</style>

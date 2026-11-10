@@ -1,0 +1,150 @@
+/* Design tokens. Values from docs/spec/design.md.
+ *
+ * Contrast note: in the light theme, white text on --coral (2.8:1) and on
+ * --teal (3.0:1), and --lilac (3.2:1) / --danger (4.4:1) as text on paper,
+ * fail WCAG AA. The spec says to adjust a shade when a pair fails, so the
+ * spec colours stay for fills, strokes and illustrations, and the
+ * "-strong" / "-ink" tokens below are used wherever text sits on them or
+ * they are used as text. Every pair used was checked at ≥ 4.5:1.
+ */
+:root {
+  color-scheme: light;
+  --paper: #fff8ee;
+  --card: #ffffff;
+  --card-2: #fff1dc;
+  --ink: #2a2440;
+  --ink-soft: #5e5876;
+  --line: #e8dcc8;
+  --coral: #ff6b5e;
+  --teal: #1fa89a;
+  --sun: #ffc53d;
+  --lilac: #8e7cf0;
+  --sky: #4aa8ff;
+  --rose: #f06292;
+  --danger: #d64545;
+  --code-bg: #2a2440;
+  --code-ink: #f3eee3;
+
+  /* AA-safe variants (see note above) */
+  --coral-strong: #c7392e; /* button fill, white text 5.2:1 */
+  --coral-shadow: #8f241c;
+  --teal-strong: #13796f; /* button fill, white text 5.3:1 */
+  --teal-shadow: #0b4f48;
+  --on-strong: #ffffff; /* text on the strong fills */
+  --lilac-ink: #5b49c9; /* links, 5.8:1 on card-2 */
+  --teal-ink: #0e7a6e; /* success text */
+  --danger-ink: #b53a3a; /* error text */
+  --teal-soft: rgba(31, 168, 154, 0.14); /* ticked row highlight */
+  --coral-soft: rgba(255, 107, 94, 0.14);
+  --sun-soft: rgba(255, 197, 61, 0.22);
+  --focus: #5b49c9;
+
+  /* Mascot colours: fixed, both themes */
+  --porto-fur: #b5794a;
+  --porto-cream: #ffe9c9;
+  --porto-ink: #2a2440;
+
+  /* Type */
+  --font-body: 'Nunito Variable', 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-code: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --fs-base: 17px;
+  --fs-h1: clamp(1.9rem, 1.4rem + 2.2vw, 2.4rem);
+  --fs-h2: clamp(1.45rem, 1.2rem + 1vw, 1.7rem);
+  --fs-h3: 1.25rem;
+  --fs-small: 0.9rem;
+  --lh: 1.65;
+  --measure: 70ch;
+
+  /* Shape */
+  --r-card: 18px;
+  --r-ctl: 12px;
+  --r-pill: 999px;
+  --border: 2px solid var(--line);
+  --sticker: 0 4px 0 var(--line);
+
+  /* Space scale: 4, 8, 12, 16, 24, 32, 48, 72 */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 72px;
+
+  /* Layout */
+  --max: 1080px;
+  --prose: 760px;
+  --toc: 220px;
+  --gutter: 16px;
+
+  /* Motion */
+  --t-fast: 150ms;
+  --t-mid: 250ms;
+  --t-slow: 300ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --paper: #161a2b;
+    --card: #1f2540;
+    --card-2: #272e4f;
+    --ink: #f3eee3;
+    --ink-soft: #b9b4cc;
+    --line: #343c63;
+    --coral: #ff8a7e;
+    --teal: #4fd1c1;
+    --sun: #ffd466;
+    --lilac: #a99bff;
+    --sky: #7cc0ff;
+    --rose: #ff8fb3;
+    --danger: #ff7a7a;
+    --code-bg: #0f1220;
+    --code-ink: #f3eee3;
+    --coral-strong: #ff8a7e;
+    --coral-shadow: #c2554b;
+    --teal-strong: #4fd1c1;
+    --teal-shadow: #2a8f83;
+    --on-strong: #161a2b;
+    --lilac-ink: #a99bff;
+    --teal-ink: #4fd1c1;
+    --danger-ink: #ff7a7a;
+    --teal-soft: rgba(79, 209, 193, 0.16);
+    --coral-soft: rgba(255, 138, 126, 0.16);
+    --sun-soft: rgba(255, 212, 102, 0.16);
+    --focus: #ffd466;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --paper: #161a2b;
+  --card: #1f2540;
+  --card-2: #272e4f;
+  --ink: #f3eee3;
+  --ink-soft: #b9b4cc;
+  --line: #343c63;
+  --coral: #ff8a7e;
+  --teal: #4fd1c1;
+  --sun: #ffd466;
+  --lilac: #a99bff;
+  --sky: #7cc0ff;
+  --rose: #ff8fb3;
+  --danger: #ff7a7a;
+  --code-bg: #0f1220;
+  --code-ink: #f3eee3;
+  --coral-strong: #ff8a7e;
+  --coral-shadow: #c2554b;
+  --teal-strong: #4fd1c1;
+  --teal-shadow: #2a8f83;
+  --on-strong: #161a2b;
+  --lilac-ink: #a99bff;
+  --teal-ink: #4fd1c1;
+  --danger-ink: #ff7a7a;
+  --teal-soft: rgba(79, 209, 193, 0.16);
+  --coral-soft: rgba(255, 138, 126, 0.16);
+  --sun-soft: rgba(255, 212, 102, 0.16);
+  --focus: #ffd466;
+}

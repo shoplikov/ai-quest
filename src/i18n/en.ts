@@ -12,6 +12,10 @@ export const en = {
     ru: 'Русский',
     switchTo: 'Switch to English',
   },
+  theme: {
+    toDark: 'Switch to dark theme',
+    toLight: 'Switch to light theme',
+  },
   redirect: {
     title: 'AI Engineer Quest',
     choose: 'Choose a language:',

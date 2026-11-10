@@ -1,6 +1,13 @@
 ---
 import { languages, switchLangPath, getDict, type Lang } from '../i18n';
 import LangSwitcher from '../components/LangSwitcher.astro';
+import ThemeScript from '../components/ThemeScript.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
+import '@fontsource-variable/nunito';
+import '@fontsource-variable/jetbrains-mono';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/print.css';
 
 interface Props {
   lang: Lang;
@@ -17,6 +24,7 @@ const path = Astro.url.pathname;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <ThemeScript />
     <title>{fullTitle}</title>
     <meta name="description" content={description ?? dict.site.subtitle} />
     {languages.map((l) => <link rel="alternate" hreflang={l} href={switchLangPath(path, l)} />)}
@@ -26,6 +34,7 @@ const path = Astro.url.pathname;
     <header>
       <a href={`/${lang}/`}>{dict.site.name}</a>
       <LangSwitcher lang={lang} />
+      <ThemeToggle lang={lang} />
     </header>
     <main id="main">
       <slot />
