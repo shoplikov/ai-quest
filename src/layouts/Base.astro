@@ -1,5 +1,5 @@
 ---
-import { languages, switchLangPath, getDict, type Lang } from '../i18n';
+import { languages, switchLangPath, getDict, localePath, type Lang } from '../i18n';
 import LangSwitcher from '../components/LangSwitcher.astro';
 import ThemeScript from '../components/ThemeScript.astro';
 import ThemeToggle from '../components/ThemeToggle.astro';
@@ -7,17 +7,28 @@ import '@fontsource-variable/nunito';
 import '@fontsource-variable/jetbrains-mono';
 import '../styles/tokens.css';
 import '../styles/base.css';
+import '../styles/components.css';
 import '../styles/print.css';
 
 interface Props {
   lang: Lang;
   title?: string;
   description?: string;
+  /** Which nav item is current: 'map' | 'skills' | 'glossary' | 'cheatsheets' */
+  active?: string;
+  /** Wider page without the prose limit (map, skills). */
+  wide?: boolean;
 }
-const { lang, title, description } = Astro.props;
+const { lang, title, description, active, wide = false } = Astro.props;
 const dict = getDict(lang);
 const fullTitle = title ? `${title} · ${dict.site.name}` : dict.site.name;
 const path = Astro.url.pathname;
+const links = [
+  { key: 'map', href: localePath(lang, '/'), label: dict.nav.map },
+  { key: 'skills', href: localePath(lang, '/skills'), label: dict.nav.skills },
+  { key: 'glossary', href: localePath(lang, '/glossary'), label: dict.nav.glossary },
+  { key: 'cheatsheets', href: localePath(lang, '/cheatsheets'), label: dict.nav.cheatsheets },
+];
 ---
 <!doctype html>
 <html lang={lang}>
@@ -27,17 +38,187 @@ const path = Astro.url.pathname;
     <ThemeScript />
     <title>{fullTitle}</title>
     <meta name="description" content={description ?? dict.site.subtitle} />
+    <meta name="theme-color" content="#FFF8EE" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#161A2B" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     {languages.map((l) => <link rel="alternate" hreflang={l} href={switchLangPath(path, l)} />)}
     <link rel="alternate" hreflang="x-default" href="/" />
+    <slot name="head" />
   </head>
   <body>
-    <header>
-      <a href={`/${lang}/`}>{dict.site.name}</a>
-      <LangSwitcher lang={lang} />
-      <ThemeToggle lang={lang} />
+    <a class="skip-link" href="#main">{dict.nav.skip}</a>
+
+    <div class="view-banner" data-view-banner hidden>
+      <div class="container view-banner-inner">
+        <span data-view-text data-template={dict.view.banner}></span>
+        <button type="button" class="btn btn-ghost btn-small" data-view-exit>{dict.view.exit}</button>
+      </div>
+    </div>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href={localePath(lang, '/')} aria-label={dict.nav.home}>
+          <svg class="brand-mark" viewBox="0 0 40 40" width="36" height="36" aria-hidden="true">
+            <circle cx="20" cy="20" r="18" fill="var(--sun)" opacity="0.28" />
+            <rect x="13" y="14" width="14" height="17" rx="5" fill="var(--sun)" stroke="var(--ink)" stroke-width="2.2" />
+            <path d="M15 14c0-4 2.5-6 5-6s5 2 5 6" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round" />
+            <circle cx="20" cy="22.5" r="3" fill="#fff" />
+          </svg>
+          <span class="brand-name">{dict.site.name}</span>
+        </a>
+
+        <nav class="main-nav" aria-label={dict.nav.label}>
+          <button
+            type="button"
+            class="menu-btn"
+            aria-expanded="false"
+            aria-controls="nav-links"
+            data-menu-btn
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+            <span>{dict.nav.menu}</span>
+          </button>
+          <ul id="nav-links" class="nav-links" data-nav-links>
+            {
+              links.map((l) => (
+                <li>
+                  <a href={l.href} aria-current={active === l.key ? 'page' : undefined}>
+                    {l.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+
+        <div class="header-tools">
+          <a
+            class="pill pill-xp"
+            href={localePath(lang, '/')}
+            data-xp-pill
+            data-template={dict.nav.xpPill}
+            data-label={dict.nav.xpLabel}
+            aria-label={dict.nav.xpLabel.replace('{xp}', '0')}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z" fill="var(--sun)" stroke="var(--ink)" stroke-width="1.4" stroke-linejoin="round" />
+            </svg>
+            <span data-xp-text>{dict.nav.xpPill.replace('{xp}', '0')}</span>
+          </a>
+          <LangSwitcher lang={lang} />
+          <ThemeToggle lang={lang} />
+        </div>
+      </div>
     </header>
-    <main id="main">
+
+    <div class="container notes-area" data-notes>
+      <p class="note-line" data-note-storage hidden>{dict.notes.noStorage}</p>
+      <p class="note-line" data-note-share hidden>{dict.notes.brokenShare}</p>
+    </div>
+
+    <main id="main" tabindex="-1" class:list={['container', 'page', { 'page-wide': wide }]}>
       <slot />
     </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p class="footer-line">{dict.footer.line}</p>
+        <div class="footer-links">
+          <a href={localePath(lang, '/mentor')}>{dict.footer.mentor}</a>
+          <button type="button" class="link-btn" data-reset-open>{dict.footer.reset}</button>
+        </div>
+      </div>
+    </footer>
+
+    <dialog class="dialog" data-reset-dialog aria-labelledby="reset-title">
+      <form method="dialog" class="dialog-body">
+        <h2 id="reset-title" class="dialog-title">{dict.reset.title}</h2>
+        <p>{dict.reset.body}</p>
+        <div class="dialog-actions">
+          <button type="submit" value="cancel" class="btn btn-ghost" autofocus>{dict.reset.cancel}</button>
+          <button type="submit" value="confirm" class="btn btn-primary">{dict.reset.confirm}</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast-area" role="status" aria-live="polite" data-reset-done={dict.reset.done} data-view-exited={dict.view.exited}></div>
+
+    <script>
+      import { xp } from '../lib/progress';
+      import {
+        exitViewMode,
+        getProgress,
+        isViewMode,
+        resetProgress,
+        shareLinkBroken,
+        storageAvailable,
+        subscribe,
+      } from '../lib/store';
+      import { toast } from '../lib/toast';
+      import { fill } from '../i18n';
+
+      const $ = <T extends Element>(sel: string) => document.querySelector<T>(sel);
+
+      // XP pill and view banner follow the progress.
+      const pill = $<HTMLAnchorElement>('[data-xp-pill]');
+      const pillText = $<HTMLElement>('[data-xp-text]');
+      const banner = $<HTMLElement>('[data-view-banner]');
+      const bannerText = $<HTMLElement>('[data-view-text]');
+
+      function render() {
+        const p = getProgress();
+        const points = xp(p).toLocaleString(document.documentElement.lang);
+        if (pill && pillText) {
+          pillText.textContent = fill(pill.dataset.template!, { xp: points });
+          pill.setAttribute('aria-label', fill(pill.dataset.label!, { xp: points }));
+        }
+        const view = isViewMode();
+        document.documentElement.toggleAttribute('data-view-mode', view);
+        if (banner && bannerText) {
+          banner.hidden = !view;
+          bannerText.textContent = fill(bannerText.dataset.template!, { hero: p.hero || '?' });
+        }
+      }
+      render();
+      subscribe(render);
+
+      $('[data-view-exit]')?.addEventListener('click', () => {
+        exitViewMode();
+        const msg = $<HTMLElement>('.toast-area')?.dataset.viewExited;
+        if (msg) toast(msg);
+      });
+
+      // Notes: storage blocked, broken share link.
+      if (!storageAvailable()) $<HTMLElement>('[data-note-storage]')!.hidden = false;
+      if (shareLinkBroken()) $<HTMLElement>('[data-note-share]')!.hidden = false;
+
+      // Phone menu.
+      const menuBtn = $<HTMLButtonElement>('[data-menu-btn]');
+      const navLinks = $<HTMLElement>('[data-nav-links]');
+      menuBtn?.addEventListener('click', () => {
+        const open = menuBtn.getAttribute('aria-expanded') !== 'true';
+        menuBtn.setAttribute('aria-expanded', String(open));
+        navLinks?.classList.toggle('is-open', open);
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && menuBtn?.getAttribute('aria-expanded') === 'true') {
+          menuBtn.setAttribute('aria-expanded', 'false');
+          navLinks?.classList.remove('is-open');
+          menuBtn.focus();
+        }
+      });
+
+      // Reset dialog.
+      const dialog = $<HTMLDialogElement>('[data-reset-dialog]');
+      $('[data-reset-open]')?.addEventListener('click', () => dialog?.showModal());
+      dialog?.addEventListener('close', () => {
+        if (dialog.returnValue !== 'confirm') return;
+        resetProgress();
+        const msg = $<HTMLElement>('.toast-area')?.dataset.resetDone;
+        if (msg) toast(msg);
+      });
+    </script>
   </body>
 </html>

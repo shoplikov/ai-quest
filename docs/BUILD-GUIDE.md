@@ -47,7 +47,7 @@ task: build it, run its checks, tick the box, commit.
       `base.css`, `print.css` exactly as in `docs/spec/design.md`. Theme
       script in `<head>` to avoid a flash.
       *Check:* both themes render; toggling works; no flash on reload.
-- [ ] **1.3 Layout.** `src/layouts/Base.astro`: head, nav, footer, theme
+- [x] **1.3 Layout.** `src/layouts/Base.astro`: head, nav, footer, theme
       toggle, view-mode banner slot, toast area.
       *Check:* keyboard-only navigation works; 360px wide has no sideways scroll.
 - [ ] **1.4 Base components.** Card, Button, Pill, TickRow, ProgressRing,
