@@ -30,7 +30,7 @@ task: build it, run its checks, tick the box, commit.
 
 ## Phase 1 — Foundation
 
-- [ ] **1.1 Project config.** `astro.config.mjs` with MDX and Preact,
+- [x] **1.1 Project config.** `astro.config.mjs` with MDX and Preact,
       static output. `tsconfig.json` extending Astro's strict preset with
       Preact JSX. Install `vitest`, `@fontsource-variable/nunito` and
       `@fontsource-variable/jetbrains-mono`. Set up i18n routing for
