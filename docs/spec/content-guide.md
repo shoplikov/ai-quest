@@ -50,7 +50,7 @@ skill:                     # used on /skills
   middle: "one sentence"
 itsNormal: "2–3 sentences"
 analogy: { emoji: "🚪", title: "…", text: "…" }
-missions:                  # 3–5
+missions:                  # 3–6
   - id: m1
     title: "…"
     why: "one sentence — what this teaches"

@@ -35,7 +35,7 @@ const levelSchema = z.object({
       }),
     )
     .min(3)
-    .max(5),
+    .max(6),
   breaks: z
     .array(
       z.object({
