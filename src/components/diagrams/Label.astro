@@ -1,0 +1,28 @@
+---
+import { lines } from './draw';
+interface Props {
+  x: number;
+  y: number;
+  text: string;
+  anchor?: 'start' | 'middle' | 'end';
+  size?: number;
+  weight?: number;
+  color?: string;
+  mono?: boolean;
+}
+const { x, y, text, anchor = 'middle', size = 15, weight = 700, color = 'var(--ink)', mono = false } = Astro.props;
+const ls = lines(text);
+const lh = size * 1.25;
+---
+<text
+  x={x}
+  y={y - ((ls.length - 1) * lh) / 2}
+  text-anchor={anchor}
+  dominant-baseline="middle"
+  font-size={size}
+  font-weight={weight}
+  fill={color}
+  class:list={['dg-text', { 'dg-mono': mono }]}
+>
+  {ls.map((l, i) => <tspan x={x} dy={i === 0 ? 0 : lh}>{l}</tspan>)}
+</text>

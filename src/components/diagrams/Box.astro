@@ -1,0 +1,15 @@
+---
+import { roughRect } from './draw';
+interface Props {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  fill?: string;
+  stroke?: string;
+  dashed?: boolean;
+  seed?: number;
+}
+const { x, y, w, h, fill = 'var(--card)', stroke = 'var(--ink)', dashed = false, seed = 1 } = Astro.props;
+---
+<path d={roughRect(x, y, w, h, seed)} fill={fill} stroke={stroke} stroke-dasharray={dashed ? '8 7' : undefined} class="dg-line"></path>

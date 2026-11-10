@@ -1,0 +1,45 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['buildingWithDoors'];
+}
+const { t } = Astro.props;
+const doors = [
+  { port: '8000', name: t.app, color: 'var(--coral)' },
+  { port: '22', name: t.ssh, color: 'var(--lilac)' },
+  { port: '80', name: t.http, color: 'var(--sky)' },
+  { port: '443', name: t.https, color: 'var(--teal)' },
+  { port: '5432', name: t.pg, color: 'var(--sun)' },
+];
+---
+<Frame id="dg-building" w={720} h={330} title={t.title} desc={t.desc}>
+  <!-- caller -->
+  <Box x={20} y={120} w={150} h={84} fill="var(--card-2)" seed={3} />
+  <rect x="48" y="136" width="94" height="44" rx="6" fill="var(--sky)" opacity="0.35" />
+  <path d="M38 196 h114" class="dg-line" stroke="var(--ink)" />
+  <Label x={95} y={158} text={t.request} size={14} />
+  <Label x={95} y={232} text="http://192.168.1.20:8000" size={12} mono weight={600} />
+  <!-- building -->
+  <path d="M250 70 L465 18 L690 70" fill="none" class="dg-line" stroke="var(--ink)" />
+  <Box x={250} y={70} w={440} h={240} fill="var(--card)" seed={5} />
+  <Label x={470} y={98} text={t.machine} size={16} weight={800} />
+  <Label x={470} y={122} text="192.168.1.20" size={14} mono weight={600} color="var(--ink-soft)" />
+  {
+    doors.map((d, i) => {
+      const x = 272 + i * 84;
+      return (
+        <g>
+          <Label x={x + 32} y={160} text={d.port} size={15} mono weight={800} />
+          <Box x={x} y={178} w={64} h={92} fill={d.color} seed={10 + i} />
+          <circle cx={x + 52} cy={226} r="3.5" fill="var(--ink)" />
+          <Label x={x + 32} y={290} text={d.name} size={12} />
+        </g>
+      );
+    })
+  }
+  <Arrow x1={172} y1={164} x2={268} y2={220} bend={-18} color="var(--coral)" />
+</Frame>

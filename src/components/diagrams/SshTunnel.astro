@@ -1,0 +1,34 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['sshTunnel'];
+}
+const { t } = Astro.props;
+---
+<Frame id="dg-tunnel" w={720} h={300} title={t.title} desc={t.desc}>
+  <!-- laptop -->
+  <Box x={14} y={84} w={190} h={130} fill="var(--card-2)" seed={70} />
+  <Label x={109} y={112} text={t.laptop} size={15} weight={800} />
+  <Box x={40} y={142} w={140} h={42} fill="var(--card)" seed={71} />
+  <Label x={110} y={163} text={t.local} size={12} mono weight={700} />
+  <!-- corridor -->
+  <path d="M206 150 C 300 128, 380 172, 476 150" fill="none" stroke="var(--lilac)" stroke-width="26" stroke-linecap="round" opacity="0.28" />
+  <Arrow x1={184} y1={163} x2={474} y2={150} bend={-8} color="var(--lilac)" />
+  <Label x={340} y={118} text={t.tunnel} size={14} weight={800} />
+  <!-- server -->
+  <Box x={480} y={54} w={226} h={226} fill="var(--card)" seed={72} />
+  <Label x={593} y={80} text={t.server} size={15} weight={800} />
+  <rect x="470" y="128" width="24" height="44" rx="5" fill="var(--teal)" stroke="var(--ink)" stroke-width="2.5" />
+  <Label x={540} y={114} text={t.ssh} size={11} mono weight={700} color="var(--ink-soft)" />
+  <Box x={520} y={194} w={166} h={66} fill="var(--sun-soft)" seed={73} />
+  <Label x={603} y={227} text={t.db} size={12} />
+  <Arrow x1={496} y1={160} x2={560} y2={190} bend={-8} color="var(--lilac)" />
+  <!-- closed from outside -->
+  <path d="M690 18 L690 46" class="dg-line" stroke="var(--danger)" stroke-dasharray="6 6" fill="none" />
+  <path d="M680 30 l20 20 M700 30 l-20 20" class="dg-line" stroke="var(--danger)" fill="none" transform="translate(0 -8)" />
+  <Label x={668} y={22} text={t.closed} size={11} anchor="end" color="var(--danger-ink)" />
+</Frame>

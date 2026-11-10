@@ -1,0 +1,41 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['localhostVsAll'];
+}
+const { t } = Astro.props;
+const panels = [
+  { x: 0, title: t.left, open: false },
+  { x: 365, title: t.right, open: true },
+];
+---
+<Frame id="dg-localhost" w={720} h={360} title={t.title} desc={t.desc}>
+  {
+    panels.map((p, i) => (
+      <g transform={`translate(${p.x} 0)`}>
+        <Label x={177} y={24} text={p.title} size={15} weight={800} />
+        <Box x={14} y={48} w={326} h={196} fill="var(--card)" seed={20 + i} />
+        <Box x={34} y={112} w={118} h={70} fill="var(--card-2)" seed={30 + i} />
+        <Label x={93} y={147} text={t.inside} size={12} />
+        <Box x={192} y={112} w={140} h={70} fill={p.open ? 'var(--teal-soft)' : 'var(--coral-soft)'} seed={40 + i} />
+        <Label x={262} y={147} text={t.app} size={12} weight={800} />
+        <Arrow x1={154} y1={147} x2={189} y2={147} color="var(--teal)" />
+        <Box x={190} y={296} w={148} h={44} fill="var(--card-2)" seed={50 + i} />
+        <Label x={264} y={318} text={t.outside} size={11} />
+        {p.open ? (
+          <Arrow x1={264} y1={294} x2={264} y2={186} color="var(--teal)" />
+        ) : (
+          <g>
+            <path d="M264 294 L264 254" class="dg-line" stroke="var(--danger)" stroke-dasharray="6 6" fill="none" />
+            <path d="M254 236 l20 20 M274 236 l-20 20" class="dg-line" stroke="var(--danger)" fill="none" />
+            <Label x={150} y={272} text={t.refused} size={13} weight={800} color="var(--danger-ink)" />
+          </g>
+        )}
+      </g>
+    ))
+  }
+</Frame>

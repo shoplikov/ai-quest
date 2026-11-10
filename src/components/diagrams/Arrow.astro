@@ -1,0 +1,19 @@
+---
+import { arrowHead, curve } from './draw';
+interface Props {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  bend?: number;
+  color?: string;
+  dashed?: boolean;
+  both?: boolean;
+}
+const { x1, y1, x2, y2, bend = 0, color = 'var(--ink)', dashed = false, both = false } = Astro.props;
+---
+<g class="dg-line" stroke={color} fill="none">
+  <path d={curve(x1, y1, x2, y2, bend)} stroke-dasharray={dashed ? '8 7' : undefined}></path>
+  <path d={arrowHead(x1, y1, x2, y2, bend)}></path>
+  {both && <path d={arrowHead(x2, y2, x1, y1, -bend)}></path>}
+</g>

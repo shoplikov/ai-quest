@@ -87,7 +87,7 @@ task: build it, run its checks, tick the box, commit.
       components for every part listed in the product spec, in order.
       Ticking updates XP with a toast. "Finish level" flow with confetti,
       badge dialog and kind note.
-- [ ] **3.2 Diagram and Analogy components.** `Diagram.astro` picks a
+- [x] **3.2 Diagram and Analogy components.** `Diagram.astro` picks a
       diagram by `name`. Draw Level 2's four diagrams:
       `building-with-doors`, `localhost-vs-all`, `reverse-proxy`,
       `ssh-tunnel`, in the hand-drawn style of the design spec.

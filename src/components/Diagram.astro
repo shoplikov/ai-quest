@@ -1,6 +1,22 @@
 ---
-// Built in task 3.2.
+// Picks a diagram by name. Labels come from the dictionary of the page's
+// language, so the drawings are shared and the text is not.
+import { getDict, isLang } from '../i18n';
+import BuildingWithDoors from './diagrams/BuildingWithDoors.astro';
+import LocalhostVsAll from './diagrams/LocalhostVsAll.astro';
+import ReverseProxy from './diagrams/ReverseProxy.astro';
+import SshTunnel from './diagrams/SshTunnel.astro';
+
 interface Props {
   name: string;
 }
+const { name } = Astro.props;
+const lang = isLang(Astro.params.lang) ? Astro.params.lang : isLang(Astro.currentLocale) ? Astro.currentLocale : 'en';
+const t = getDict(lang).diagrams;
+const known = ['building-with-doors', 'localhost-vs-all', 'reverse-proxy', 'ssh-tunnel'];
+if (!known.includes(name)) throw new Error(`Unknown diagram: ${name}`);
 ---
+{name === 'building-with-doors' && <BuildingWithDoors t={t.buildingWithDoors} />}
+{name === 'localhost-vs-all' && <LocalhostVsAll t={t.localhostVsAll} />}
+{name === 'reverse-proxy' && <ReverseProxy t={t.reverseProxy} />}
+{name === 'ssh-tunnel' && <SshTunnel t={t.sshTunnel} />}

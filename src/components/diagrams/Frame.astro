@@ -1,0 +1,18 @@
+---
+// Wraps a diagram: <figure>, sized SVG, <title> and <desc> for screen readers.
+interface Props {
+  id: string;
+  w: number;
+  h: number;
+  title: string;
+  desc: string;
+}
+const { id, w, h, title, desc } = Astro.props;
+---
+<figure class="diagram">
+  <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-labelledby={`${id}-t ${id}-d`} class="diagram-svg">
+    <title id={`${id}-t`}>{title}</title>
+    <desc id={`${id}-d`}>{desc}</desc>
+    <slot />
+  </svg>
+</figure>

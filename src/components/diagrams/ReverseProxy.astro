@@ -1,0 +1,29 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['reverseProxy'];
+}
+const { t } = Astro.props;
+---
+<Frame id="dg-proxy" w={720} h={300} title={t.title} desc={t.desc}>
+  <Box x={14} y={118} w={118} h={64} fill="var(--card-2)" seed={60} />
+  <Label x={73} y={150} text={t.browser} size={14} />
+  <Box x={176} y={20} w={530} h={262} fill="none" dashed seed={61} />
+  <Label x={196} y={44} text={t.server} size={13} anchor="start" color="var(--ink-soft)" />
+  <Box x={210} y={108} w={150} h={84} fill="var(--sun-soft)" seed={62} />
+  <Label x={285} y={150} text={t.nginx} size={14} weight={800} />
+  <Label x={285} y={214} text={t.receptionist} size={12} weight={600} color="var(--ink-soft)" />
+  <Box x={500} y={56} w={190} h={72} fill="var(--teal-soft)" seed={63} />
+  <Label x={595} y={92} text={t.appA} size={13} />
+  <Box x={500} y={172} w={190} h={72} fill="var(--card-2)" seed={64} />
+  <Label x={595} y={208} text={t.appB} size={13} />
+  <Arrow x1={134} y1={150} x2={206} y2={150} color="var(--coral)" />
+  <Arrow x1={362} y1={136} x2={496} y2={94} bend={-10} color="var(--teal)" />
+  <Arrow x1={362} y1={166} x2={496} y2={208} bend={10} color="var(--ink-soft)" />
+  <Label x={430} y={92} text={t.routeA} size={11} mono weight={600} />
+  <Label x={430} y={226} text={t.routeB} size={11} mono weight={600} />
+</Frame>

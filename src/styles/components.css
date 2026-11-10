@@ -673,3 +673,35 @@ html[data-view-mode] .site-header {
   40% { transform: rotate(6deg); }
   60% { transform: rotate(-10deg); }
 }
+
+/* ---------- Diagrams ---------- */
+.diagram {
+  margin: var(--s5) 0;
+  max-width: 720px;
+  overflow-x: auto;
+}
+@media (max-width: 600px) {
+  /* Keep labels readable: the drawing keeps a minimum width and scrolls
+   * inside its own frame, like a code block. */
+  .diagram-svg {
+    min-width: 540px;
+  }
+}
+.diagram-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--ink);
+}
+.dg-line,
+.dg-line path {
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dg-text {
+  font-family: var(--font-body);
+}
+.dg-mono {
+  font-family: var(--font-code);
+}
