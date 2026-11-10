@@ -91,7 +91,7 @@ task: build it, run its checks, tick the box, commit.
       diagram by `name`. Draw Level 2's four diagrams:
       `building-with-doors`, `localhost-vs-all`, `reverse-proxy`,
       `ssh-tunnel`, in the hand-drawn style of the design spec.
-- [ ] **3.3 Port playground.** Logic in `src/lib/ports.ts` with one test
+- [x] **3.3 Port playground.** Logic in `src/lib/ports.ts` with one test
       per rule in `docs/spec/widgets.md`; then the view.
 - [ ] **3.4 Request journey.** Stepper plus the "Where would it break?" part.
 - [ ] **3.5 Error quiz.**

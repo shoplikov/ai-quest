@@ -1,0 +1,300 @@
+/* Shared widget styles (Preact islands). */
+.widget {
+  background: var(--card);
+  border: 2px solid var(--lilac);
+  border-radius: var(--r-card);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--lilac) 45%, var(--line));
+  padding: var(--s5);
+  margin: var(--s5) 0 var(--s6);
+}
+@media (max-width: 520px) {
+  .widget {
+    padding: var(--s4);
+  }
+}
+.widget-title {
+  margin: 0 0 var(--s1);
+  font-size: var(--fs-h3);
+}
+.widget-instruction {
+  margin: 0 0 var(--s3);
+  font-weight: 700;
+}
+.widget-label {
+  margin: 0 0 var(--s1);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+.widget-try {
+  background: var(--card-2);
+  border-radius: var(--r-ctl);
+  padding: var(--s3) var(--s4);
+  margin-bottom: var(--s4);
+  font-size: 0.95rem;
+}
+.widget-try ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.widget-try li {
+  margin-bottom: 2px;
+}
+.widget-pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0 0 var(--s3);
+  font-size: 0.82rem;
+}
+.mono {
+  font-family: var(--font-code);
+  font-size: 0.9em;
+}
+
+/* Segmented radio groups */
+.seg {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.seg legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.seg-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.seg-opt {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--line);
+  background: var(--paper);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  line-height: 1.25;
+}
+.seg-opt input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.seg-opt.is-on {
+  border-color: var(--lilac-ink);
+  background: color-mix(in srgb, var(--lilac) 18%, var(--card));
+}
+.seg-opt:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.seg:disabled .seg-opt {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.num-field label {
+  display: block;
+  font-weight: 800;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+.num-input {
+  width: 8.5ch;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: var(--r-ctl);
+  border: 2px solid var(--line);
+  background: var(--paper);
+  font-family: var(--font-code);
+  font-size: 0.95rem;
+}
+.check-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  min-height: 40px;
+  cursor: pointer;
+}
+.check-inline input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--lilac-ink);
+}
+
+/* Port playground */
+.pp-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--s4) var(--s5);
+  margin-bottom: var(--s4);
+}
+.pp-publish {
+  grid-column: 1 / -1;
+}
+.pp-publish-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3) var(--s4);
+  align-items: flex-end;
+  margin-top: var(--s3);
+}
+.pp-picture {
+  margin: 0 0 var(--s3);
+  background: var(--paper);
+  border-radius: var(--r-ctl);
+  border: 2px solid var(--line);
+  overflow-x: auto;
+}
+.pp-picture svg {
+  display: block;
+  width: 100%;
+  min-width: 480px;
+  height: auto;
+}
+.pp-machine {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.pp-box {
+  fill: var(--card-2);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.pp-label {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 14px;
+  fill: var(--ink);
+}
+.pp-small {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 12px;
+  fill: var(--ink-soft);
+}
+.pp-mono {
+  font-family: var(--font-code);
+  font-weight: 700;
+  font-size: 13px;
+  fill: var(--ink);
+}
+.pp-tiny {
+  font-size: 11px;
+}
+.pp-firewall path {
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke: var(--teal);
+  stroke-dasharray: 6 8;
+}
+.pp-firewall.is-closed path {
+  stroke: var(--danger);
+  stroke-dasharray: none;
+}
+.pp-caller rect {
+  fill: color-mix(in srgb, var(--sky) 35%, var(--card));
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.pp-caller path {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.pp-door rect,
+.pp-door-small {
+  fill: var(--coral);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.pp-door-small {
+  fill: var(--sun);
+}
+.pp-app {
+  fill: var(--teal-soft);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.pp-path {
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 2 9;
+  fill: none;
+}
+.pp-path.is-ok {
+  stroke: var(--teal);
+}
+.pp-path.is-bad {
+  stroke: var(--danger);
+}
+.pp-dot {
+  transition: transform 700ms var(--ease);
+}
+.pp-dot circle {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.pp-dot.is-ok circle {
+  fill: var(--teal);
+}
+.pp-dot.is-bad circle {
+  fill: var(--danger);
+}
+.pp-spark {
+  stroke: var(--sun);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.pp-x {
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.pp-result {
+  border-radius: var(--r-ctl);
+  padding: var(--s3) var(--s4);
+  border: 2px solid;
+}
+.pp-result.is-ok {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+.pp-result.is-bad {
+  border-color: var(--danger);
+  background: var(--coral-soft);
+}
+.pp-result p {
+  margin: 0 0 var(--s2);
+}
+.pp-result p:last-child {
+  margin-bottom: 0;
+}
+.pp-result-head {
+  font-weight: 800;
+}
+.pp-result.is-ok .pp-result-head {
+  color: var(--teal-ink);
+}
+.pp-result.is-bad .pp-result-head {
+  color: var(--danger-ink);
+}
+.pp-note {
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+}
