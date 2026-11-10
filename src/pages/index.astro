@@ -1,3 +1,46 @@
 ---
+// Root page: picks a language and redirects. Keeps a #p= share hash.
+import { en } from '../i18n/en';
+import { ru } from '../i18n/ru';
 ---
-<html lang="en"><head><meta charset="utf-8" /><title>AI Engineer Quest</title></head><body></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{en.site.name}</title>
+    <link rel="alternate" hreflang="en" href="/en/" />
+    <link rel="alternate" hreflang="ru" href="/ru/" />
+    <script is:inline>
+      (function () {
+        var saved = null;
+        try {
+          saved = localStorage.getItem('aiquest:lang');
+        } catch (e) {}
+        var lang = 'en';
+        if (saved === 'en' || saved === 'ru') {
+          lang = saved;
+        } else {
+          var list = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
+          for (var i = 0; i < list.length; i++) {
+            var l = String(list[i]).toLowerCase();
+            if (l.indexOf('ru') === 0) { lang = 'ru'; break; }
+            if (l.indexOf('en') === 0) { lang = 'en'; break; }
+          }
+        }
+        location.replace('/' + lang + '/' + location.hash);
+      })();
+    </script>
+    <style>
+      body { font-family: system-ui, sans-serif; background: #FFF8EE; color: #2A2440; padding: 32px 16px; }
+      a { color: #5B49C9; font-weight: 700; margin-right: 16px; }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <h1>{en.redirect.title}</h1>
+      <p>{en.redirect.choose} / <span lang="ru">{ru.redirect.choose}</span></p>
+      <p><a href="/en/" hreflang="en">{en.lang.en}</a> <a href="/ru/" hreflang="ru" lang="ru">{ru.lang.ru}</a></p>
+    </noscript>
+  </body>
+</html>

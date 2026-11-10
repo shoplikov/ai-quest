@@ -36,7 +36,7 @@ task: build it, run its checks, tick the box, commit.
       `@fontsource-variable/jetbrains-mono`. Set up i18n routing for
       `en` and `ru`, both prefixed, per `docs/spec/i18n.md`. Add the scripts above.
       *Check:* `npm run build` succeeds on an empty index page.
-- [ ] **1.1b Languages.** `src/i18n/en.ts` and `ru.ts` typed
+- [x] **1.1b Languages.** `src/i18n/en.ts` and `ru.ts` typed
       dictionaries with a `t()` helper and plural helper; the `/`
       redirect page; the EN | RU switcher; `<html lang>` and `hreflang`.
       From here on, every string you add goes into both dictionaries.

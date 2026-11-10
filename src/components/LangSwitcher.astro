@@ -1,0 +1,90 @@
+---
+import { languages, getDict, switchLangPath, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const path = Astro.url.pathname;
+---
+<div class="lang-switch" role="group" aria-label={getDict(lang).lang.label}>
+  {
+    languages.map((l, i) => (
+      <>
+        {i > 0 && <span class="sep" aria-hidden="true">|</span>}
+        {l === lang ? (
+          <span class="lang-opt is-current" aria-current="true" lang={l}>
+            {l.toUpperCase()}
+          </span>
+        ) : (
+          <a
+            class="lang-opt"
+            href={switchLangPath(path, l)}
+            hreflang={l}
+            lang={l}
+            data-lang-link={l}
+            aria-label={getDict(l).lang.switchTo}
+          >
+            {l.toUpperCase()}
+          </a>
+        )}
+      </>
+    ))
+  }
+</div>
+
+<script>
+  import { LANG_STORAGE_KEY } from '../i18n';
+
+  // Save the choice and keep the section the reader is looking at.
+  function currentAnchor(): string {
+    const marks = Array.from(document.querySelectorAll<HTMLElement>('[data-anchor]'));
+    let found = '';
+    for (const el of marks) {
+      if (el.getBoundingClientRect().top <= 120) found = el.id;
+    }
+    return found;
+  }
+
+  document.addEventListener('click', (event) => {
+    const link = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[data-lang-link]');
+    if (!link) return;
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, link.dataset.langLink ?? '');
+    } catch {
+      /* storage blocked: the link still works */
+    }
+    const anchor = currentAnchor();
+    if (anchor) {
+      event.preventDefault();
+      location.href = `${link.pathname}#${anchor}`;
+    }
+  });
+</script>
+
+<style>
+  .lang-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .lang-opt {
+    padding: 4px 8px;
+    border-radius: 999px;
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+  a.lang-opt:hover {
+    color: var(--ink);
+    background: var(--card-2);
+  }
+  .lang-opt.is-current {
+    color: var(--ink);
+    background: var(--card-2);
+  }
+  .sep {
+    color: var(--line);
+  }
+</style>

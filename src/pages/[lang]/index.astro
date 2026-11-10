@@ -1,0 +1,14 @@
+---
+import Base from '../../layouts/Base.astro';
+import { languages, getDict, type Lang } from '../../i18n';
+
+export function getStaticPaths() {
+  return languages.map((lang) => ({ params: { lang } }));
+}
+const lang = Astro.params.lang as Lang;
+const dict = getDict(lang);
+---
+<Base lang={lang}>
+  <h1>{dict.site.name}</h1>
+  <p>{dict.site.subtitle}</p>
+</Base>
