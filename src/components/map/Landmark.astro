@@ -1,0 +1,120 @@
+---
+// Small flat landmark drawings. Origin: centre of the base line (0, 0);
+// each drawing goes up to about y = -64 and is about 96 wide.
+interface Props {
+  name: 'tent' | 'doors' | 'workshop' | 'harbour' | 'library' | 'lighthouse' | 'book' | 'rocket' | 'castle';
+  x: number;
+  y: number;
+  scale?: number;
+}
+const { name, x, y, scale = 1 } = Astro.props;
+const ink = 'var(--map-ink)';
+---
+<g class="landmark" transform={`translate(${x} ${y}) scale(${scale})`} aria-hidden="true">
+  <ellipse cx="0" cy="2" rx="50" ry="8" fill="var(--map-ground)" />
+  {
+    name === 'tent' && (
+      <g stroke={ink} stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M-34 0 L-8 -48 L18 0 Z" fill="var(--coral)" />
+        <path d="M-8 -48 L-8 0" />
+        <path d="M-16 0 L-8 -18 L0 0 Z" fill="var(--map-ink)" />
+        <path d="M30 0 l6 -6 l6 6" fill="none" />
+        <path d="M33 -4 q3 -14 3 -16 q6 8 4 16 Z" fill="var(--sun)" />
+      </g>
+    )
+  }
+  {
+    name === 'doors' && (
+      <g stroke={ink} stroke-width="2" stroke-linejoin="round">
+        <rect x="-44" y="-46" width="88" height="46" rx="6" fill="var(--card-2)" />
+        <rect x="-38" y="-34" width="14" height="28" rx="6" fill="var(--coral)" />
+        <rect x="-19" y="-34" width="14" height="28" rx="6" fill="var(--teal)" />
+        <rect x="0" y="-34" width="14" height="28" rx="6" fill="var(--lilac)" />
+        <rect x="19" y="-34" width="14" height="28" rx="6" fill="var(--sky)" />
+        <path d="M-48 -46 L0 -62 L48 -46" fill="none" stroke-linecap="round" />
+      </g>
+    )
+  }
+  {
+    name === 'workshop' && (
+      <g stroke={ink} stroke-width="2" stroke-linejoin="round">
+        <rect x="18" y="-60" width="10" height="20" fill="var(--danger)" />
+        <circle cx="26" cy="-68" r="5" fill="var(--card)" />
+        <circle cx="34" cy="-74" r="4" fill="var(--card)" />
+        <path d="M-38 -32 L-4 -58 L32 -32 Z" fill="var(--coral)" />
+        <rect x="-32" y="-32" width="58" height="32" fill="var(--card-2)" />
+        <rect x="-10" y="-20" width="14" height="20" rx="3" fill="var(--teal)" />
+        <circle cx="-22" cy="-18" r="6" fill="var(--sun)" />
+      </g>
+    )
+  }
+  {
+    name === 'harbour' && (
+      <g stroke={ink} stroke-width="2" stroke-linejoin="round">
+        <rect x="-40" y="-20" width="26" height="18" rx="2" fill="var(--coral)" />
+        <rect x="-12" y="-20" width="26" height="18" rx="2" fill="var(--teal)" />
+        <rect x="-26" y="-40" width="26" height="18" rx="2" fill="var(--lilac)" />
+        <rect x="16" y="-20" width="24" height="18" rx="2" fill="var(--sun)" />
+        <path d="M-46 0 q8 -6 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" fill="none" stroke="var(--sky)" stroke-width="3" stroke-linecap="round" />
+      </g>
+    )
+  }
+  {
+    name === 'library' && (
+      <g stroke={ink} stroke-width="2" stroke-linejoin="round">
+        <rect x="-18" y="-56" width="36" height="56" rx="4" fill="var(--lilac)" />
+        <path d="M-24 -56 L0 -74 L24 -56 Z" fill="var(--coral)" />
+        <rect x="-10" y="-44" width="8" height="12" rx="4" fill="var(--sun)" />
+        <rect x="2" y="-44" width="8" height="12" rx="4" fill="var(--sun)" />
+        <rect x="-7" y="-18" width="14" height="18" rx="7" fill="var(--card)" />
+        <path d="M24 0 v-16 M30 0 v-22 M36 0 v-14" stroke="var(--teal)" stroke-width="5" stroke-linecap="round" />
+      </g>
+    )
+  }
+  {
+    name === 'lighthouse' && (
+      <g stroke={ink} stroke-width="2" stroke-linejoin="round">
+        <path d="M6 -62 L60 -78 L60 -50 Z" fill="var(--sun)" opacity="0.45" stroke="none" />
+        <path d="M-12 0 L-7 -54 L7 -54 L12 0 Z" fill="var(--card)" />
+        <path d="M-11 -14 L11 -14 L10.2 -26 L-10.2 -26 Z M-9.4 -38 L9.4 -38 L8.6 -48 L-8.6 -48 Z" fill="var(--coral)" />
+        <rect x="-9" y="-66" width="18" height="12" rx="3" fill="var(--sun)" />
+        <path d="M-11 -66 L0 -76 L11 -66 Z" fill="var(--coral)" />
+      </g>
+    )
+  }
+  {
+    name === 'book' && (
+      <g stroke={ink} stroke-width="2" stroke-linejoin="round">
+        <path d="M-46 0 Q0 -26 46 0 Z" fill="var(--teal)" opacity="0.5" stroke="none" />
+        <path d="M0 -14 Q-20 -24 -40 -18 L-40 -54 Q-20 -60 0 -50 Z" fill="var(--card)" />
+        <path d="M0 -14 Q20 -24 40 -18 L40 -54 Q20 -60 0 -50 Z" fill="var(--card)" />
+        <path d="M-32 -44 q12 -4 24 2 M-32 -36 q12 -4 24 2 M8 -42 q12 -6 24 -2 M8 -34 q12 -6 24 -2" fill="none" stroke="var(--ink-soft)" stroke-linecap="round" />
+        <path d="M0 -50 V-14" />
+      </g>
+    )
+  }
+  {
+    name === 'rocket' && (
+      <g stroke={ink} stroke-width="2" stroke-linejoin="round">
+        <rect x="-30" y="-8" width="60" height="8" rx="3" fill="var(--card-2)" />
+        <path d="M0 -70 Q14 -54 12 -20 L-12 -20 Q-14 -54 0 -70 Z" fill="var(--card)" />
+        <circle cx="0" cy="-46" r="5" fill="var(--sky)" />
+        <path d="M-12 -30 L-20 -12 L-12 -20 Z M12 -30 L20 -12 L12 -20 Z" fill="var(--coral)" />
+        <path d="M-6 -20 Q0 -4 6 -20 Z" fill="var(--sun)" />
+      </g>
+    )
+  }
+  {
+    name === 'castle' && (
+      <g stroke={ink} stroke-width="2" stroke-linejoin="round">
+        <rect x="-40" y="-50" width="80" height="50" fill="var(--card-2)" />
+        <rect x="-52" y="-66" width="22" height="66" fill="var(--card)" />
+        <rect x="30" y="-66" width="22" height="66" fill="var(--card)" />
+        <path d="M-52 -66 v-8 h6 v6 h5 v-6 h6 v6 h5 v-6 h0 v8 M30 -66 v-8 h6 v6 h5 v-6 h6 v6 h5 v-6 v8" fill="none" />
+        <path d="M-12 0 v-22 a12 12 0 0 1 24 0 v22 Z" fill="var(--lilac)" />
+        <path d="M0 -50 V-86" />
+        <path d="M0 -86 L22 -80 L0 -73 Z" fill="var(--coral)" />
+      </g>
+    )
+  }
+</g>

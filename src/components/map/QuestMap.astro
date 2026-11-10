@@ -1,0 +1,294 @@
+---
+// The quest map: one SVG for desktop (1000×640) and one for phones
+// (360×1100). Rendered with empty progress; a client script sets node
+// states, the travelled path and Porto's place.
+import Landmark from './Landmark.astro';
+import Porto from '../porto/Porto';
+import { fill, getDict, localePath, plural, type Lang } from '../../i18n';
+import type { LevelSummary } from '../../lib/levels';
+
+interface Props {
+  lang: Lang;
+  levels: LevelSummary[];
+  bossExists: boolean;
+}
+const { lang, levels, bossExists } = Astro.props;
+const dict = getDict(lang);
+
+type Pt = { x: number; y: number };
+type Layout = {
+  key: 'desktop' | 'phone';
+  w: number;
+  h: number;
+  points: Pt[]; // 8 levels, then the boss
+  label: (p: Pt, i: number) => { x: number; y: number; w: number; h: number; align: 'center' | 'left' | 'right' };
+  porto: (p: Pt) => Pt;
+  portoSize: number;
+  scenery: string;
+};
+
+const layouts: Layout[] = [
+  {
+    key: 'desktop',
+    w: 1000,
+    h: 640,
+    points: [
+      { x: 90, y: 528 },
+      { x: 300, y: 505 },
+      { x: 165, y: 335 },
+      { x: 380, y: 290 },
+      { x: 545, y: 400 },
+      { x: 715, y: 470 },
+      { x: 840, y: 330 },
+      { x: 670, y: 200 },
+      { x: 885, y: 118 },
+    ],
+    label: (p) => ({ x: p.x - 80, y: p.y + 36, w: 160, h: 72, align: 'center' }),
+    porto: (p) => ({ x: p.x + 30, y: p.y + 20 }),
+    portoSize: 52,
+    scenery: 'desktop',
+  },
+  {
+    key: 'phone',
+    w: 360,
+    h: 1100,
+    points: [
+      { x: 92, y: 1030 },
+      { x: 268, y: 914 },
+      { x: 92, y: 798 },
+      { x: 268, y: 682 },
+      { x: 92, y: 566 },
+      { x: 268, y: 450 },
+      { x: 92, y: 334 },
+      { x: 268, y: 218 },
+      { x: 180, y: 96 },
+    ],
+    label: (p, i) =>
+      i === 8
+        ? { x: p.x - 150, y: p.y + 36, w: 300, h: 56, align: 'center' }
+        : p.x < 180
+          ? { x: p.x + 40, y: p.y - 34, w: 170, h: 76, align: 'left' }
+          : { x: p.x - 210, y: p.y - 34, w: 170, h: 76, align: 'right' },
+    porto: (p) => ({ x: p.x + (p.x < 180 ? -64 : 18), y: p.y + 4 }),
+    portoSize: 46,
+    scenery: 'phone',
+  },
+];
+
+// Smooth path through the points (Catmull-Rom → cubic Bézier), one
+// segment per hop so travelled hops can be coloured separately.
+function segments(pts: Pt[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i]!;
+    const p1 = pts[i]!;
+    const p2 = pts[i + 1]!;
+    const p3 = pts[i + 2] ?? p2;
+    const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 };
+    const c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
+    out.push(
+      `M${p1.x} ${p1.y} C${c1.x.toFixed(1)} ${c1.y.toFixed(1)} ${c2.x.toFixed(1)} ${c2.y.toFixed(1)} ${p2.x} ${p2.y}`,
+    );
+  }
+  return out;
+}
+
+const landmarkOf = (i: number) => (i === 8 ? 'castle' : levels[i]!.landmark);
+const titleOf = (i: number) => (i === 8 ? dict.map.bossTitle : levels[i]!.title);
+const hrefOf = (i: number) =>
+  i === 8 ? (bossExists ? localePath(lang, '/boss') : null) : levels[i]!.exists ? localePath(lang, `/level/${i + 1}`) : null;
+const weeksOf = (i: number) => (i === 8 ? 1 : levels[i]!.weeks);
+const ariaOf = (i: number, state: string) =>
+  i === 8
+    ? fill(dict.map.bossLabel, { title: titleOf(i), state })
+    : fill(dict.map.nodeLabel, { n: i + 1, title: titleOf(i), state });
+---
+<div
+  class="quest-map"
+  data-quest-map
+  data-state-done={dict.map.stateDone}
+  data-state-current={dict.map.stateCurrent}
+  data-state-ahead={dict.map.stateAhead}
+  data-peek={dict.map.peek}
+>
+  {
+    layouts.map((L) => {
+      const segs = segments(L.points);
+      return (
+        <svg
+          class={`map-svg map-${L.key}`}
+          viewBox={`0 0 ${L.w} ${L.h}`}
+          role="group"
+          aria-labelledby={`map-title-${L.key}`}
+          aria-describedby={`map-desc-${L.key}`}
+        >
+          <title id={`map-title-${L.key}`}>{dict.home.mapTitle}</title>
+          <desc id={`map-desc-${L.key}`}>{dict.home.mapDesc}</desc>
+
+          {/* scenery */}
+          <g aria-hidden="true" class="scenery">
+            {L.key === 'desktop' ? (
+              <>
+                <path d="M0 640 V520 Q160 440 330 520 T660 500 T1000 470 V640 Z" fill="var(--map-hill)" />
+                <path d="M0 640 V600 Q220 540 460 600 T1000 580 V640 Z" fill="var(--map-hill-2)" />
+                <path d="M420 300 Q560 220 720 290 T1000 250 V330 Q840 300 720 340 T420 330 Z" fill="var(--map-hill)" opacity="0.6" />
+                <g fill="var(--map-cloud)">
+                  <ellipse cx="140" cy="90" rx="46" ry="16" />
+                  <ellipse cx="170" cy="78" rx="28" ry="16" />
+                  <ellipse cx="480" cy="70" rx="54" ry="16" />
+                  <ellipse cx="508" cy="58" rx="30" ry="15" />
+                  <ellipse cx="320" cy="170" rx="34" ry="11" />
+                </g>
+                {[[40, 450], [150, 300], [450, 560], [610, 330], [960, 400], [560, 190], [300, 400]].map(([tx, ty]) => (
+                  <g transform={`translate(${tx} ${ty})`}>
+                    <rect x="-2" y="-6" width="4" height="10" fill="var(--map-trunk)" />
+                    <path d="M-11 -4 L0 -28 L11 -4 Z" fill="var(--map-tree)" />
+                  </g>
+                ))}
+              </>
+            ) : (
+              <>
+                <path d="M0 1100 V1040 Q100 990 200 1030 T360 1010 V1100 Z" fill="var(--map-hill)" />
+                <path d="M0 760 Q120 720 200 760 T360 740 V820 Q240 800 160 830 T0 820 Z" fill="var(--map-hill)" opacity="0.6" />
+                <path d="M0 420 Q140 380 220 420 T360 400 V470 Q240 450 160 480 T0 470 Z" fill="var(--map-hill)" opacity="0.6" />
+                <g fill="var(--map-cloud)">
+                  <ellipse cx="60" cy="60" rx="38" ry="13" />
+                  <ellipse cx="84" cy="50" rx="22" ry="12" />
+                  <ellipse cx="300" cy="150" rx="40" ry="12" />
+                  <ellipse cx="60" cy="600" rx="30" ry="10" />
+                </g>
+                {[[30, 960], [330, 840], [26, 720], [334, 610], [30, 490], [332, 380], [26, 260]].map(([tx, ty]) => (
+                  <g transform={`translate(${tx} ${ty})`}>
+                    <rect x="-2" y="-6" width="4" height="10" fill="var(--map-trunk)" />
+                    <path d="M-10 -4 L0 -24 L10 -4 Z" fill="var(--map-tree)" />
+                  </g>
+                ))}
+              </>
+            )}
+          </g>
+
+          {/* path: dashed ahead, solid teal where travelled */}
+          <g aria-hidden="true" class="map-path">
+            {segs.map((d) => (
+              <path d={d} class="path-ahead" />
+            ))}
+            {segs.map((d, i) => (
+              <path d={d} class="path-done" data-seg={i + 1} pathLength="1" />
+            ))}
+          </g>
+
+          {/* landmarks */}
+          {L.points.map((p, i) => (
+            <Landmark name={landmarkOf(i)} x={p.x} y={p.y - (i === 8 ? 28 : 20)} scale={L.key === 'phone' ? 0.82 : 1} />
+          ))}
+
+          {/* nodes */}
+          {L.points.map((p, i) => {
+            const n = i + 1;
+            const lab = L.label(p, i);
+            const href = hrefOf(i);
+            const inner = (
+              <>
+                <circle class="node-pulse" cx={p.x} cy={p.y} r="38" />
+                <circle class="node-focus" cx={p.x} cy={p.y} r="40" />
+                <circle class="node-bg" cx={p.x} cy={p.y} r="32" />
+                <text class="node-num" x={p.x} y={p.y} dy="0.36em" text-anchor="middle">
+                  {i === 8 ? '★' : n}
+                </text>
+                <path class="node-check" d={`M${p.x - 12} ${p.y + 1} l8 8 l16 -18`} />
+                <text class="node-badge" x={p.x + 26} y={p.y - 22} text-anchor="middle">
+                  {i === 8 ? '🏰' : levels[i]!.badge.emoji}
+                </text>
+                <foreignObject x={lab.x} y={lab.y} width={lab.w} height={lab.h}>
+                  <div class={`node-label align-${lab.align}`}>
+                    <span class="node-title">
+                      {i === 8 ? dict.map.boss : fill(dict.map.level, { n })} · {titleOf(i)}
+                    </span>
+                    <span class="node-meta">
+                      <span class="pill node-weeks">{plural(lang, weeksOf(i), dict.plural.week)}</span>
+                      <span class="node-state" data-node-state>
+                        {href ? (i === 0 ? dict.map.stateCurrent : dict.map.peek) : dict.map.soon}
+                      </span>
+                    </span>
+                  </div>
+                </foreignObject>
+              </>
+            );
+            return href ? (
+              <a
+                href={href}
+                class={`map-node ${i === 0 ? 'is-current' : 'is-ahead'}`}
+                data-node={n}
+                aria-label={ariaOf(i, i === 0 ? dict.map.stateCurrent : dict.map.stateAhead)}
+                data-aria-done={ariaOf(i, dict.map.stateDone)}
+                data-aria-current={ariaOf(i, dict.map.stateCurrent)}
+                data-aria-ahead={ariaOf(i, dict.map.stateAhead)}
+              >
+                {inner}
+              </a>
+            ) : (
+              <g class={`map-node is-soon ${i === 0 ? 'is-current' : 'is-ahead'}`} data-node={n}>
+                {inner}
+              </g>
+            );
+          })}
+
+          {/* Porto stands next to the current node */}
+          <g class="map-porto" aria-hidden="true">
+            {L.points.map((p, i) => {
+              const at = L.porto(p);
+              return (
+                <foreignObject x={at.x} y={at.y - L.portoSize} width={L.portoSize} height={L.portoSize * 1.04} class="porto-spot" data-hidden={i !== 0 ? "" : undefined}>
+                  <Porto mood="hello" size={L.portoSize} />
+                </foreignObject>
+              );
+            })}
+          </g>
+        </svg>
+      );
+    })
+  }
+</div>
+
+<script>
+  import { BOSS, currentLevel, levelState, type NodeState } from '../../lib/progress';
+  import { getProgress, subscribe } from '../../lib/store';
+
+  const root = document.querySelector<HTMLElement>('[data-quest-map]');
+
+  function render() {
+    if (!root) return;
+    const p = getProgress();
+    const states: Record<number, NodeState> = {};
+    for (let n = 1; n <= 8; n++) states[n] = levelState(p, n);
+    states[9] = p.boss.doneAt ? 'done' : currentLevel(p) === BOSS ? 'current' : 'ahead';
+    const stateText = { done: root.dataset.stateDone!, current: root.dataset.stateCurrent!, ahead: root.dataset.peek! };
+
+    root.querySelectorAll<SVGElement>('[data-node]').forEach((node) => {
+      const s = states[Number(node.dataset.node)]!;
+      node.classList.toggle('is-done', s === 'done');
+      node.classList.toggle('is-current', s === 'current');
+      node.classList.toggle('is-ahead', s === 'ahead');
+      if (node.classList.contains('is-soon')) return;
+      const label = node.querySelector('[data-node-state]');
+      if (label) label.textContent = stateText[s];
+      const aria = node.dataset[`aria${s[0]!.toUpperCase()}${s.slice(1)}`];
+      if (aria) node.setAttribute('aria-label', aria);
+    });
+
+    root.querySelectorAll<SVGPathElement>('[data-seg]').forEach((seg) => {
+      seg.classList.toggle('is-travelled', states[Number(seg.dataset.seg)] === 'done');
+    });
+    root.classList.add('is-ready');
+
+    const current = Object.entries(states).find(([, s]) => s === 'current')?.[0];
+    root.querySelectorAll<SVGSVGElement>('.map-svg').forEach((svg) => {
+      svg.querySelectorAll<SVGForeignObjectElement>('.porto-spot').forEach((spot, i) => {
+        spot.toggleAttribute('data-hidden', String(i + 1) !== current);
+      });
+    });
+  }
+
+  render();
+  subscribe(render);
+</script>

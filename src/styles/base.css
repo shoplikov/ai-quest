@@ -76,6 +76,10 @@ a:hover {
   text-decoration-color: var(--sun);
 }
 
+[hidden] {
+  display: none !important;
+}
+
 img,
 svg {
   max-width: 100%;

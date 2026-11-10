@@ -127,7 +127,17 @@
 }
 @media (max-width: 400px) {
   .header-inner {
-    gap: var(--s2);
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .header-tools {
+    gap: 4px;
+  }
+  .pill-xp {
+    padding: 2px 8px;
+  }
+  .pill-xp svg {
+    display: none;
   }
   .menu-btn span {
     position: absolute;

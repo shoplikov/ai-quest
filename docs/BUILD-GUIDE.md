@@ -75,7 +75,7 @@ task: build it, run its checks, tick the box, commit.
       `tests/content-parity.test.ts` from `docs/spec/i18n.md`.
       *Check:* the parity test passes for Level 2 and fails if you delete
       one mission from the Russian file (then put it back).
-- [ ] **2.3 Quest map.** Desktop and phone SVG layouts, landmarks, node
+- [x] **2.3 Quest map.** Desktop and phone SVG layouts, landmarks, node
       states, welcome card, XP bar, streak, badges row, "Today's next
       step", share button.
       *Check:* in Chrome — first visit, entering a name, reload keeps it;

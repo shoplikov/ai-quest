@@ -1,14 +1,318 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { languages, getDict, type Lang } from '../../i18n';
+import Card from '../../components/ui/Card.astro';
+import Button from '../../components/ui/Button.astro';
+import SpeechBubble from '../../components/ui/SpeechBubble.astro';
+import Porto from '../../components/porto/Porto';
+import QuestMap from '../../components/map/QuestMap.astro';
+import { fill, getDict, languages, localePath, type Lang } from '../../i18n';
+import { getLevelSummaries } from '../../lib/levels';
+import { HERO_MAX, RANKS } from '../../lib/progress';
+import { portoPool } from '../../lib/porto';
+import '../../styles/map.css';
 
 export function getStaticPaths() {
   return languages.map((lang) => ({ params: { lang } }));
 }
 const lang = Astro.params.lang as Lang;
 const dict = getDict(lang);
+const levels = await getLevelSummaries(lang);
+const bossExists = Object.keys(import.meta.glob('./boss.astro')).length > 0;
+
+// Everything the client script needs to describe progress in words.
+const clientData = {
+  lang,
+  levels: levels.map((l) => ({
+    id: l.id,
+    title: l.title,
+    exists: l.exists,
+    href: localePath(lang, `/level/${l.id}`),
+    badge: l.badge,
+    missions: l.missions,
+  })),
+  bossHref: bossExists ? localePath(lang, '/boss') : null,
+  ranks: dict.ranks,
+  rankMins: RANKS,
+  extraBadges: dict.badges,
+  dayForms: dict.plural.day,
+  lines: {
+    firstVisit: portoPool(lang, 'firstVisit'),
+    returning: portoPool(lang, 'returning'),
+    midLevel: portoPool(lang, 'midLevel'),
+    allDone: portoPool(lang, 'allDone'),
+  },
+  t: dict.home,
+};
 ---
-<Base lang={lang}>
-  <h1>{dict.site.name}</h1>
-  <p>{dict.site.subtitle}</p>
+<Base lang={lang} active="map" wide>
+  <section class="welcome" aria-labelledby="welcome-title">
+    <Card>
+      <div class="welcome-head">
+        <Porto mood="hello" size={96} />
+        <div>
+          <h1 id="welcome-title">{dict.site.name}</h1>
+          <p class="welcome-sub">{dict.site.subtitle}</p>
+        </div>
+      </div>
+      <form class="welcome-form" data-welcome-form>
+        <label for="hero-name">{dict.home.welcomeTitle}</label>
+        <input
+          id="hero-name"
+          name="hero"
+          class="text-input"
+          type="text"
+          maxlength={HERO_MAX}
+          autocomplete="nickname"
+          placeholder={dict.home.namePlaceholder}
+          aria-describedby="hero-hint"
+        />
+        <p id="hero-hint" class="small-print">{dict.home.smallPrint}</p>
+        <ul class="welcome-lines">
+          {dict.home.lines.map((line) => <li>{line}</li>)}
+        </ul>
+        <button type="submit" class="btn btn-primary">{dict.home.start}</button>
+      </form>
+    </Card>
+  </section>
+
+  <div class="dashboard">
+    <div class="dash-top">
+      <div class="dash-greeting">
+        <h1 data-greeting>{fill(dict.home.greeting, { hero: dict.home.defaultHero })}</h1>
+        <SpeechBubble>
+          <Porto slot="mascot" mood="hello" size={84} />
+          <span data-porto-line>{portoPool(lang, 'returning')[0]}</span>
+        </SpeechBubble>
+      </div>
+
+      <div class="stat-grid">
+        <Card class="stat-card">
+          <div class="xp-bar-head">
+            <span>
+              <span class="stat-label">{dict.home.rank}</span>
+              <span class="xp-rank" data-rank>{dict.ranks[0]}</span>
+            </span>
+            <span class="xp-next" data-next-rank>{fill(dict.home.nextRank, { rank: dict.ranks[1]!, xp: RANKS[1] })}</span>
+          </div>
+          <div
+            class="xp-track"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            data-xp-track
+          >
+            <div class="xp-fill" data-xp-fill></div>
+            <svg class="xp-star" data-xp-star viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z" fill="var(--sun)" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round"></path>
+            </svg>
+          </div>
+          <p class="xp-points" data-xp-points>0 XP</p>
+        </Card>
+        <Card class="stat-card">
+          <p class="stat-label">{dict.home.streakTitle}</p>
+          <p class="streak-line" data-streak>{dict.home.streakNone}</p>
+        </Card>
+      </div>
+    </div>
+
+    <Card class="stat-card">
+      <p class="stat-label">{dict.home.badgesTitle}</p>
+      <ul class="badge-row" data-badges hidden></ul>
+      <p class="badges-none" data-badges-none>{dict.home.badgesNone}</p>
+    </Card>
+
+    <h2 class="visually-hidden">{dict.home.mapTitle}</h2>
+    <QuestMap lang={lang} levels={levels} bossExists={bossExists} />
+
+    <Card variant="soft" class="next-step">
+      <div>
+        <h2>{dict.home.nextTitle}</h2>
+        <p data-next-text>{fill(dict.home.nextOpenLevel, { level: 1, title: levels[0]!.title })}</p>
+      </div>
+      <Button href={localePath(lang, '/level/1')} data-next-link>{dict.home.nextGo}</Button>
+    </Card>
+
+    <div class="share-row" data-share-row>
+      <button type="button" class="btn btn-ghost" data-share>{dict.home.share}</button>
+      <p class="share-hint">{dict.home.shareHint}</p>
+      <input class="text-input share-fallback" data-share-fallback readonly hidden aria-label={dict.home.share} />
+    </div>
+  </div>
+
+  <script type="application/json" id="home-data" set:html={JSON.stringify(clientData)} />
 </Base>
+
+<script>
+  import { fill, plural, type Lang, type PluralForms } from '../../i18n';
+  import {
+    badges as badgeIds,
+    BOSS,
+    cleanHero,
+    currentLevel,
+    dayKey,
+    nextMission,
+    rankInfo,
+    shareUrl,
+    streak,
+    xp,
+  } from '../../lib/progress';
+  import { getOwnProgress, getProgress, hasStarted, isViewMode, subscribe, updateProgress } from '../../lib/store';
+  import { toast } from '../../lib/toast';
+
+  type Data = {
+    lang: Lang;
+    levels: {
+      id: number;
+      title: string;
+      exists: boolean;
+      href: string;
+      badge: { name: string; emoji: string };
+      missions: { id: string; title: string }[];
+    }[];
+    bossHref: string | null;
+    ranks: string[];
+    rankMins: number[];
+    extraBadges: Record<'firstStep' | 'chaosGremlin' | 'quizWizard' | 'questComplete', { name: string; emoji: string }>;
+    dayForms: PluralForms;
+    lines: Record<'firstVisit' | 'returning' | 'midLevel' | 'allDone', string[]>;
+    t: Record<string, string>;
+  };
+
+  const data = JSON.parse(document.getElementById('home-data')!.textContent!) as Data;
+  const t = data.t;
+  const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
+  const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)]!;
+  let lastXp = -1;
+  let lineChosen = '';
+
+  function render() {
+    const root = document.documentElement;
+    const started = hasStarted() || isViewMode();
+    root.toggleAttribute('data-started', started);
+    if (!started) return;
+
+    const p = getProgress();
+    const today = dayKey();
+    $('[data-greeting]').textContent = fill(t.greeting!, { hero: p.hero || t.defaultHero! });
+
+    // Porto's line: welcome-back after a break, otherwise a situation line.
+    const s = streak(p.days, today);
+    const cur = currentLevel(p);
+    if (!lineChosen) {
+      lineChosen =
+        cur === BOSS
+          ? pick(data.lines.allDone)
+          : s.broken
+            ? pick(data.lines.returning.filter((l) => l !== t.streakBroken))
+            : p.days.length === 0
+              ? pick(data.lines.firstVisit)
+              : pick(data.lines.midLevel);
+    }
+    $('[data-porto-line]').textContent = lineChosen;
+
+    // XP bar
+    const points = xp(p);
+    const info = rankInfo(points);
+    const nf = new Intl.NumberFormat(data.lang);
+    $('[data-rank]').textContent = data.ranks[info.index]!;
+    $('[data-next-rank]').textContent =
+      info.next === null ? t.topRank! : fill(t.nextRank!, { rank: data.ranks[info.index + 1]!, xp: nf.format(info.next) });
+    const pct = Math.round(info.fraction * 100);
+    $('[data-xp-fill]').style.width = `${pct}%`;
+    const star = $<SVGElement>('[data-xp-star]');
+    star.style.left = `${pct}%`;
+    const track = $('[data-xp-track]');
+    track.setAttribute('aria-valuenow', String(pct));
+    track.setAttribute(
+      'aria-label',
+      info.next === null ? t.topRank! : fill(t.xpBarLabel!, { xp: nf.format(points), next: nf.format(info.next) }),
+    );
+    $('[data-xp-points]').textContent = `${nf.format(points)} XP`;
+    if (lastXp >= 0 && points > lastXp) {
+      star.classList.remove('is-hopping');
+      void star.getBoundingClientRect();
+      star.classList.add('is-hopping');
+    }
+    lastXp = points;
+
+    // Streak
+    $('[data-streak]').textContent =
+      s.days > 0 ? `🔥 ${fill(t.streak!, { count: plural(data.lang, s.days, data.dayForms) })}` : s.broken ? t.streakBroken! : t.streakNone!;
+
+    // Badges
+    const ids = badgeIds(p);
+    const list = $('[data-badges]');
+    list.replaceChildren(
+      ...ids.map((id) => {
+        let b: { name: string; emoji: string } | undefined;
+        if (id.startsWith('level-')) b = data.levels.find((l) => `level-${l.id}` === id)?.badge;
+        else b = data.extraBadges[({ 'first-step': 'firstStep', 'chaos-gremlin': 'chaosGremlin', 'quiz-wizard': 'quizWizard', 'quest-complete': 'questComplete' } as const)[id as 'first-step']];
+        const li = document.createElement('li');
+        li.className = 'badge-sticker';
+        const emoji = document.createElement('span');
+        emoji.className = 'emoji';
+        emoji.setAttribute('aria-hidden', 'true');
+        emoji.textContent = b?.emoji ?? '⭐';
+        li.append(emoji, document.createTextNode(b?.name ?? id));
+        return li;
+      }),
+    );
+    list.hidden = ids.length === 0;
+    $('[data-badges-none]').hidden = ids.length > 0;
+
+    // Today's next step
+    const next = $('[data-next-text]');
+    const link = $<HTMLAnchorElement>('[data-next-link]');
+    if (cur === BOSS) {
+      next.textContent = t.nextBoss!;
+      link.hidden = !data.bossHref;
+      if (data.bossHref) link.href = data.bossHref;
+    } else {
+      const lv = data.levels[cur - 1]!;
+      const m = nextMission(p, lv.missions.map((x) => x.id), cur);
+      link.hidden = !lv.exists;
+      if (!lv.exists || lv.missions.length === 0) {
+        next.textContent = fill(t.nextOpenLevel!, { level: cur, title: lv.title });
+        link.href = lv.href;
+      } else if (m) {
+        next.textContent = fill(t.nextMission!, { level: cur, mission: lv.missions.find((x) => x.id === m)!.title });
+        link.href = `${lv.href}#mission-${m}`;
+      } else {
+        next.textContent = fill(t.nextDeliverable!, { level: cur });
+        link.href = `${lv.href}#deliverable`;
+      }
+    }
+
+    $('[data-share-row]').hidden = isViewMode();
+  }
+
+  // Welcome card
+  $<HTMLFormElement>('[data-welcome-form]').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $<HTMLInputElement>('#hero-name');
+    const hero = cleanHero(input.value) || t.defaultHero!;
+    updateProgress((p) => ({ ...p, hero, startedAt: getOwnProgress().hero ? p.startedAt : new Date().toISOString() }));
+    render();
+    $('#main').focus();
+  });
+
+  // Share
+  $('[data-share]').addEventListener('click', async () => {
+    const url = shareUrl(location.origin, data.lang, getOwnProgress());
+    const fallback = $<HTMLInputElement>('[data-share-fallback]');
+    try {
+      await navigator.clipboard.writeText(url);
+      fallback.hidden = true;
+      toast(t.shareCopied!);
+    } catch {
+      fallback.value = url;
+      fallback.hidden = false;
+      fallback.select();
+      toast(t.shareFailed!);
+    }
+  });
+
+  render();
+  subscribe(render);
+</script>

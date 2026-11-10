@@ -1,14 +1,19 @@
 ---
-// Runs before first paint, so the saved theme never flashes.
+// Runs before first paint: sets the saved theme (no flash), and marks a
+// returning visitor so the map page shows the dashboard, not the welcome
+// card, from the first frame.
 ---
 <script is:inline>
   (function () {
+    var root = document.documentElement;
     try {
       var raw = localStorage.getItem('aiquest:v1');
-      var theme = raw ? JSON.parse(raw).theme : null;
-      if (theme === 'light' || theme === 'dark') {
-        document.documentElement.setAttribute('data-theme', theme);
-      }
+      var p = raw ? JSON.parse(raw) : null;
+      if (p && (p.theme === 'light' || p.theme === 'dark')) root.setAttribute('data-theme', p.theme);
+      if (p && typeof p.hero === 'string' && p.hero) root.setAttribute('data-started', '');
+    } catch (e) {}
+    try {
+      if (/^#p=/.test(location.hash) || sessionStorage.getItem('aiquest:view')) root.setAttribute('data-started', '');
     } catch (e) {}
   })();
 </script>
