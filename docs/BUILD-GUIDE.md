@@ -50,7 +50,7 @@ task: build it, run its checks, tick the box, commit.
 - [x] **1.3 Layout.** `src/layouts/Base.astro`: head, nav, footer, theme
       toggle, view-mode banner slot, toast area.
       *Check:* keyboard-only navigation works; 360px wide has no sideways scroll.
-- [ ] **1.4 Base components.** Card, Button, Pill, TickRow, ProgressRing,
+- [x] **1.4 Base components.** Card, Button, Pill, TickRow, ProgressRing,
       SpeechBubble, Reveal, Dialog, Toast, code block with copy button.
       Build a temporary `/kitchen-sink` page showing all of them in both
       themes; delete it in task 6.4.

@@ -1,0 +1,16 @@
+---
+// Replaces <pre> in MDX bodies: adds a language label and a copy button.
+import { getDict, isLang } from '../../i18n';
+
+const { 'data-language': language, ...rest } = Astro.props as Record<string, unknown> & {
+  'data-language'?: string;
+};
+const lang = isLang(Astro.currentLocale) ? Astro.currentLocale : 'en';
+const d = getDict(lang).code;
+const label = language && language !== 'plaintext' && language !== 'text' ? language : '';
+---
+<div class="code-block">
+  {label && <span class="code-lang" aria-hidden="true">{label}</span>}
+  <button type="button" class="copy-btn" aria-label={d.copyLabel} data-copied={d.copied}>{d.copy}</button>
+  <pre data-language={language} {...rest}><slot /></pre>
+</div>

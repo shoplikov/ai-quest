@@ -1,0 +1,9 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+
+interface Props extends HTMLAttributes<'span'> {
+  tone?: 'default' | 'xp' | 'teal' | 'coral' | 'lilac';
+}
+const { tone = 'default', class: extra, ...rest } = Astro.props;
+---
+<span class:list={['pill', tone !== 'default' && `pill-${tone}`, extra]} {...rest}><slot /></span>

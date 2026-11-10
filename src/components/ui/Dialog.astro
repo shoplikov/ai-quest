@@ -1,0 +1,17 @@
+---
+// Native <dialog>. Open with dialog.showModal(); buttons with
+// value="…" inside the form close it and set returnValue.
+interface Props {
+  id: string;
+  title: string;
+  class?: string;
+}
+const { id, title, class: extra } = Astro.props;
+---
+<dialog class:list={['dialog', extra]} id={id} aria-labelledby={`${id}-title`}>
+  <form method="dialog" class="dialog-body">
+    <h2 id={`${id}-title`} class="dialog-title">{title}</h2>
+    <slot />
+    <div class="dialog-actions"><slot name="actions" /></div>
+  </form>
+</dialog>

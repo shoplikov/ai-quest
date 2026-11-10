@@ -210,6 +210,32 @@ const links = [
         }
       });
 
+      // Copy buttons on every code block.
+      document.addEventListener('click', async (e) => {
+        const btn = (e.target as Element | null)?.closest<HTMLButtonElement>('.copy-btn');
+        if (!btn) return;
+        const code = btn.parentElement?.querySelector('pre')?.innerText ?? '';
+        try {
+          await navigator.clipboard.writeText(code.replace(/\n$/, ''));
+        } catch {
+          const area = document.createElement('textarea');
+          area.value = code;
+          area.style.position = 'fixed';
+          area.style.opacity = '0';
+          document.body.append(area);
+          area.select();
+          document.execCommand('copy');
+          area.remove();
+        }
+        const original = btn.textContent;
+        btn.textContent = btn.dataset.copied ?? original;
+        btn.classList.add('is-done');
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove('is-done');
+        }, 1500);
+      });
+
       // Reset dialog.
       const dialog = $<HTMLDialogElement>('[data-reset-dialog]');
       $('[data-reset-open]')?.addEventListener('click', () => dialog?.showModal());

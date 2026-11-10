@@ -1,0 +1,17 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+
+type Common = { variant?: 'primary' | 'success' | 'ghost'; small?: boolean };
+type Props = Common & (HTMLAttributes<'button'> | (HTMLAttributes<'a'> & { href: string }));
+
+const { variant = 'primary', small = false, class: extra, ...rest } = Astro.props as Common &
+  Record<string, unknown> & { class?: string };
+const cls = ['btn', `btn-${variant}`, small && 'btn-small', extra];
+---
+{
+  'href' in rest && rest.href ? (
+    <a class:list={cls} {...rest}><slot /></a>
+  ) : (
+    <button type="button" class:list={cls} {...rest}><slot /></button>
+  )
+}

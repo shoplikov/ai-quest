@@ -1,0 +1,30 @@
+---
+// SVG ring with a percentage in the middle. Update on the client with
+// setRing() from src/lib/ring.ts.
+interface Props {
+  value?: number; // 0..1
+  size?: number;
+  label: string; // accessible name, e.g. "Level progress"
+  id?: string;
+}
+const { value = 0, size = 76, label, id } = Astro.props;
+const stroke = 8;
+const r = (size - stroke) / 2;
+const c = 2 * Math.PI * r;
+const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
+---
+<div class="ring" data-ring id={id} role="img" aria-label={`${label}: ${pct}%`} data-label={label}>
+  <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+    <circle class="ring-track" cx={size / 2} cy={size / 2} r={r} stroke-width={stroke}></circle>
+    <circle
+      class="ring-fill"
+      cx={size / 2}
+      cy={size / 2}
+      r={r}
+      stroke-width={stroke}
+      stroke-dasharray={c}
+      stroke-dashoffset={c * (1 - pct / 100)}
+      data-c={c}></circle>
+  </svg>
+  <span class="ring-text" aria-hidden="true" data-ring-text>{pct}%</span>
+</div>

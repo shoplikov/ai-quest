@@ -47,6 +47,11 @@ export const en = {
     brokenShare: 'That share link looks broken, so here is your own map instead.',
     close: 'Close',
   },
+  code: {
+    copy: 'Copy',
+    copied: 'Copied!',
+    copyLabel: 'Copy code',
+  },
   theme: {
     toDark: 'Switch to dark theme',
     toLight: 'Switch to light theme',

@@ -1,0 +1,12 @@
+---
+interface Props {
+  summary: string;
+  open?: boolean;
+  class?: string;
+}
+const { summary, open = false, class: extra } = Astro.props;
+---
+<details class:list={['reveal', extra]} open={open}>
+  <summary>{summary}</summary>
+  <div class="reveal-body"><slot /></div>
+</details>

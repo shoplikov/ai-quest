@@ -1,0 +1,29 @@
+---
+// A big custom checkbox drawn over a real <input type="checkbox">.
+// data-* attributes let the page script connect it to progress.
+interface Props {
+  id: string;
+  kind?: string;
+  level?: string | number;
+  item?: string | number;
+  checked?: boolean;
+  disabled?: boolean;
+  class?: string;
+}
+const { id, kind, level, item, checked = false, disabled = false, class: extra } = Astro.props;
+---
+<label class:list={['tick', extra]} for={id}>
+  <input
+    type="checkbox"
+    id={id}
+    checked={checked}
+    disabled={disabled}
+    data-tick={kind}
+    data-level={level}
+    data-item={item}
+  />
+  <span class="tick-box" aria-hidden="true">
+    <svg viewBox="0 0 20 20"><path d="M4.5 10.5l3.6 3.6 7.4-8"></path></svg>
+  </span>
+  <span class="tick-label"><slot /></span>
+</label>
