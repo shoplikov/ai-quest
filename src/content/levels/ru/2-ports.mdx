@@ -284,7 +284,7 @@ LISTEN  0.0.0.0:22           users:(("sshd",pid=801,fd=3))
 
 Перепробуй все сочетания здесь, прежде чем трогать настоящую машину:
 
-<PortPlayground client:visible />
+<PortPlayground client:visible strings={props.ui.portPlayground} />
 
 ## Refused или timed out? Две самые полезные ошибки
 
@@ -328,7 +328,7 @@ dig +short example.com
 
 Пройди вместе с одним запросом через все остановки:
 
-<RequestJourney client:visible />
+<RequestJourney client:visible strings={props.ui.requestJourney} />
 
 ## Туннели: личный коридор
 

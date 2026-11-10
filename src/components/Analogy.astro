@@ -1,3 +1,23 @@
 ---
-// Built in task 3.2.
+// The analogy card. Used in level bodies as <Analogy /> with no props: it
+// reads the level from the page's route (lang + id).
+import { getDict, isLang } from '../i18n';
+import { getLevelEntry } from '../lib/levels';
+
+const lang = isLang(Astro.params.lang) ? Astro.params.lang : 'en';
+const entry = await getLevelEntry(lang, Number(Astro.params.id));
+const analogy = entry?.data.analogy;
+const dict = getDict(lang);
 ---
+{
+  analogy && (
+    <aside class="card card-soft analogy" aria-label={dict.analogy.kicker}>
+      <span class="analogy-emoji" aria-hidden="true">{analogy.emoji}</span>
+      <div>
+        <p class="analogy-kicker">{dict.analogy.kicker}</p>
+        <p class="analogy-title">{analogy.title}</p>
+        <p>{analogy.text}</p>
+      </div>
+    </aside>
+  )
+}

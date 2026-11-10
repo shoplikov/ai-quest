@@ -1,0 +1,423 @@
+---
+import { render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import Card from '../../../components/ui/Card.astro';
+import Pill from '../../../components/ui/Pill.astro';
+import TickRow from '../../../components/ui/TickRow.astro';
+import ProgressRing from '../../../components/ui/ProgressRing.astro';
+import Reveal from '../../../components/ui/Reveal.astro';
+import Dialog from '../../../components/ui/Dialog.astro';
+import CodeBlock from '../../../components/ui/CodeBlock.astro';
+import Porto from '../../../components/porto/Porto';
+import ErrorQuiz from '../../../components/widgets/ErrorQuiz';
+import { fill, getDict, languages, localePath, plural, type Lang } from '../../../i18n';
+import { getLevelEntries } from '../../../lib/levels';
+import { renderCode, renderInline, renderMarkdown } from '../../../lib/md';
+import { portoPool } from '../../../lib/porto';
+import '../../../styles/level.css';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const lang of languages) {
+    const entries = await getLevelEntries(lang);
+    for (const entry of entries) {
+      paths.push({ params: { lang, id: String(entry.data.id) }, props: { entry, all: entries } });
+    }
+  }
+  return paths;
+}
+
+const { entry, all } = Astro.props;
+const lang = Astro.params.lang as Lang;
+const dict = getDict(lang);
+const L = dict.level;
+const S = L.sections;
+const d = entry.data;
+const { Content } = await render(entry);
+
+const prev = all.find((e) => e.data.id === d.id - 1);
+const next = all.find((e) => e.data.id === d.id + 1);
+const cheatsheetExists = Object.keys(import.meta.glob('../cheatsheets/[id].astro')).length > 0;
+const bossExists = Object.keys(import.meta.glob('../boss.astro')).length > 0;
+
+// Widgets used in the body, in order, for the "Play with it" anchor.
+const widgetNames = [...(entry.body ?? '').matchAll(/<([A-Z]\w*)\b[^>]*\bclient:/g)].map((m) => m[1]!);
+const kebab = (s: string) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+const playAnchor = widgetNames.length ? `widget-${kebab(widgetNames[0]!)}` : null;
+
+// Pre-render markdown fields.
+const missions = await Promise.all(
+  d.missions.map(async (m) => ({
+    ...m,
+    stepsHtml: await Promise.all(m.steps.map((s) => renderMarkdown(lang, s))),
+  })),
+);
+const breaks = await Promise.all(
+  d.breaks.map(async (b) => ({
+    ...b,
+    doHtml: await renderMarkdown(lang, b.do),
+    seeHtml: await renderCode(lang, b.see, 'text'),
+    whyHtml: await renderMarkdown(lang, b.why),
+    fixHtml: await renderMarkdown(lang, b.fix),
+  })),
+);
+const deliverables = [
+  { key: 'repo', label: L.deliverableRepo, text: d.deliverable.repo },
+  { key: 'sketch', label: L.deliverableSketch, text: d.deliverable.sketch },
+  { key: 'demo', label: L.deliverableDemo, text: d.deliverable.demo },
+] as const;
+
+const toc = [
+  { id: 'top', label: S.top },
+  { id: 'normal', label: S.normal },
+  { id: 'explain', label: S.explain },
+  ...(playAnchor ? [{ id: playAnchor, label: S.play }] : []),
+  { id: 'missions', label: S.missions },
+  { id: 'breaks', label: S.breaks },
+  { id: 'traps', label: S.traps },
+  { id: 'quiz', label: S.quiz },
+  { id: 'deliverable', label: S.deliverable },
+  { id: 'middle', label: S.middle },
+  { id: 'deeper', label: S.deeper },
+  { id: 'finish', label: S.finish },
+];
+
+const tickTotal = d.missions.length + d.breaks.length + 3 + d.selfCheck.length;
+const nextHref = next
+  ? localePath(lang, `/level/${next.data.id}`)
+  : d.id === 8 && bossExists
+    ? localePath(lang, '/boss')
+    : localePath(lang, '/');
+const nextLabel = next ? fill(L.nextLevel, { n: next.data.id }) : d.id === 8 ? L.toBoss : L.backToMap;
+
+const clientData = {
+  id: d.id,
+  lang,
+  missions: d.missions.map((m) => m.id),
+  total: tickTotal,
+  badge: d.badge,
+  t: {
+    xpToast: L.xpToast,
+    finishedOn: L.finishedOn,
+    peek: L.peek,
+    peekBoss: L.peekBoss,
+    badgeBody: L.badgeBody,
+  },
+  lines: portoPool(lang, 'levelDone'),
+};
+---
+<Base lang={lang} title={`${fill(L.number, { n: d.id })}: ${d.title}`} description={d.tagline} wide>
+  <div class="level-layout" data-level-page data-level={d.id}>
+    <nav class="toc" aria-label={L.toc}>
+      <p class="toc-title">{L.toc}</p>
+      <ul>
+        {toc.map((item) => (
+          <li><a href={`#${item.id}`} data-toc-link={item.id}>{item.label}</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <article class="level">
+      <Card variant="warn" class="peek-banner" data-peek hidden>
+        <p data-peek-text></p>
+      </Card>
+
+      <header id="top" data-anchor class="level-header">
+        <div class="level-header-text">
+          <p class="level-kicker">{fill(L.number, { n: d.id })}</p>
+          <h1>{d.title}</h1>
+          <p class="level-tagline">{d.tagline}</p>
+          <p class="level-pills">
+            <Pill>{plural(lang, d.weeks, dict.plural.week)}</Pill>
+            <Pill tone="lilac">{plural(lang, d.missions.length, dict.plural.mission)}</Pill>
+            <span class="badge-preview" title={L.badgePreview}>
+              <span class="visually-hidden">{L.badgePreview}: </span>
+              <span aria-hidden="true" class="badge-emoji">{d.badge.emoji}</span>
+              {d.badge.name}
+            </span>
+          </p>
+        </div>
+        <ProgressRing label={L.progress} size={92} id="level-ring" />
+      </header>
+
+      <section id="normal" data-anchor aria-labelledby="h-normal">
+        <Card variant="soft" class="its-normal">
+          <Porto mood="cozy" size={86} />
+          <div>
+            <h2 id="h-normal">{S.normal}</h2>
+            <p>{d.itsNormal}</p>
+          </div>
+        </Card>
+      </section>
+
+      <section id="explain" data-anchor aria-labelledby="h-explain" class="level-body">
+        <h2 id="h-explain" class="section-title">{S.explain}</h2>
+        <Content components={{ pre: CodeBlock }} ui={dict.widgets} />
+      </section>
+
+      <section id="missions" data-anchor aria-labelledby="h-missions">
+        <h2 id="h-missions" class="section-title">{S.missions}</h2>
+        {missions.map((m, i) => (
+          <Card as="article" class="mission" id={`mission-${m.id}`} aria-labelledby={`mt-${m.id}`}>
+            <p class="mission-kicker">{fill(L.missionNumber, { n: i + 1 })}</p>
+            <h3 id={`mt-${m.id}`} class="mission-title">{m.title}</h3>
+            <p class="mission-why"><strong>{L.missionWhy}:</strong> <Fragment set:html={renderInline(m.why)} /></p>
+            <h4 class="visually-hidden">{L.steps}</h4>
+            <ol class="steps">
+              {m.stepsHtml.map((html) => <li set:html={html} />)}
+            </ol>
+            <p class="mission-check"><strong>{L.check}:</strong> <Fragment set:html={renderInline(m.check)} /></p>
+            <TickRow id={`tick-${m.id}`} kind="mission" level={d.id} item={m.id} class="tick-main">{L.missionTick}</TickRow>
+          </Card>
+        ))}
+      </section>
+
+      <section id="breaks" data-anchor aria-labelledby="h-breaks">
+        <h2 id="h-breaks" class="section-title">{S.breaks}</h2>
+        <p class="section-intro">{L.breaksIntro}</p>
+        {breaks.map((b) => (
+          <Card as="article" class="break" id={`break-${b.id}`} aria-labelledby={`bt-${b.id}`}>
+            <h3 id={`bt-${b.id}`} class="mission-title">{b.title}</h3>
+            <div class="break-part">
+              <p class="part-label">{L.breakDo}</p>
+              <Fragment set:html={b.doHtml} />
+            </div>
+            <div class="break-part">
+              <p class="part-label">{L.breakSee}</p>
+              <Fragment set:html={b.seeHtml} />
+            </div>
+            <Reveal summary={L.breakReveal}>
+              <p class="part-label">{L.breakWhy}</p>
+              <Fragment set:html={b.whyHtml} />
+              <p class="part-label">{L.breakFix}</p>
+              <Fragment set:html={b.fixHtml} />
+            </Reveal>
+            <TickRow id={`tick-${b.id}`} kind="break" level={d.id} item={b.id} class="tick-main">{L.breakTick}</TickRow>
+          </Card>
+        ))}
+      </section>
+
+      <section id="traps" data-anchor aria-labelledby="h-traps">
+        <h2 id="h-traps" class="section-title">{S.traps}</h2>
+        <table class="trap-table">
+          <thead>
+            <tr><th scope="col">{L.trapError}</th><th scope="col">{L.trapMeaning}</th><th scope="col">{L.trapFirst}</th></tr>
+          </thead>
+          <tbody>
+            {d.traps.map((t) => (
+              <tr>
+                <td data-label={L.trapError}><code>{t.error}</code></td>
+                <td data-label={L.trapMeaning}>{t.meaning}</td>
+                <td data-label={L.trapFirst} set:html={renderInline(t.firstMove)} />
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section id="quiz" data-anchor aria-labelledby="h-quiz">
+        <h2 id="h-quiz" class="section-title">{S.quiz}</h2>
+        <p class="section-intro">{L.quizIntro}</p>
+        <ErrorQuiz client:visible level={d.id} quiz={d.quiz} strings={dict.widgets.quiz} lines={{ hit: portoPool(lang, 'quizHit'), miss: portoPool(lang, 'quizMiss') }} />
+      </section>
+
+      <section id="deliverable" data-anchor aria-labelledby="h-deliverable">
+        <h2 id="h-deliverable" class="section-title">{S.deliverable}</h2>
+        <p class="section-intro">{L.deliverableIntro}</p>
+        <Card>
+          {deliverables.map((x) => (
+            <TickRow id={`tick-${x.key}`} kind="deliverable" level={d.id} item={x.key}>
+              <strong>{x.label}.</strong> <Fragment set:html={renderInline(x.text)} />
+            </TickRow>
+          ))}
+        </Card>
+      </section>
+
+      <section id="middle" data-anchor aria-labelledby="h-middle">
+        <h2 id="h-middle" class="section-title">{S.middle}</h2>
+        <p class="section-intro">{L.middleIntro}</p>
+        <Card>
+          {d.selfCheck.map((line, i) => (
+            <TickRow id={`tick-self-${i}`} kind="selfCheck" level={d.id} item={i}>{line}</TickRow>
+          ))}
+        </Card>
+      </section>
+
+      <section id="deeper" data-anchor aria-labelledby="h-deeper">
+        <h2 id="h-deeper" class="section-title">{S.deeper}</h2>
+        <ul class="deeper-list">
+          {d.links.map((l) => (
+            <li>
+              <a href={l.url} rel="noopener noreferrer">{l.title}</a>
+              <span> — {l.why}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="finish" data-anchor aria-labelledby="h-finish" class="finish">
+        <h2 id="h-finish" class="visually-hidden">{S.finish}</h2>
+        <div class="finish-row">
+          <button type="button" class="btn btn-success finish-btn" data-finish disabled>{L.finishButton}</button>
+          <p class="finish-hint" data-finish-hint>{L.finishHint}</p>
+        </div>
+        <Card variant="note" class="kind-note" data-kind-note hidden>
+          <div class="kind-note-head">
+            <Porto mood="cheer" size={72} />
+            <div>
+              <h3>{L.kindNoteTitle}</h3>
+              <p class="finished-on" data-finished-on></p>
+            </div>
+          </div>
+          <p>{d.kindNote}</p>
+          <a class="btn btn-primary" href={nextHref}>{nextLabel}</a>
+        </Card>
+      </section>
+
+      <nav class="level-nav" aria-label={dict.nav.label}>
+        {prev ? <a href={localePath(lang, `/level/${prev.data.id}`)}>← {fill(L.prev, { n: prev.data.id })}: {prev.data.title}</a> : <span />}
+        {cheatsheetExists && <a href={localePath(lang, `/cheatsheets/${d.id}`)}>{L.cheatsheet}</a>}
+        {next ? <a href={localePath(lang, `/level/${next.data.id}`)}>{fill(L.next, { n: next.data.id })}: {next.data.title} →</a> : <span />}
+      </nav>
+    </article>
+  </div>
+
+  <Dialog id="badge-dialog" title={L.badgeTitle} class="badge-dialog">
+    <p class="badge-big" aria-hidden="true">{d.badge.emoji}</p>
+    <p class="badge-name">{d.badge.name}</p>
+    <p>{fill(L.badgeBody, { n: d.id, name: d.badge.name })}</p>
+    <p class="badge-line" data-badge-line></p>
+    <Fragment slot="actions"><button class="btn btn-primary" value="ok">{L.badgeClose}</button></Fragment>
+  </Dialog>
+
+  <script type="application/json" id="level-data" set:html={JSON.stringify(clientData)} />
+</Base>
+
+<script>
+  import { fill, formatDate, type Lang } from '../../../i18n';
+  import {
+    BOSS,
+    XP,
+    canFinish,
+    canTick,
+    currentLevel,
+    dayKey,
+    finishLevel,
+    isTicked,
+    level,
+    setTick,
+    type TickKind,
+  } from '../../../lib/progress';
+  import { getProgress, isViewMode, subscribe, updateProgress } from '../../../lib/store';
+  import { setRing } from '../../../lib/ring';
+  import { toast } from '../../../lib/toast';
+  import { confetti } from '../../../lib/confetti';
+
+  type Data = {
+    id: number;
+    lang: Lang;
+    missions: string[];
+    total: number;
+    badge: { name: string; emoji: string };
+    t: Record<'xpToast' | 'finishedOn' | 'peek' | 'peekBoss' | 'badgeBody', string>;
+    lines: string[];
+  };
+  const data = JSON.parse(document.getElementById('level-data')!.textContent!) as Data;
+  const id = data.id;
+  const ticks = Array.from(document.querySelectorAll<HTMLInputElement>('input[data-tick]'));
+  const finishBtn = document.querySelector<HTMLButtonElement>('[data-finish]')!;
+  const finishHint = document.querySelector<HTMLElement>('[data-finish-hint]')!;
+  const kindNote = document.querySelector<HTMLElement>('[data-kind-note]')!;
+  const finishedOn = document.querySelector<HTMLElement>('[data-finished-on]')!;
+  const ring = document.getElementById('level-ring')!;
+  const peek = document.querySelector<HTMLElement>('[data-peek]')!;
+  const peekText = document.querySelector<HTMLElement>('[data-peek-text]')!;
+  const dialog = document.getElementById('badge-dialog') as HTMLDialogElement;
+
+  const XP_FOR: Record<TickKind, number> = { mission: XP.mission, break: XP.break, selfCheck: XP.selfCheck, deliverable: 0 };
+
+  function render() {
+    const p = getProgress();
+    const view = isViewMode();
+    const allowed = !view && canTick(p, id);
+    let done = 0;
+    for (const input of ticks) {
+      const kind = input.dataset.tick as TickKind;
+      const on = isTicked(p, id, kind, input.dataset.item!);
+      input.checked = on;
+      input.disabled = !allowed;
+      if (on) done++;
+    }
+    setRing(ring, done / data.total);
+
+    const cur = currentLevel(p);
+    const ahead = !canTick(p, id);
+    peek.hidden = !ahead;
+    if (ahead) peekText.textContent = cur === BOSS ? data.t.peekBoss : fill(data.t.peek, { n: cur });
+
+    const lp = level(p, id);
+    const isDone = Boolean(lp.doneAt);
+    finishBtn.disabled = view || !canFinish(lp, data.missions) || ahead;
+    finishBtn.hidden = isDone;
+    finishHint.hidden = isDone;
+    kindNote.hidden = !isDone;
+    if (lp.doneAt) finishedOn.textContent = fill(data.t.finishedOn, { date: formatDate(data.lang, lp.doneAt) });
+  }
+
+  for (const input of ticks) {
+    input.addEventListener('change', () => {
+      const kind = input.dataset.tick as TickKind;
+      const item = kind === 'selfCheck' ? Number(input.dataset.item) : input.dataset.item!;
+      const next = updateProgress((p) => setTick(p, id, kind, item, input.checked, dayKey()));
+      if (!next) {
+        render();
+        return;
+      }
+      if (input.checked && XP_FOR[kind] > 0) toast(fill(data.t.xpToast, { xp: XP_FOR[kind] }));
+    });
+  }
+
+  finishBtn.addEventListener('click', () => {
+    const next = updateProgress((p) => (canFinish(level(p, id), data.missions) ? finishLevel(p, id, new Date()) : p));
+    if (!next?.levels[String(id)]?.doneAt) return;
+    confetti();
+    toast(fill(data.t.xpToast, { xp: XP.level }));
+    const line = document.querySelector<HTMLElement>('[data-badge-line]');
+    if (line) line.textContent = data.lines[Math.floor(Math.random() * data.lines.length)]!;
+    dialog.showModal();
+  });
+  dialog.addEventListener('close', () => {
+    kindNote.scrollIntoView({ block: 'center' });
+    kindNote.querySelector<HTMLAnchorElement>('a')?.focus({ preventScroll: true });
+  });
+
+  // Highlight the current section in the contents list.
+  const links = new Map(
+    Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]')).map((a) => [a.dataset.tocLink!, a]),
+  );
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        links.forEach((a) => a.removeAttribute('aria-current'));
+        const a = links.get(e.target.id);
+        if (a) {
+          a.setAttribute('aria-current', 'true');
+          // On phones the contents are a row of chips: keep the active one in view.
+          const list = a.closest('ul');
+          if (list && list.scrollWidth > list.clientWidth) {
+            list.scrollTo({ left: a.offsetLeft - 16, behavior: 'smooth' });
+          }
+        }
+      }
+    },
+    { rootMargin: '-20% 0px -70% 0px' },
+  );
+  links.forEach((_a, sectionId) => {
+    const el = document.getElementById(sectionId);
+    if (el) observer.observe(el);
+  });
+
+  render();
+  subscribe(render);
+</script>

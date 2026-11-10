@@ -6,6 +6,8 @@ export function toast(message: string, ms = 2200): void {
   el.className = 'toast';
   el.textContent = message;
   area.append(el);
+  // Keep at most three on screen.
+  while (area.children.length > 3) area.firstElementChild?.remove();
   requestAnimationFrame(() => el.classList.add('is-in'));
   setTimeout(() => {
     el.classList.remove('is-in');

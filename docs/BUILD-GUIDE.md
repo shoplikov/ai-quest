@@ -83,7 +83,7 @@ task: build it, run its checks, tick the box, commit.
 
 ## Phase 3 — Level page, with Level 2 as the bar
 
-- [ ] **3.1 Level template.** `src/pages/level/[id].astro` and section
+- [x] **3.1 Level template.** `src/pages/level/[id].astro` and section
       components for every part listed in the product spec, in order.
       Ticking updates XP with a toast. "Finish level" flow with confetti,
       badge dialog and kind note.
