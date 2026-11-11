@@ -1,0 +1,176 @@
+import type { Pages } from './pages.types';
+
+export const pages: Pages = {
+  boss: {
+    kicker: 'Final boss',
+    title: 'Your own open book',
+    time: 'About one week',
+    tagline: 'No map this time. You choose the documents, and you build the whole thing.',
+    story: [
+      'You built the Otter Café service with a map in your hand. Now build one without the map: a question-answering service over documents **you** choose — something a real person would use.',
+      'Team wiki pages, a product manual, course notes, a public law or standard. Small is fine. Real is the point.',
+    ],
+    reqTitle: 'What "done" means',
+    reqIntro: 'Twelve boxes. Each one is something you have already done once, in a level. Tick a box when you could show it to your mentor.',
+    requirements: [
+      'A README a stranger can follow: what it is, how to run it, how to ask it something.',
+      'One command starts everything: `docker compose up -d`.',
+      '`/ask` answers with citations that point to the real source.',
+      'It says "I don\'t know" for questions the documents cannot answer.',
+      'Hybrid retrieval and a reranker — or a written reason, with numbers, why not.',
+      'A golden set of at least 30 questions, and one command that prints the metrics.',
+      'A results history that shows at least three measured improvements.',
+      'The schema is managed by migrations, the data lives in a named volume, and you have tested a backup.',
+      '`/health`, `/ready`, structured logs with request ids, and stage timings.',
+      'CI runs the linter, the tests and the image build on every push.',
+      'It is deployed on a server, with a rollback you have practised.',
+      'A one-page runbook and a one-page architecture drawing.',
+    ],
+    archTitle: 'The shape of it',
+    archIntro: 'Yours may differ — but you should be able to draw yours this clearly.',
+    rubricTitle: 'Demo day',
+    rubricIntro: 'Your mentor gives each area 0, 1 or 2 points. 14 of 20 completes the quest. Read the right-hand column before you start: that is the target.',
+    rubricHead: ['Area', '0', '1', '2'],
+    rubric: [
+      ['Runs from the README', 'needs help', 'small fixes needed', 'works first time'],
+      ['Answer quality', 'often wrong', 'mostly right', 'right, cited, honest refusals'],
+      ['Evaluation', 'none', 'numbers exist', 'numbers drove decisions'],
+      ['Retrieval design', 'copied', 'works', 'choices explained with evidence'],
+      ['Code structure', 'one file', 'organised', 'clean, tested, typed'],
+      ['Containers and data', 'fragile', 'works', 'healthchecks, volumes, backup proven'],
+      ['Observability', 'prints', 'logs', 'request story, timings and metrics'],
+      ['Deploy and rollback', 'by hand', 'scripted', 'scripted and rehearsed'],
+      ['Debugging live', 'stuck', 'finds it with hints', 'finds it alone, explains the hop'],
+      ['Explaining', 'unclear', 'clear', 'clear to a non-engineer too'],
+    ],
+    finishButton: 'Finish the quest',
+    finishHint: 'Tick all twelve boxes to finish the quest.',
+    certKicker: 'AI Engineer Quest · Certificate',
+    certLead: 'This certifies that',
+    certBody: 'crossed the whole map — terminal, ports, backend, containers, data, models, retrieval and production — and shipped a real service.',
+    certSigned: 'Signed: Porto the Otter, Keeper of Ports',
+    certPrint: 'Print certificate',
+    kindNote:
+      'Look back at Level 1. The person who started this was nervous about a black window. The person reading this deployed a measured, monitored RAG service and rolled it back on purpose. Same person. That distance is yours — nobody gave it to you, and nobody can take it away.',
+    backToMap: 'Back to the map',
+    xpToast: '+{xp} XP',
+  },
+  skills: {
+    title: 'Skills',
+    intro: 'This page is for you, not for a review. Rate yourself honestly today, and again in a month. The shape growing is the point.',
+    columns: ['Junior', 'Growing', 'Middle'],
+    ratingLegend: 'Where are you today?',
+    ratings: ['Not yet', 'With help', 'Mostly alone', 'Alone, and I can explain it'],
+    radarTitle: 'Your shape today',
+    radarDesc: 'A radar chart with eight axes, one per skill area. The outline is the middle-level target; the filled shape is your own rating.',
+    you: 'You today',
+    target: 'Middle level',
+    middleTitle: 'What "middle" really means',
+    middle: [
+      'You finish things: from idea to running in production.',
+      'You debug your own problems, hop by hop, before asking.',
+      'You ask good questions, with what you tried and what you saw.',
+      'People can build on your work without calling you.',
+    ],
+    level: 'Level {n}',
+    readOnly: 'Read-only: this is a shared map.',
+  },
+  glossary: {
+    title: 'Glossary',
+    intro: 'Every term from the map in one plain sentence, with the picture to remember it by.',
+    filterLabel: 'Find a term',
+    filterPlaceholder: 'port, chunk, rollback…',
+    empty: 'Nothing found. Try a shorter word — or ask Porto, he likes questions.',
+    level: 'Level {n}',
+    analogy: 'Think of it like',
+  },
+  cheatsheets: {
+    title: 'Cheat sheets',
+    intro: 'One printable page per level: the commands worth remembering and the classic traps. Print them, pin them up, spill tea on them.',
+    level: 'Level {n}',
+    open: 'Open the cheat sheet',
+  },
+  mentor: {
+    title: 'For the mentor',
+    lead: 'You are not the teacher; the map is. You are the person who makes it safe to be stuck and worth it to finish.',
+    sections: [
+      {
+        title: 'Before she starts',
+        list: [
+          'Give her: a Linux machine she may break, SSH access to one remote machine, and an LLM endpoint (or tell her to use Ollama).',
+          'Agree on time: about 6–8 hours a week, some of it inside work hours.',
+          'Say out loud that getting stuck is the plan, not a problem.',
+        ],
+      },
+      {
+        title: 'The weekly 30 minutes',
+        table: {
+          head: ['Minutes', 'What'],
+          rows: [
+            ['0–5', 'How was the week? One thing that felt good, one that felt bad.'],
+            ['5–15', 'She demos. You watch and stay quiet.'],
+            ['15–22', 'You ask "why" three times. ("Why `0.0.0.0`?" "What if the database is down?")'],
+            ['22–27', 'Review one piece of her work together: a file, a diagram, a log.'],
+            ['27–30', 'Agree the one goal for next week. She writes it down.'],
+          ],
+        },
+      },
+      {
+        title: 'How to review',
+        list: [
+          'Start with what is right, specifically. "Your `/ready` checks the real dependency — good."',
+          'Then one main thing to improve. One. The rest can wait.',
+          'Ask before telling: "What would happen if…?" beats "You should…".',
+          'Praise the process ("you checked `ss` first") more than the result.',
+        ],
+      },
+      {
+        title: 'The 30-minute rule',
+        paragraphs: [
+          'Tell her this on day one: Stuck? Try for 30 minutes. Write down what you tried and what you saw. Then ask — with those notes.',
+          'Asking with notes is a senior habit, not a weakness.',
+        ],
+      },
+      {
+        title: 'When she asks for help',
+        paragraphs: [
+          'Do not take the keyboard. Ask, in this order: What did you expect? What happened instead? What is the exact error? Which hop is it?',
+          'Usually the answer arrives during the second question.',
+        ],
+      },
+      {
+        title: 'Signs she is becoming middle-level',
+        list: [
+          'She tells you the cause, not only the symptom.',
+          'Her questions contain what she already ruled out.',
+          'She says "I measured it" instead of "I think".',
+          'She writes things down without being asked.',
+          'Other people start asking her.',
+        ],
+      },
+      {
+        title: 'Pace',
+        list: [
+          'The weeks are a guide. Level 7 often takes four weeks; that is fine.',
+          'If a level drags past double its time, cut the last mission, do the deliverable, move on. Momentum matters more than completeness.',
+          'If she is flying, add: "explain this level to another junior".',
+        ],
+      },
+      {
+        title: 'After the boss',
+        paragraphs: ['Give her a real, small production task with her name on it. The map was practice; ownership is the graduation.'],
+      },
+      {
+        title: 'Seeing her progress',
+        paragraphs: [
+          'She can press "Share my progress" on the map and send you the link. It opens her map read-only in your browser. Nothing is stored on any server.',
+        ],
+      },
+    ],
+  },
+  notFound: {
+    title: 'Page not found',
+    line: "This port is closed. Let's go back to the map.",
+    back: 'Back to the map',
+  },
+};

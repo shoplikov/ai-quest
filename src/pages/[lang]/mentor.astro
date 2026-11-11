@@ -1,0 +1,51 @@
+---
+// Guide for the mentor (docs/spec/extras.md → Mentor guide).
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/ui/Card.astro';
+import Porto from '../../components/porto/Porto';
+import { languages, type Lang } from '../../i18n';
+import { getPages } from '../../lib/pages';
+import { renderInline } from '../../lib/md';
+import '../../styles/pages.css';
+
+export function getStaticPaths() {
+  return languages.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Lang;
+const M = getPages(lang).mentor;
+---
+<Base lang={lang} title={M.title} description={M.lead}>
+  <article class="mentor-page">
+    <header class="page-head">
+      <h1>{M.title}</h1>
+    </header>
+    <Card variant="soft" class="mentor-lead">
+      <Porto mood="hello" size={86} />
+      <p>{M.lead}</p>
+    </Card>
+
+    {M.sections.map((s, i) => (
+      <section aria-labelledby={`mentor-${i}`}>
+        <h2 id={`mentor-${i}`}>{s.title}</h2>
+        {s.paragraphs?.map((p) => <p set:html={renderInline(p)} />)}
+        {s.list && <ul>{s.list.map((item) => <li set:html={renderInline(item)} />)}</ul>}
+        {s.table && (
+          <table class="mentor-table">
+            <thead>
+              <tr>{s.table.head.map((h) => <th scope="col">{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {s.table.rows.map((row) => (
+                <tr>
+                  <th scope="row">{row[0]}</th>
+                  {row.slice(1).map((cell) => <td set:html={renderInline(cell)} />)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+    ))}
+  </article>
+</Base>

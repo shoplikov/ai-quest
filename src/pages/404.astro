@@ -1,0 +1,64 @@
+---
+// One not-found page for both languages. The server cannot know the
+// language of a missing path, so both texts are in the page and a small
+// script keeps the one that fits the address (or the saved choice).
+import ThemeScript from '../components/ThemeScript.astro';
+import Porto from '../components/porto/Porto';
+import { pages as en } from '../data/pages.en';
+import { pages as ru } from '../data/pages.ru';
+import { en as dictEn } from '../i18n/en';
+import '@fontsource-variable/nunito';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/components.css';
+import '../styles/pages.css';
+
+const blocks = [
+  { lang: 'en', t: en.notFound },
+  { lang: 'ru', t: ru.notFound },
+];
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <ThemeScript />
+    <title>{`${en.notFound.title} · ${dictEn.site.name}`}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main class="container not-found">
+      <Porto mood="cozy" size={150} />
+      {blocks.map((b) => (
+        <section lang={b.lang} data-lang-block={b.lang}>
+          <h1>{b.t.title}</h1>
+          <p class="not-found-line">{b.t.line}</p>
+          <p><a class="btn btn-primary" href={`/${b.lang}/`}>{b.t.back}</a></p>
+        </section>
+      ))}
+    </main>
+    <script is:inline>
+      (function () {
+        var lang = null;
+        var m = location.pathname.match(/^\/(en|ru)(\/|$)/);
+        if (m) lang = m[1];
+        if (!lang) {
+          try {
+            var saved = localStorage.getItem('aiquest:lang');
+            if (saved === 'en' || saved === 'ru') lang = saved;
+          } catch (e) {}
+        }
+        if (!lang) return; // unknown: show both
+        document.documentElement.lang = lang;
+        var blocks = document.querySelectorAll('[data-lang-block]');
+        for (var i = 0; i < blocks.length; i++) {
+          if (blocks[i].getAttribute('data-lang-block') !== lang) blocks[i].hidden = true;
+        }
+        var title = document.querySelector('[data-lang-block="' + lang + '"] h1');
+        if (title) document.title = title.textContent + ' · AI Engineer Quest';
+      })();
+    </script>
+  </body>
+</html>

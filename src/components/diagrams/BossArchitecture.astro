@@ -1,0 +1,49 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['bossArchitecture'];
+}
+const { t } = Astro.props;
+---
+<Frame id="dg-boss" w={720} h={350} title={t.title} desc={t.desc}>
+  <Box x={20} y={70} w={100} h={60} fill="var(--card-2)" seed={450} />
+  <Label x={70} y={100} text={t.user} size={13} weight={800} />
+  <Arrow x1={124} y1={100} x2={156} y2={100} color="var(--ink)" />
+  <Box x={160} y={70} w={100} h={60} fill="var(--card-2)" seed={451} />
+  <Label x={210} y={100} text="nginx" size={13} weight={800} />
+  <Arrow x1={264} y1={100} x2={296} y2={100} color="var(--ink)" />
+  <Box x={300} y={70} w={130} h={60} fill="var(--coral-soft)" seed={452} />
+  <Label x={365} y={100} text="API" size={15} weight={800} />
+
+  <Box x={530} y={16} w={170} h={56} fill="var(--sun-soft)" seed={453} />
+  <Label x={615} y={44} text={t.llm} size={13} weight={800} />
+  <Box x={530} y={96} w={170} h={56} fill="var(--card-2)" seed={454} />
+  <Label x={615} y={124} text="Redis" size={13} weight={800} />
+  <Box x={530} y={176} w={170} h={56} fill="var(--teal-soft)" seed={455} />
+  <Label x={615} y={204} text={'Postgres\n+ pgvector'} size={13} weight={800} />
+  <Arrow x1={434} y1={90} x2={526} y2={48} color="var(--ink)" />
+  <Arrow x1={434} y1={104} x2={526} y2={122} color="var(--ink)" />
+  <Arrow x1={434} y1={118} x2={526} y2={186} color="var(--ink)" />
+
+  <Label x={20} y={170} text={t.ingestNote} anchor="start" size={11} weight={800} color="var(--teal-ink)" />
+  <Box x={20} y={184} w={110} h={50} fill="var(--teal-soft)" seed={456} />
+  <Label x={75} y={209} text={t.docs} size={12} weight={800} />
+  <Arrow x1={134} y1={209} x2={156} y2={209} color="var(--teal-ink)" />
+  <Box x={160} y={184} w={100} h={50} fill="var(--teal-soft)" seed={457} />
+  <Label x={210} y={209} text={t.ingest} size={12} weight={800} />
+  <Arrow x1={264} y1={209} x2={526} y2={209} color="var(--teal-ink)" />
+
+  <Label x={160} y={272} text={t.evalNote} anchor="start" size={11} weight={800} color="var(--lilac-ink)" />
+  <Box x={160} y={286} w={120} h={50} fill="var(--card-2)" seed={458} />
+  <Label x={220} y={311} text={t.golden} size={12} weight={800} />
+  <Arrow x1={284} y1={311} x2={316} y2={311} color="var(--lilac-ink)" />
+  <Box x={320} y={286} w={90} h={50} fill="var(--card-2)" seed={459} />
+  <Label x={365} y={311} text={t.eval} size={12} weight={800} />
+  <Arrow x1={365} y1={282} x2={365} y2={136} color="var(--lilac-ink)" dashed />
+  <Arrow x1={414} y1={311} x2={446} y2={311} color="var(--lilac-ink)" />
+  <Label x={452} y={311} text="results.md" anchor="start" size={12} weight={700} mono />
+</Frame>

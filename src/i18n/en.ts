@@ -742,6 +742,18 @@ export const en = {
       rollbackLine: 'rollback = start the previous tag',
       nothing: 'nothing to build, nothing to send',
     },
+    bossArchitecture: {
+      title: 'The architecture of the final project',
+      desc: 'A user sends a question to nginx, which passes it to the API. The API talks to three services: the LLM server, Redis, and Postgres with pgvector. At the side, the ingest path turns documents into chunks in Postgres, once per document. Underneath, the evaluation loop sends the golden set through the API after every change and writes the numbers to a results file.',
+      user: 'user',
+      llm: 'LLM server',
+      docs: 'documents',
+      ingest: 'ingest',
+      ingestNote: 'once per document',
+      golden: 'golden set',
+      eval: 'eval',
+      evalNote: 'after every change',
+    },
   },
   code: {
     copy: 'Copy',

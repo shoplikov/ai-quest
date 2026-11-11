@@ -1,0 +1,205 @@
+---
+// Final boss (docs/spec/extras.md): story, requirements, architecture,
+// rubric, finish flow and a printable certificate.
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/ui/Card.astro';
+import Pill from '../../components/ui/Pill.astro';
+import TickRow from '../../components/ui/TickRow.astro';
+import ProgressRing from '../../components/ui/ProgressRing.astro';
+import Diagram from '../../components/Diagram.astro';
+import Porto from '../../components/porto/Porto';
+import { getDict, languages, localePath, type Lang } from '../../i18n';
+import { getPages } from '../../lib/pages';
+import { renderInline } from '../../lib/md';
+import { BOSS_ITEMS } from '../../lib/progress';
+import '../../styles/level.css';
+import '../../styles/pages.css';
+
+export function getStaticPaths() {
+  return languages.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Lang;
+const dict = getDict(lang);
+const L = dict.level;
+const B = getPages(lang).boss;
+const clientData = {
+  lang,
+  total: BOSS_ITEMS.length,
+  t: { peek: L.peek, finishedOn: L.finishedOn, xpToast: B.xpToast },
+};
+---
+<Base lang={lang} title={B.title} description={B.tagline}>
+  <article class="level boss" data-boss-page>
+    <Card variant="warn" class="peek-banner no-print" data-peek hidden>
+      <p data-peek-text></p>
+    </Card>
+
+    <header class="level-header" data-cert-hide>
+      <div class="level-header-text">
+        <p class="level-kicker">{B.kicker}</p>
+        <h1>{B.title}</h1>
+        <p class="level-tagline">{B.tagline}</p>
+        <p class="level-pills">
+          <Pill>{B.time}</Pill>
+          <span class="badge-preview">
+            <span aria-hidden="true" class="badge-emoji">{dict.badges.questComplete.emoji}</span>
+            {dict.badges.questComplete.name}
+          </span>
+        </p>
+      </div>
+      <ProgressRing label={L.progress} size={92} id="boss-ring" />
+    </header>
+
+    <section data-cert-hide>
+      {B.story.map((p) => <p class="boss-story" set:html={renderInline(p)} />)}
+    </section>
+
+    <section aria-labelledby="h-req" data-cert-hide>
+      <h2 id="h-req" class="section-title">{B.reqTitle}</h2>
+      <p class="section-intro">{B.reqIntro}</p>
+      <Card>
+        {B.requirements.map((text, i) => (
+          <TickRow id={`tick-${BOSS_ITEMS[i]}`} kind="boss" item={BOSS_ITEMS[i]}>
+            <Fragment set:html={renderInline(text)} />
+          </TickRow>
+        ))}
+      </Card>
+    </section>
+
+    <section aria-labelledby="h-arch" data-cert-hide>
+      <h2 id="h-arch" class="section-title">{B.archTitle}</h2>
+      <p class="section-intro">{B.archIntro}</p>
+      <Diagram name="boss-architecture" />
+    </section>
+
+    <section aria-labelledby="h-rubric" data-cert-hide>
+      <h2 id="h-rubric" class="section-title">{B.rubricTitle}</h2>
+      <p class="section-intro">{B.rubricIntro}</p>
+      <table class="trap-table rubric-table">
+        <thead>
+          <tr>{B.rubricHead.map((h) => <th scope="col">{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {B.rubric.map((row) => (
+            <tr>
+              <th scope="row" data-label={B.rubricHead[0]}>{row[0]}</th>
+              {[1, 2, 3].map((c) => <td data-label={B.rubricHead[c]}>{row[c]}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="finish" aria-labelledby="h-finish">
+      <h2 id="h-finish" class="visually-hidden">{B.finishButton}</h2>
+      <div class="finish-row" data-cert-hide>
+        <button type="button" class="btn btn-success finish-btn" data-finish disabled>{B.finishButton}</button>
+        <p class="finish-hint" data-finish-hint>{B.finishHint}</p>
+      </div>
+
+      <div class="certificate" data-certificate hidden>
+        <p class="cert-kicker">{B.certKicker}</p>
+        <Porto mood="cheer" size={110} />
+        <p class="cert-lead">{B.certLead}</p>
+        <p class="cert-hero" data-cert-hero></p>
+        <p class="cert-body">{B.certBody}</p>
+        <p class="cert-signed">{B.certSigned}</p>
+        <p class="cert-date" data-cert-date></p>
+      </div>
+      <p class="cert-actions" data-cert-actions hidden>
+        <button type="button" class="btn btn-primary" data-cert-print>🖨 {B.certPrint}</button>
+      </p>
+
+      <Card variant="note" class="kind-note" data-kind-note data-cert-hide hidden>
+        <div class="kind-note-head">
+          <Porto mood="cozy" size={72} />
+          <div>
+            <h3>{L.kindNoteTitle}</h3>
+            <p class="finished-on" data-finished-on></p>
+          </div>
+        </div>
+        <p>{B.kindNote}</p>
+        <a class="btn btn-primary" href={localePath(lang, '/')}>{B.backToMap}</a>
+      </Card>
+    </section>
+  </article>
+
+  <script type="application/json" id="boss-data" set:html={JSON.stringify(clientData)} />
+</Base>
+
+<script>
+  import { fill, formatDate, type Lang } from '../../i18n';
+  import { BOSS, BOSS_ITEMS, XP, canTick, currentLevel, dayKey, finishBoss, setBossItem } from '../../lib/progress';
+  import { getProgress, isViewMode, subscribe, updateProgress } from '../../lib/store';
+  import { setRing } from '../../lib/ring';
+  import { toast } from '../../lib/toast';
+  import { confetti } from '../../lib/confetti';
+
+  type Data = { lang: Lang; total: number; t: Record<'peek' | 'finishedOn' | 'xpToast', string> };
+  const data = JSON.parse(document.getElementById('boss-data')!.textContent!) as Data;
+  const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
+  const ticks = Array.from(document.querySelectorAll<HTMLInputElement>('input[data-tick="boss"]'));
+  const finishBtn = $<HTMLButtonElement>('[data-finish]');
+  const finishHint = $('[data-finish-hint]');
+  const peek = $('[data-peek]');
+  const certificate = $('[data-certificate]');
+  const certActions = $('[data-cert-actions]');
+  const kindNote = $('[data-kind-note]');
+  const ring = document.getElementById('boss-ring')!;
+
+  function render() {
+    const p = getProgress();
+    const view = isViewMode();
+    const ahead = !canTick(p, BOSS);
+    const done = Boolean(p.boss.doneAt);
+    for (const input of ticks) {
+      input.checked = p.boss.items.includes(input.dataset.item!);
+      input.disabled = view || ahead;
+    }
+    setRing(ring, p.boss.items.length / data.total);
+    peek.hidden = !ahead;
+    if (ahead) $('[data-peek-text]').textContent = fill(data.t.peek, { n: currentLevel(p) });
+
+    const all = BOSS_ITEMS.every((id) => p.boss.items.includes(id));
+    finishBtn.disabled = view || ahead || !all;
+    finishBtn.hidden = done;
+    finishHint.hidden = done;
+    certificate.hidden = !done;
+    certActions.hidden = !done;
+    kindNote.hidden = !done;
+    if (p.boss.doneAt) {
+      const date = formatDate(data.lang, p.boss.doneAt);
+      $('[data-cert-hero]').textContent = p.hero;
+      $('[data-cert-date]').textContent = date;
+      $('[data-finished-on]').textContent = fill(data.t.finishedOn, { date });
+    }
+  }
+
+  for (const input of ticks) {
+    input.addEventListener('change', () => {
+      const next = updateProgress((p) => setBossItem(p, input.dataset.item!, input.checked, dayKey()));
+      if (!next) render();
+    });
+  }
+
+  finishBtn.addEventListener('click', () => {
+    const next = updateProgress((p) =>
+      canTick(p, BOSS) && BOSS_ITEMS.every((id) => p.boss.items.includes(id)) ? finishBoss(p, new Date()) : p,
+    );
+    if (!next?.boss.doneAt) return;
+    confetti({ pieces: 240, duration: 3200 });
+    toast(fill(data.t.xpToast, { xp: XP.boss }));
+    certificate.scrollIntoView({ block: 'center' });
+  });
+
+  // Print only the certificate, on one page.
+  $('[data-cert-print]').addEventListener('click', () => {
+    document.documentElement.setAttribute('data-print', 'certificate');
+    window.print();
+  });
+  window.addEventListener('afterprint', () => document.documentElement.removeAttribute('data-print'));
+
+  render();
+  subscribe(render);
+</script>

@@ -1,0 +1,134 @@
+---
+// Skills matrix with self-rating and a radar chart (docs/spec/extras.md).
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/ui/Card.astro';
+import { fill, languages, localePath, type Lang } from '../../i18n';
+import { getLevelEntries } from '../../lib/levels';
+import { getPages } from '../../lib/pages';
+import { radarPoint } from '../../lib/radar';
+import { renderInline } from '../../lib/md';
+import '../../styles/pages.css';
+
+export function getStaticPaths() {
+  return languages.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Lang;
+const S = getPages(lang).skills;
+const levels = (await getLevelEntries(lang)).map((e) => ({ id: e.data.id, title: e.data.title, skill: e.data.skill }));
+const n = levels.length;
+
+// Radar geometry, shared with the client through src/lib/radar.ts.
+const W = 460;
+const H = 400;
+const pt = (i: number, value: number) => radarPoint(i, n, value);
+const poly = (value: number) => levels.map((_, i) => pt(i, value).join(',')).join(' ');
+const labelAt = (i: number) => {
+  const [x, y] = radarPoint(i, n, 3.55);
+  const anchor = Math.abs(x - W / 2) < 12 ? 'middle' : x > W / 2 ? 'start' : 'end';
+  return { x, y, anchor };
+};
+---
+<Base lang={lang} title={S.title} description={S.intro} active="skills" wide>
+  <div class="skills-page">
+    <header class="page-head">
+      <h1>{S.title}</h1>
+      <p class="page-intro">{S.intro}</p>
+    </header>
+
+    <div class="skills-layout">
+      <figure class="radar-card card">
+        <figcaption class="radar-title">{S.radarTitle}</figcaption>
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby="radar-t radar-d" class="radar">
+          <title id="radar-t">{S.radarTitle}</title>
+          <desc id="radar-d" data-radar-desc data-base={S.radarDesc}>{S.radarDesc}</desc>
+          {[1, 2, 3].map((v) => <polygon points={poly(v)} class:list={['radar-ring', { 'radar-target': v === 3 }]} />)}
+          {levels.map((_, i) => {
+            const [x, y] = pt(i, 3);
+            return <line x1={W / 2} y1={H / 2} x2={x} y2={y} class="radar-axis" />;
+          })}
+          <polygon points={poly(0)} class="radar-you" data-radar-you />
+          {levels.map((l, i) => {
+            const p = labelAt(i);
+            return <text x={p.x} y={p.y} text-anchor={p.anchor} dominant-baseline="middle" class="radar-label">{l.skill.name}</text>;
+          })}
+        </svg>
+        <p class="radar-legend">
+          <span class="legend-you">{S.you}</span>
+          <span class="legend-target">{S.target}</span>
+        </p>
+      </figure>
+
+      <div class="skill-list">
+        {levels.map((l) => (
+          <Card as="section" class="skill-card" aria-labelledby={`skill-${l.id}`}>
+            <h2 id={`skill-${l.id}`} class="skill-name">
+              {l.skill.name}
+              <a class="pill pill-lilac skill-level" href={localePath(lang, `/level/${l.id}`)}>{fill(S.level, { n: l.id })}</a>
+            </h2>
+            <dl class="skill-steps">
+              {(['junior', 'growing', 'middle'] as const).map((k, i) => (
+                <div class={`skill-step skill-step-${k}`}>
+                  <dt>{S.columns[i]}</dt>
+                  <dd set:html={renderInline(l.skill[k])} />
+                </div>
+              ))}
+            </dl>
+            <fieldset class="rating" data-skill={l.id}>
+              <legend>{S.ratingLegend}</legend>
+              <div class="rating-options">
+                {S.ratings.map((label, v) => (
+                  <label class="rating-option">
+                    <input type="radio" name={`skill-${l.id}`} value={v} checked={v === 0} />
+                    <span><b aria-hidden="true">{v}</b> {label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </Card>
+        ))}
+      </div>
+    </div>
+
+    <Card variant="soft" as="section" class="middle-means" aria-labelledby="h-middle-means">
+      <h2 id="h-middle-means">{S.middleTitle}</h2>
+      <ul>
+        {S.middle.map((line) => <li>{line}</li>)}
+      </ul>
+    </Card>
+  </div>
+</Base>
+
+<script>
+  import { setSkill, type SkillRating } from '../../lib/progress';
+  import { getProgress, isViewMode, subscribe, updateProgress } from '../../lib/store';
+  import { radarPoint } from '../../lib/radar';
+
+  const groups = Array.from(document.querySelectorAll<HTMLFieldSetElement>('fieldset[data-skill]'));
+  const you = document.querySelector<SVGPolygonElement>('[data-radar-you]')!;
+  const desc = document.querySelector<SVGDescElement>('[data-radar-desc]')!;
+
+  function render() {
+    const p = getProgress();
+    const view = isViewMode();
+    const values = groups.map((g) => p.skills[g.dataset.skill!] ?? 0);
+    groups.forEach((g, i) => {
+      g.disabled = view;
+      for (const input of g.querySelectorAll<HTMLInputElement>('input')) input.checked = Number(input.value) === values[i];
+    });
+    you.setAttribute('points', values.map((v, i) => radarPoint(i, values.length, v).join(',')).join(' '));
+    const names = groups.map((g, i) => `${g.closest('section')!.querySelector('h2')!.firstChild!.textContent!.trim()}: ${values[i]}/3`);
+    desc.textContent = `${desc.dataset.base} ${names.join('; ')}.`;
+  }
+
+  for (const g of groups) {
+    g.addEventListener('change', (e) => {
+      const input = e.target as HTMLInputElement;
+      const next = updateProgress((p) => setSkill(p, g.dataset.skill!, Number(input.value) as SkillRating));
+      if (!next) render();
+    });
+  }
+
+  render();
+  subscribe(render);
+</script>

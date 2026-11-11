@@ -1,0 +1,68 @@
+---
+// Glossary with a client-side filter (docs/spec/product.md → /glossary).
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { fill, languages, localePath, type Lang } from '../../i18n';
+import { getPages } from '../../lib/pages';
+import { renderInline } from '../../lib/md';
+import '../../styles/pages.css';
+
+export function getStaticPaths() {
+  return languages.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Lang;
+const G = getPages(lang).glossary;
+const terms = (await getCollection(lang === 'ru' ? 'glossaryRu' : 'glossaryEn'))
+  .sort((a, b) => a.id.localeCompare(b.id))
+  .map((t) => t.data);
+// Show the English name in brackets when the Russian term does not contain it.
+const english = (t: (typeof terms)[number]) => (t.en && !t.term.toLowerCase().includes(t.en.toLowerCase()) ? t.en : null);
+---
+<Base lang={lang} title={G.title} description={G.intro} active="glossary">
+  <div class="glossary-page">
+    <header class="page-head">
+      <h1>{G.title}</h1>
+      <p class="page-intro">{G.intro}</p>
+    </header>
+
+    <div class="glossary-filter no-print">
+      <label for="glossary-q">{G.filterLabel}</label>
+      <input type="search" id="glossary-q" placeholder={G.filterPlaceholder} autocomplete="off" data-filter />
+    </div>
+
+    <ul class="glossary-list" data-terms>
+      {terms.map((t) => (
+        <li class="card term" data-term data-search={[t.term, t.en ?? '', t.plain, t.analogy].join(' ').toLowerCase()}>
+          <h2 class="term-name">
+            {t.term}
+            {english(t) && <span class="term-en" lang="en">({english(t)})</span>}
+            <a class="pill pill-lilac term-level" href={localePath(lang, `/level/${t.level}`)}>{fill(G.level, { n: t.level })}</a>
+          </h2>
+          <p class="term-plain" set:html={renderInline(t.plain)} />
+          <p class="term-analogy"><span class="term-analogy-label">{G.analogy}:</span> {t.analogy}</p>
+        </li>
+      ))}
+    </ul>
+    <p class="glossary-empty" data-empty hidden role="status">{G.empty}</p>
+  </div>
+</Base>
+
+<script>
+  const input = document.querySelector<HTMLInputElement>('[data-filter]')!;
+  const items = Array.from(document.querySelectorAll<HTMLElement>('[data-term]'));
+  const empty = document.querySelector<HTMLElement>('[data-empty]')!;
+
+  function apply() {
+    const q = input.value.trim().toLowerCase();
+    let shown = 0;
+    for (const item of items) {
+      const hit = q === '' || item.dataset.search!.includes(q);
+      item.hidden = !hit;
+      if (hit) shown++;
+    }
+    empty.hidden = shown > 0;
+  }
+  input.addEventListener('input', apply);
+  apply();
+</script>

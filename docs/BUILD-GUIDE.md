@@ -133,14 +133,14 @@ words from the content guide (`grep -rniE "\b(simply|obviously|just|easy)\b" src
 
 ## Phase 5 — Other pages
 
-- [ ] **5.1 Boss page** with requirements, diagram `boss-architecture`,
+- [x] **5.1 Boss page** with requirements, diagram `boss-architecture`,
       rubric, finish flow, printable certificate.
-- [ ] **5.2 Skills page** with ratings and radar chart.
-- [ ] **5.3 Glossary** with filter.
-- [ ] **5.4 Cheat sheets index.**
-- [ ] **5.5 Mentor page.**
-- [ ] **5.6 404 page**, one page with both languages.
-- [ ] **5.7 View mode.** Open a share link in a private window: banner
+- [x] **5.2 Skills page** with ratings and radar chart.
+- [x] **5.3 Glossary** with filter.
+- [x] **5.4 Cheat sheets index.**
+- [x] **5.5 Mentor page.**
+- [x] **5.6 404 page**, one page with both languages.
+- [x] **5.7 View mode.** Open a share link in a private window: banner
       shows, ticks are disabled, nothing is saved, Exit works.
 
 ## Phase 6 — Ship-ready

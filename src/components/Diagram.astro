@@ -27,6 +27,7 @@ import EvalLoop from './diagrams/EvalLoop.astro';
 import HealthVsReady from './diagrams/HealthVsReady.astro';
 import P95 from './diagrams/P95.astro';
 import DeployRollback from './diagrams/DeployRollback.astro';
+import BossArchitecture from './diagrams/BossArchitecture.astro';
 
 interface Props {
   name: string;
@@ -34,7 +35,7 @@ interface Props {
 const { name } = Astro.props;
 const lang = isLang(Astro.params.lang) ? Astro.params.lang : isLang(Astro.currentLocale) ? Astro.currentLocale : 'en';
 const t = getDict(lang).diagrams;
-const known = ['building-with-doors', 'localhost-vs-all', 'reverse-proxy', 'ssh-tunnel', 'file-tree', 'pipe', 'permissions', 'request-response', 'event-loop', 'project-layout', 'image-vs-container', 'volume', 'compose-network', 'join', 'migrations-timeline', 'meaning-map', 'cache-aside', 'context-window', 'streaming-timeline', 'rag-two-pipelines', 'hybrid-fusion', 'eval-loop', 'health-vs-ready', 'p95', 'deploy-rollback'];
+const known = ['building-with-doors', 'localhost-vs-all', 'reverse-proxy', 'ssh-tunnel', 'file-tree', 'pipe', 'permissions', 'request-response', 'event-loop', 'project-layout', 'image-vs-container', 'volume', 'compose-network', 'join', 'migrations-timeline', 'meaning-map', 'cache-aside', 'context-window', 'streaming-timeline', 'rag-two-pipelines', 'hybrid-fusion', 'eval-loop', 'health-vs-ready', 'p95', 'deploy-rollback', 'boss-architecture'];
 if (!known.includes(name)) throw new Error(`Unknown diagram: ${name}`);
 ---
 {name === 'building-with-doors' && <BuildingWithDoors t={t.buildingWithDoors} />}
@@ -62,3 +63,4 @@ if (!known.includes(name)) throw new Error(`Unknown diagram: ${name}`);
 {name === 'health-vs-ready' && <HealthVsReady t={t.healthVsReady} />}
 {name === 'p95' && <P95 t={t.p95} />}
 {name === 'deploy-rollback' && <DeployRollback t={t.deployRollback} />}
+{name === 'boss-architecture' && <BossArchitecture t={t.bossArchitecture} />}

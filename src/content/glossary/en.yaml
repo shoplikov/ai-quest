@@ -1,4 +1,184 @@
-- term: Port
-  plain: A number that picks one program on a machine.
-  analogy: A numbered door in the building.
+- term: "Terminal"
+  plain: "A window where you type commands instead of clicking."
+  analogy: "Texting your computer."
+  level: 1
+- term: "Process"
+  plain: "A program that is running right now."
+  analogy: "A person currently in the house."
+  level: 1
+- term: "PID"
+  plain: "The number the system gives each process."
+  analogy: "A ticket number at the bakery."
+  level: 1
+- term: "PATH"
+  plain: "The list of folders where the shell looks for commands."
+  analogy: "The drawers you check for scissors."
+  level: 1
+- term: "SSH"
+  plain: "A secure way to use another computer's terminal."
+  analogy: "A long, locked corridor to another house."
+  level: 1
+- term: "tmux"
+  plain: "A terminal session that keeps running when you leave."
+  analogy: "A room that stays lit."
+  level: 1
+- term: "IP address"
+  plain: "The number that identifies a machine on a network."
+  analogy: "The street address of a building."
   level: 2
+- term: "Port"
+  plain: "A number that picks one program on a machine."
+  analogy: "A numbered door in the building."
+  level: 2
+- term: "localhost / 127.0.0.1"
+  plain: "\"This same machine.\""
+  analogy: "The building's intercom."
+  level: 2
+- term: "0.0.0.0"
+  plain: "\"Listen on every network entrance.\""
+  analogy: "Every door to the street."
+  level: 2
+- term: "DNS"
+  plain: "The system that turns names into IP addresses."
+  analogy: "Your phone's contact list."
+  level: 2
+- term: "Firewall"
+  plain: "Rules for which ports may be reached from where."
+  analogy: "The guard at the entrance."
+  level: 2
+- term: "Reverse proxy"
+  plain: "A server that receives requests and passes them to apps."
+  analogy: "The receptionist."
+  level: 2
+- term: "SSH tunnel"
+  plain: "A private path from your port to a port on another machine."
+  analogy: "A secret corridor."
+  level: 2
+- term: "API"
+  plain: "A set of rules for how programs ask each other for things."
+  analogy: "A restaurant menu."
+  level: 3
+- term: "Endpoint"
+  plain: "One address in an API that does one job."
+  analogy: "One dish on the menu."
+  level: 3
+- term: "Status code"
+  plain: "A number that says how the request went."
+  analogy: "The waiter's face."
+  level: 3
+- term: "Validation"
+  plain: "Checking input before using it."
+  analogy: "The waiter reading back your order."
+  level: 3
+- term: "Event loop"
+  plain: "The single worker that runs all `async` code in turn."
+  analogy: "One waiter, many tables."
+  level: 3
+- term: "Environment variable"
+  plain: "A setting given to a program from outside its code."
+  analogy: "A note on the fridge."
+  level: 3
+- term: "Image"
+  plain: "A packed, read-only template of an app and all it needs."
+  analogy: "The recipe and the packed box in the freezer."
+  level: 4
+- term: "Container"
+  plain: "A running copy of an image."
+  analogy: "One lunchbox, opened."
+  level: 4
+- term: "Volume"
+  plain: "Storage that lives outside the container."
+  analogy: "A shelf in the real kitchen."
+  level: 4
+- term: "Compose"
+  plain: "A file that describes several containers that work together."
+  analogy: "A seating plan for lunchboxes."
+  level: 4
+- term: "Healthcheck"
+  plain: "A small test that says whether a service is working."
+  analogy: "\"Is the oven on?\""
+  level: 4
+- term: "Migration"
+  plain: "A versioned change to the database structure."
+  analogy: "A page in the building's renovation diary."
+  level: 5
+- term: "Index"
+  plain: "A structure that lets the database find rows quickly."
+  analogy: "The library catalogue."
+  level: 5
+- term: "Embedding"
+  plain: "A list of numbers that stands for the meaning of a text."
+  analogy: "A pin on a map of meaning."
+  level: 5
+- term: "Vector search"
+  plain: "Finding texts whose embeddings are close to the question's."
+  analogy: "\"Show me pins near this pin.\""
+  level: 5
+- term: "Cache"
+  plain: "A fast, temporary store for answers you already computed."
+  analogy: "Sticky notes on the monitor."
+  level: 5
+- term: "Token"
+  plain: "A piece of text the model reads or writes; a word is one or a few."
+  analogy: "A bite."
+  level: 6
+- term: "Context window"
+  plain: "The most tokens the model can handle in one call."
+  analogy: "The chef's table."
+  level: 6
+- term: "Streaming"
+  plain: "Sending the answer piece by piece as it is made."
+  analogy: "Serving dishes as they are ready."
+  level: 6
+- term: "Temperature"
+  plain: "How much randomness the model uses when choosing words."
+  analogy: "How adventurous the chef feels."
+  level: 6
+- term: "Structured output"
+  plain: "Making the model answer in a fixed, checkable format."
+  analogy: "A form instead of a free letter."
+  level: 6
+- term: "RAG"
+  plain: "Giving the model retrieved documents to answer from."
+  analogy: "An open-book exam."
+  level: 7
+- term: "Chunk"
+  plain: "A piece of a document stored and searched as one unit."
+  analogy: "One page handed to the student."
+  level: 7
+- term: "Hybrid search"
+  plain: "Combining meaning search and keyword search."
+  analogy: "Asking both the librarian and the catalogue."
+  level: 7
+- term: "Reranker"
+  plain: "A model that re-orders retrieved chunks by real relevance."
+  analogy: "A second, pickier helper."
+  level: 7
+- term: "Golden set"
+  plain: "Fixed questions with known answers, used to measure quality."
+  analogy: "The answer key."
+  level: 7
+- term: "Hit rate@k"
+  plain: "How often the right chunk is in the top k results."
+  analogy: "\"Did the helper bring the right page?\""
+  level: 7
+- term: "Faithfulness"
+  plain: "Whether every claim in the answer is supported by the sources."
+  analogy: "\"Is it in the book, or made up?\""
+  level: 7
+- term: "CI"
+  plain: "Automatic checks that run on every push."
+  analogy: "A robot reviewer who never sleeps."
+  level: 8
+- term: "Rollback"
+  plain: "Going back to the previous working version."
+  analogy: "Yesterday's menu."
+  level: 8
+- term: "p95 latency"
+  plain: "The time within which 95% of requests finish."
+  analogy: "How long the unlucky customers wait."
+  level: 8
+- term: "Runbook"
+  plain: "A page that says how to operate a service."
+  analogy: "The café's opening checklist."
+  level: 8
