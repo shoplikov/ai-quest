@@ -15,7 +15,14 @@ export function applyTheme(theme: Theme | undefined): void {
 }
 
 export function setTheme(theme: Theme): void {
+  // Colours switch in one step: with transitions on, every element would
+  // fade at its own speed and the page would smear.
+  const off = document.createElement('style');
+  off.textContent = '*,*::before,*::after{transition:none !important}';
+  document.head.append(off);
   applyTheme(theme);
+  void document.body.offsetHeight;
+  requestAnimationFrame(() => requestAnimationFrame(() => off.remove()));
   // In view mode nothing is written, so the change lasts for this page only.
   updateProgress((p) => ({ ...p, theme }));
 }

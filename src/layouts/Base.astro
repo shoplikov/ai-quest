@@ -283,6 +283,45 @@ const links = [
         }
       });
 
+      // A tick made right now gets a small pop; ticks restored from the
+      // saved progress do not.
+      document.addEventListener('change', (e) => {
+        const input = e.target as HTMLInputElement;
+        if (!input.matches?.('input[data-tick]') || !input.checked) return;
+        for (const el of [input.closest('.tick'), input.closest('.mission, .break')]) {
+          if (!el) continue;
+          el.classList.add('is-fresh');
+          setTimeout(() => el.classList.remove('is-fresh'), 600);
+        }
+      });
+
+      // Blocks below the fold fade in once, the first time they are reached.
+      if (!calm && 'IntersectionObserver' in window) {
+        const io = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              const el = entry.target as HTMLElement;
+              io.unobserve(el);
+              el.dataset.rise = 'in';
+              setTimeout(() => el.removeAttribute('data-rise'), 400);
+            }
+          },
+          { rootMargin: '0px 0px -6% 0px' },
+        );
+        const blocks = document.querySelectorAll<HTMLElement>(
+          '.level > section > .card, .level-body > .diagram, .level-body > .widget, .level-body > .card, [data-rise]',
+        );
+        for (const el of blocks) {
+          if (el.getBoundingClientRect().top < innerHeight) {
+            el.removeAttribute('data-rise');
+            continue;
+          }
+          el.dataset.rise = 'wait';
+          io.observe(el);
+        }
+      }
+
       // Copy buttons on every code block.
       document.addEventListener('click', async (e) => {
         const btn = (e.target as Element | null)?.closest<HTMLButtonElement>('.copy-btn');

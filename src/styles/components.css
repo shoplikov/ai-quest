@@ -15,8 +15,7 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  background: color-mix(in srgb, var(--paper) 92%, transparent);
-  backdrop-filter: blur(8px);
+  background: var(--paper);
   border-bottom: var(--border);
 }
 .header-inner {
@@ -60,8 +59,10 @@
   font-weight: 700;
   text-decoration: none;
 }
-.nav-links a:hover {
-  background: var(--card-2);
+@media (hover: hover) {
+  .nav-links a:hover {
+    background: var(--card-2);
+  }
 }
 .nav-links a[aria-current='page'] {
   background: var(--card-2);
@@ -250,8 +251,10 @@ html[data-view-mode] .site-header {
     box-shadow var(--t-fast) var(--ease),
     filter var(--t-fast) var(--ease);
 }
-.btn:hover {
-  filter: brightness(1.05);
+@media (hover: hover) {
+  .btn:hover {
+    filter: brightness(1.05);
+  }
 }
 .btn:active:not(:disabled) {
   transform: translateY(3px);
@@ -279,8 +282,10 @@ html[data-view-mode] .site-header {
   border-color: var(--line);
   box-shadow: none;
 }
-.btn-ghost:hover {
-  background: var(--card-2);
+@media (hover: hover) {
+  .btn-ghost:hover {
+    background: var(--card-2);
+  }
 }
 .btn-ghost:active:not(:disabled) {
   box-shadow: none;
@@ -591,8 +596,10 @@ html[data-view-mode] .site-header {
   font-weight: 700;
   cursor: pointer;
 }
-.copy-btn:hover {
-  background: #4a4270;
+@media (hover: hover) {
+  .copy-btn:hover {
+    background: #4a4270;
+  }
 }
 .copy-btn.is-done {
   background: #13796f;

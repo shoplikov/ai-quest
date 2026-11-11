@@ -10,13 +10,10 @@
 .site-header {
   view-transition-name: site-header;
 }
-@media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) {
-    animation: vt-out 140ms var(--ease) both;
-  }
-  ::view-transition-new(root) {
-    animation: vt-in 260ms var(--ease) both;
-  }
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: var(--ease);
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
@@ -25,24 +22,11 @@
     animation: none !important;
   }
 }
-@keyframes vt-out {
-  to {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-}
-@keyframes vt-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
 
 /* ---------- Paper ---------- */
 body {
   background-image: radial-gradient(color-mix(in srgb, var(--line) 70%, transparent) 1.2px, transparent 1.3px);
   background-size: 26px 26px;
-  background-attachment: fixed;
 }
 @media print {
   body {
@@ -58,10 +42,12 @@ html[data-scrolled] .site-header {
   box-shadow: var(--shadow-soft);
 }
 .brand-mark {
-  transition: transform var(--t-slow) var(--ease-spring);
+  transition: transform var(--t-slow) var(--ease);
 }
-.brand:hover .brand-mark {
-  transform: rotate(-10deg) scale(1.08);
+@media (hover: hover) {
+  .brand:hover .brand-mark {
+    transform: rotate(-8deg);
+  }
 }
 .nav-links a,
 .pill,
@@ -80,15 +66,17 @@ html[data-scrolled] .site-header {
 .menu-btn:active {
   transform: scale(0.96);
 }
-a.pill:hover {
-  transform: translateY(-1px);
+@media (hover: hover) {
+  a.pill:hover {
+    transform: translateY(-1px);
+  }
 }
 .pill-xp.is-bump {
-  animation: xp-bump 520ms var(--ease-spring);
+  animation: xp-bump 400ms var(--ease);
 }
 @keyframes xp-bump {
   30% {
-    transform: scale(1.18) rotate(-3deg);
+    transform: scale(1.08);
   }
 }
 
@@ -116,18 +104,22 @@ a.pill:hover {
 }
 
 /* ---------- Buttons ---------- */
-.btn:hover:not(:disabled):not([aria-disabled='true']) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 0 var(--btn-shadow);
+@media (hover: hover) {
+  .btn:hover:not(:disabled):not([aria-disabled='true']) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 var(--btn-shadow);
+  }
 }
 .btn:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow: 0 1px 0 var(--btn-shadow);
 }
-.btn-ghost:hover:not(:disabled) {
-  box-shadow: none;
-  transform: none;
-  border-color: var(--ink-soft);
+@media (hover: hover) {
+  .btn-ghost:hover:not(:disabled) {
+    box-shadow: none;
+    transform: none;
+    border-color: var(--ink-soft);
+  }
 }
 
 /* ---------- Cards ---------- */
@@ -148,11 +140,13 @@ a.card,
   color: inherit;
   text-decoration: none;
 }
-a.card:hover,
-.card-link:hover {
-  transform: translateY(-3px);
-  border-color: var(--lilac);
-  box-shadow: 0 7px 0 var(--line), var(--shadow-pop);
+@media (hover: hover) {
+  a.card:hover,
+  .card-link:hover {
+    transform: translateY(-3px);
+    border-color: var(--lilac);
+    box-shadow: 0 7px 0 var(--line), var(--shadow-pop);
+  }
 }
 a.card:active,
 .card-link:active {
@@ -161,21 +155,27 @@ a.card:active,
 }
 
 /* ---------- Tick rows ---------- */
-.tick:hover:not(:has(input:disabled)) {
-  background: var(--card-2);
+@media (hover: hover) {
+  .tick:hover:not(:has(input:disabled)) {
+    background: var(--card-2);
+  }
 }
-.tick:hover:has(input:checked) {
-  background: var(--teal-soft);
+@media (hover: hover) {
+  .tick:hover:has(input:checked) {
+    background: var(--teal-soft);
+  }
 }
-.tick:hover:not(:has(input:disabled)) .tick-box {
-  border-color: var(--teal-strong);
+@media (hover: hover) {
+  .tick:hover:not(:has(input:disabled)) .tick-box {
+    border-color: var(--teal-strong);
+  }
 }
-.tick input:checked + .tick-box {
-  animation: tick-pop 380ms var(--ease-spring);
+.tick.is-fresh input:checked + .tick-box {
+  animation: tick-pop 320ms var(--ease-pop);
 }
 @keyframes tick-pop {
   40% {
-    transform: scale(1.25) rotate(-6deg);
+    transform: scale(1.14);
   }
 }
 
@@ -189,8 +189,10 @@ a.card:active,
   border-radius: var(--r-ctl);
   transition: background-color var(--t-fast) var(--ease);
 }
-.reveal > summary:hover {
-  background: var(--card-2);
+@media (hover: hover) {
+  .reveal > summary:hover {
+    background: var(--card-2);
+  }
 }
 .reveal[open] {
   border-style: solid;
@@ -216,36 +218,39 @@ a.card:active,
 }
 
 /* ---------- Dialog ---------- */
+/* Closing is quicker than opening: the base rule times the exit. */
 .dialog {
   opacity: 0;
-  transform: translateY(14px) scale(0.95);
+  transform: translateY(8px) scale(0.97);
+  overscroll-behavior: contain;
   transition:
-    opacity var(--t-mid) var(--ease),
-    transform var(--t-slow) var(--ease-spring),
-    overlay var(--t-mid) allow-discrete,
-    display var(--t-mid) allow-discrete;
+    opacity 150ms var(--ease),
+    transform 150ms var(--ease),
+    overlay 150ms allow-discrete,
+    display 150ms allow-discrete;
 }
 .dialog[open] {
   opacity: 1;
   transform: none;
+  transition-duration: 220ms;
 }
 @starting-style {
   .dialog[open] {
     opacity: 0;
-    transform: translateY(14px) scale(0.95);
+    transform: translateY(8px) scale(0.97);
   }
 }
 .dialog::backdrop {
   background: var(--scrim);
-  backdrop-filter: blur(3px);
   opacity: 0;
   transition:
-    opacity var(--t-mid) var(--ease),
-    overlay var(--t-mid) allow-discrete,
-    display var(--t-mid) allow-discrete;
+    opacity 150ms var(--ease),
+    overlay 150ms allow-discrete,
+    display 150ms allow-discrete;
 }
 .dialog[open]::backdrop {
   opacity: 1;
+  transition-duration: 220ms;
 }
 @starting-style {
   .dialog[open]::backdrop {
@@ -256,10 +261,10 @@ a.card:active,
 /* ---------- Toast ---------- */
 .toast {
   box-shadow: var(--shadow-pop);
-  transform: translateY(14px) scale(0.9);
+  transform: translateY(8px) scale(0.97);
   transition:
-    opacity var(--t-mid) var(--ease),
-    transform var(--t-slow) var(--ease-spring);
+    opacity 200ms var(--ease),
+    transform 200ms var(--ease);
 }
 
 /* ---------- Section headings: a highlighter stroke ---------- */
@@ -310,46 +315,39 @@ a.card:active,
 }
 
 /* ---------- Scroll reveal ---------- */
+/* One time only, and only for blocks that start below the fold. The script
+ * in Base.astro sets data-rise="wait" and later "in", then removes it. */
 @media (prefers-reduced-motion: no-preference) {
-  @supports (animation-timeline: view()) {
-    .level > section > .card,
-    .level-body > .diagram,
-    .level-body > .widget,
-    .level-body > .card,
-    [data-rise] {
-      animation: rise linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 220px;
-    }
-    @keyframes rise {
-      from {
-        opacity: 0.2;
-        transform: translateY(22px) scale(0.985);
-      }
-    }
+  [data-rise] {
+    transition:
+      opacity 320ms var(--ease),
+      transform 320ms var(--ease);
+  }
+  [data-rise='wait'] {
+    opacity: 0;
+    transform: translateY(12px);
   }
 }
 @media print {
   .read-bar {
     display: none !important;
   }
-  .level > section > .card,
-  .level-body > *,
   [data-rise] {
-    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
 /* ---------- Kind note arrival ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .kind-note:not([hidden]) {
-    animation: note-in 600ms var(--ease-spring) both;
+    animation: note-in 320ms var(--ease) both;
   }
 }
 @keyframes note-in {
   from {
     opacity: 0;
-    transform: translateY(18px) rotate(-1.5deg) scale(0.96);
+    transform: translateY(12px);
   }
 }
 
@@ -361,7 +359,7 @@ a.card:active,
   border-radius: var(--r-sm);
 }
 .copy-btn:active {
-  transform: scale(0.94);
+  transform: scale(0.96);
 }
 .tick-box {
   border-radius: var(--r-sm);
@@ -420,7 +418,10 @@ a.card:active,
   color: var(--on-strong);
   font-weight: 800;
   border: 3px solid var(--card);
-  animation: tick-pop 420ms var(--ease-spring);
+}
+.mission.is-fresh:has(.tick-main input:checked)::after,
+.break.is-fresh:has(.tick-main input:checked)::after {
+  animation: tick-pop 320ms var(--ease-pop);
 }
 .break {
   border-left: 8px solid var(--coral);
@@ -428,8 +429,10 @@ a.card:active,
 .trap-table tbody tr {
   transition: background-color var(--t-fast) var(--ease);
 }
-.trap-table tbody tr:hover {
-  background: var(--card-2);
+@media (hover: hover) {
+  .trap-table tbody tr:hover {
+    background: var(--card-2);
+  }
 }
 .trap-table td:first-child {
   border-left: 4px solid var(--coral);
@@ -459,10 +462,12 @@ a.card:active,
     box-shadow var(--t-mid) var(--ease),
     border-color var(--t-mid) var(--ease);
 }
-.level-nav > a:hover {
-  transform: translateY(-3px);
-  border-color: var(--lilac);
-  box-shadow: 0 7px 0 var(--line), var(--shadow-pop);
+@media (hover: hover) {
+  .level-nav > a:hover {
+    transform: translateY(-3px);
+    border-color: var(--lilac);
+    box-shadow: 0 7px 0 var(--line), var(--shadow-pop);
+  }
 }
 .level-nav > a:last-child {
   justify-content: flex-end;
@@ -501,27 +506,28 @@ a.card:active,
   cursor: pointer;
   border-radius: 50%;
   transform-origin: 50% 100%;
-  transition: transform var(--t-mid) var(--ease-spring);
-  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.25));
+  transition: transform var(--t-mid) var(--ease);
 }
-.buddy-btn:hover {
-  transform: translateY(-4px) rotate(-4deg) scale(1.06);
+@media (hover: hover) {
+  .buddy-btn:hover {
+    transform: translateY(-3px) rotate(-3deg);
+  }
 }
 .buddy-btn:active {
-  transform: scale(0.9);
+  transform: scale(0.96);
 }
 .buddy-btn.is-poked {
-  animation: buddy-poke 600ms var(--ease-spring);
+  animation: buddy-poke 480ms var(--ease);
 }
 @keyframes buddy-poke {
   20% {
-    transform: scale(0.82, 1.16) rotate(8deg);
+    transform: scale(0.92, 1.07) rotate(4deg);
   }
   50% {
-    transform: scale(1.14, 0.9) rotate(-8deg);
+    transform: scale(1.05, 0.96) rotate(-3deg);
   }
   75% {
-    transform: scale(0.97, 1.04) rotate(3deg);
+    transform: scale(0.99, 1.01) rotate(1deg);
   }
 }
 .buddy-bubble {
@@ -537,11 +543,11 @@ a.card:active,
   font-size: var(--fs-small);
   line-height: 1.4;
   opacity: 0;
-  transform: translateY(10px) scale(0.9);
+  transform: translateY(6px) scale(0.96);
   transform-origin: 100% 100%;
   transition:
-    opacity var(--t-mid) var(--ease),
-    transform var(--t-slow) var(--ease-spring);
+    opacity 200ms var(--ease),
+    transform 200ms var(--ease);
 }
 .buddy-bubble.is-in {
   opacity: 1;
@@ -572,7 +578,7 @@ a.card:active,
   border-style: dashed;
   color: var(--ink-soft);
   transition:
-    transform var(--t-mid) var(--ease-spring),
+    transform var(--t-mid) var(--ease),
     background-color var(--t-mid) var(--ease);
 }
 .secret-mark {
@@ -596,8 +602,10 @@ a.card:active,
   background: var(--sun);
   color: var(--ink-fixed);
 }
-.secret:hover {
-  transform: rotate(-2deg) scale(1.04);
+@media (hover: hover) {
+  .secret:hover {
+    transform: translateY(-2px);
+  }
 }
 .secrets-hint {
   margin: var(--s3) 0 0;
@@ -631,12 +639,12 @@ a.card:active,
   text-wrap: balance;
 }
 .excuse-out.is-new {
-  animation: excuse-in 420ms var(--ease-spring);
+  animation: excuse-in 260ms var(--ease);
 }
 @keyframes excuse-in {
   from {
     opacity: 0;
-    transform: rotate(-2deg) scale(0.94);
+    transform: translateY(6px);
   }
 }
 .excuse-actions {
@@ -672,17 +680,69 @@ a.card:active,
   margin: -450px 0 0 -450px;
   background: repeating-conic-gradient(var(--sun-soft) 0 12deg, transparent 12deg 24deg);
   border-radius: 50%;
-  mask-image: radial-gradient(circle, #000 10%, transparent 62%);
-  animation: rays-spin 24s linear infinite;
   pointer-events: none;
+}
+/* The fade is a plain gradient on top (it is round, so it can spin with
+ * the rays). A mask here would be repainted on every frame. */
+.levelup-rays::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 12%, var(--card) 60%);
+}
+.levelup-body > :not(.levelup-rays) {
+  position: relative;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .levelup[open] .levelup-rays {
+    animation: rays-spin 40s linear infinite;
+    will-change: transform;
+  }
+  /* Staged entrance: each part 80 ms after the one before. */
+  .levelup[open] .levelup-body > :not(.levelup-rays):not(.levelup-badge) {
+    animation: stage-in 320ms var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 80ms + 120ms);
+  }
+  .levelup-name {
+    --i: 2;
+  }
+  .levelup-xp {
+    --i: 3;
+  }
+  .levelup-facts {
+    --i: 4;
+  }
+  .levelup-porto {
+    --i: 5;
+  }
+  .levelup-close {
+    --i: 6;
+  }
+  .levelup[open] .levelup-badge {
+    animation: badge-pop 520ms var(--ease-pop) 160ms both;
+  }
+  .levelup[open] .levelup-porto .porto {
+    animation: porto-hop 640ms var(--ease) 900ms 2;
+  }
 }
 @keyframes rays-spin {
   to {
     transform: rotate(360deg);
   }
 }
-.levelup-body > :not(.levelup-rays) {
-  position: relative;
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(4px);
+  }
+}
+@keyframes badge-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-14deg);
+  }
 }
 .levelup-kicker {
   margin: 0 0 var(--s3);
@@ -704,15 +764,6 @@ a.card:active,
   box-shadow: 0 6px 0 var(--sun), 0 0 0 10px var(--sun-soft);
   font-size: 4.2rem;
   line-height: 1;
-}
-.levelup[open] .levelup-badge {
-  animation: badge-flip 900ms var(--ease-spring) 120ms both;
-}
-@keyframes badge-flip {
-  from {
-    opacity: 0;
-    transform: perspective(600px) rotateY(540deg) scale(0.3);
-  }
 }
 .levelup-name {
   margin: 0;
@@ -744,13 +795,6 @@ a.card:active,
 .levelup-facts > div:last-child {
   border-left-color: var(--coral);
 }
-.levelup[open] .levelup-facts > div {
-  animation: note-in 520ms var(--ease-spring) both;
-  animation-delay: 700ms;
-}
-.levelup[open] .levelup-facts > div:last-child {
-  animation-delay: 950ms;
-}
 .levelup-facts dt {
   font-size: 0.78rem;
   font-weight: 800;
@@ -767,12 +811,9 @@ a.card:active,
   justify-content: center;
   margin-bottom: var(--s3);
 }
-.levelup[open] .levelup-porto .porto {
-  animation: porto-hop 900ms var(--ease) 1.1s 3;
-}
 @keyframes porto-hop {
   40% {
-    transform: translateY(-14px);
+    transform: translateY(-10px);
   }
 }
 .levelup-close {
@@ -872,78 +913,34 @@ a.card:active,
   transform-box: fill-box;
   transform-origin: center;
   transition:
-    transform var(--t-mid) var(--ease-spring),
+    transform var(--t-mid) var(--ease),
     fill var(--t-mid) var(--ease);
 }
 .map-node:not(.is-soon):hover .node-bg,
 .map-node:not(.is-soon):focus-visible .node-bg {
-  transform: scale(1.14);
+  transform: scale(1.08);
 }
-.map-node:not(.is-soon):hover .node-num,
-.map-node:not(.is-soon):hover .node-check {
-  transform: scale(1.14);
+@media (hover: hover) {
+  .map-node:not(.is-soon):hover .node-num,
+  .map-node:not(.is-soon):hover .node-check {
+    transform: scale(1.08);
+  }
 }
 .map-node.is-ahead {
   opacity: 0.82;
   transition: opacity var(--t-mid) var(--ease);
 }
-.map-node.is-ahead:hover {
-  opacity: 1;
+@media (hover: hover) {
+  .map-node.is-ahead:hover {
+    opacity: 1;
+  }
 }
 .badge-sticker {
-  transition: transform var(--t-mid) var(--ease-spring);
+  transition: transform var(--t-mid) var(--ease);
 }
-.badge-sticker:hover {
-  transform: rotate(-2deg) scale(1.05);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .scenery ellipse {
-    animation: cloud-drift 16s ease-in-out infinite alternate;
-  }
-  .scenery ellipse:nth-child(odd) {
-    animation-duration: 22s;
-    animation-direction: alternate-reverse;
-  }
-  .map-birds {
-    animation: birds-fly 38s linear infinite;
-  }
-  .map-sun circle:first-child {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: sun-glow 5s ease-in-out infinite alternate;
-  }
-  .map-porto .porto {
-    animation: porto-bob 3.2s ease-in-out infinite;
-  }
-}
-@keyframes cloud-drift {
-  from {
-    transform: translateX(-14px);
-  }
-  to {
-    transform: translateX(18px);
-  }
-}
-@keyframes birds-fly {
-  from {
-    transform: translate(-80px, 10px);
-  }
-  50% {
-    transform: translate(120px, -14px);
-  }
-  to {
-    transform: translate(320px, 6px);
-    opacity: 0;
-  }
-}
-@keyframes sun-glow {
-  to {
-    transform: scale(1.25);
-  }
-}
-@keyframes porto-bob {
-  50% {
-    transform: translateY(-5px);
+@media (hover: hover) {
+  .badge-sticker:hover {
+    transform: translateY(-2px);
   }
 }
 .porto-aside {

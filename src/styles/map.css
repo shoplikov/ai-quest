@@ -36,10 +36,176 @@
   }
 }
 
+.map-stage {
+  position: relative;
+}
 .map-svg {
+  position: relative;
   display: block;
   width: 100%;
   height: auto;
+}
+
+/* Sky (under the SVG) and effects (over it). Places are percentages of the
+ * stage, so they follow the SVG at any width. */
+.map-sky,
+.map-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.sky-item,
+.map-ping,
+.map-porto,
+.map-tip {
+  position: absolute;
+}
+.sky-item {
+  height: auto;
+  overflow: visible;
+}
+.sky-cloud {
+  fill: var(--map-cloud);
+}
+.sky-sun {
+  fill: var(--sun);
+  opacity: 0.75;
+}
+.sky-glow {
+  fill: var(--sun);
+  opacity: 0.22;
+}
+.sky-birds {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.map-porto .porto {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.map-ping {
+  aspect-ratio: 1;
+  margin: 0;
+  translate: -50% -50%;
+  border: 3px solid var(--coral);
+  border-radius: 50%;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sky-cloud {
+    animation: cloud-drift 18s ease-in-out infinite alternate;
+    animation-delay: calc(var(--n) * -3.1s);
+  }
+  .sky-glow {
+    animation: sun-glow 5s ease-in-out infinite alternate;
+  }
+  .sky-birds {
+    animation: birds-fly 36s linear infinite;
+    animation-delay: calc(var(--n) * -9s);
+  }
+  .map-porto .porto {
+    animation: porto-bob 3.2s ease-in-out infinite;
+  }
+  .map-ping {
+    animation: map-ping 2.2s cubic-bezier(0.2, 0, 0, 1) infinite;
+  }
+  .quest-map.is-away :is(.sky-item, .map-ping, .map-porto .porto) {
+    animation-play-state: paused;
+  }
+}
+@keyframes cloud-drift {
+  from {
+    translate: -14px 0;
+  }
+  to {
+    translate: 18px 0;
+  }
+}
+@keyframes sun-glow {
+  to {
+    scale: 1.22;
+  }
+}
+@keyframes birds-fly {
+  from {
+    translate: -60px 8px;
+    opacity: 0;
+  }
+  10%,
+  80% {
+    opacity: 1;
+  }
+  50% {
+    translate: 110px -12px;
+  }
+  to {
+    translate: 280px 4px;
+    opacity: 0;
+  }
+}
+@keyframes porto-bob {
+  50% {
+    translate: 0 -4px;
+  }
+}
+@keyframes map-ping {
+  from {
+    scale: 1;
+    opacity: 0.85;
+  }
+  70%,
+  to {
+    scale: 1.5;
+    opacity: 0;
+  }
+}
+
+/* Hover preview of a level. */
+.map-tip {
+  width: max-content;
+  max-width: 250px;
+  padding: var(--s2) var(--s3);
+  background: var(--card);
+  border: var(--border);
+  border-radius: var(--r-ctl);
+  box-shadow: var(--shadow-pop);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  opacity: 0;
+  transition: opacity 120ms var(--ease);
+}
+.map-tip.is-on {
+  opacity: 1;
+  transition-delay: 250ms;
+}
+.tip-top {
+  translate: -50% calc(-100% - 46px);
+}
+.tip-right {
+  translate: 46px calc(-100% - 12px);
+}
+.tip-left {
+  translate: calc(-100% - 46px) calc(-100% - 12px);
+}
+.tip-side {
+  translate: calc(-100% - 50px) -30%;
+}
+.map-tip p {
+  margin: 0;
+}
+.map-tip-badge {
+  font-weight: 800;
+}
+.map-tip ol {
+  margin: var(--s1) 0 0;
+  padding-left: 1.3em;
+  color: var(--ink-soft);
+}
+.map-tip-more {
+  color: var(--ink-soft);
 }
 .map-phone {
   display: none;
@@ -137,8 +303,10 @@
 .map-node:focus-visible .node-focus {
   display: inline;
 }
-.map-node:hover .node-bg {
-  stroke-dasharray: none;
+@media (hover: hover) {
+  .map-node:hover .node-bg {
+    stroke-dasharray: none;
+  }
 }
 
 .map-node.is-current .node-bg {
@@ -151,22 +319,6 @@
 }
 .map-node.is-current .node-pulse {
   display: inline;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .map-node.is-current .node-pulse {
-    animation: node-pulse 2s ease-in-out infinite;
-  }
-}
-@keyframes node-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.9;
-  }
-  50% {
-    transform: scale(1.08);
-    opacity: 0.4;
-  }
 }
 
 .map-node.is-done .node-bg {
@@ -239,15 +391,14 @@
 .map-node.is-done .node-state {
   color: var(--teal-ink);
 }
-.map-node:hover .node-title {
-  text-decoration: underline;
-  text-decoration-color: var(--sun);
-  text-decoration-thickness: 2px;
+@media (hover: hover) {
+  .map-node:hover .node-title {
+    text-decoration: underline;
+    text-decoration-color: var(--sun);
+    text-decoration-thickness: 2px;
+  }
 }
 
-.porto-spot[data-hidden] {
-  display: none;
-}
 
 /* ---------- Home ---------- */
 html[data-started] .welcome {

@@ -492,8 +492,10 @@
     border-color var(--t-fast) var(--ease),
     background-color var(--t-fast) var(--ease);
 }
-.quiz-option:hover:not([aria-disabled='true']) {
-  border-color: var(--lilac-ink);
+@media (hover: hover) {
+  .quiz-option:hover:not([aria-disabled='true']) {
+    border-color: var(--lilac-ink);
+  }
 }
 .quiz-option[aria-disabled='true'] {
   cursor: default;
@@ -656,8 +658,10 @@
 .ds-line.is-dragging .ds-handle {
   cursor: grabbing;
 }
-.ds-handle:hover {
-  background: var(--card);
+@media (hover: hover) {
+  .ds-handle:hover {
+    background: var(--card);
+  }
 }
 .ds-num {
   font-weight: 800;

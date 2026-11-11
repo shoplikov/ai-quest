@@ -37,8 +37,10 @@
   font-weight: 700;
   line-height: 1.35;
 }
-.toc a:hover {
-  color: var(--ink);
+@media (hover: hover) {
+  .toc a:hover {
+    color: var(--ink);
+  }
 }
 .toc a[aria-current='true'] {
   color: var(--ink);
@@ -56,8 +58,7 @@
     max-height: none;
     overflow: visible;
     margin: 0 calc(var(--gutter) * -1);
-    background: color-mix(in srgb, var(--paper) 94%, transparent);
-    backdrop-filter: blur(8px);
+    background: var(--paper);
     border-bottom: var(--border);
   }
   .toc-title {

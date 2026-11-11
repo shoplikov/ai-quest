@@ -2,6 +2,11 @@
 // The quest map: one SVG for desktop (1000×640) and one for phones
 // (360×1100). Rendered with empty progress; a client script sets node
 // states, the travelled path and Porto's place.
+//
+// Everything that moves all the time (clouds, sun glow, birds, Porto, the
+// ring around the current node) is plain HTML above or below the SVG. The
+// browser moves such layers on the GPU; an animation inside the SVG would
+// repaint the whole map on every frame.
 import Landmark from './Landmark.astro';
 import Porto from '../porto/Porto';
 import { fill, getDict, localePath, plural, type Lang } from '../../i18n';
@@ -25,7 +30,23 @@ type Layout = {
   porto: (p: Pt) => Pt;
   portoSize: number;
   scenery: string;
+  sky: Sky[];
 };
+type Shape = { cx: number; cy: number; rx: number; ry?: number };
+type Sky =
+  | { kind: 'cloud' | 'sun' | 'glow'; shapes: Shape[] }
+  | { kind: 'birds'; paths: string[]; box: [number, number, number, number] };
+
+// The box of a sky item in map units, and its place as percentages.
+function boxOf(item: Sky): [number, number, number, number] {
+  if (item.kind === 'birds') return item.box;
+  const x0 = Math.min(...item.shapes.map((s) => s.cx - s.rx));
+  const x1 = Math.max(...item.shapes.map((s) => s.cx + s.rx));
+  const y0 = Math.min(...item.shapes.map((s) => s.cy - (s.ry ?? s.rx)));
+  const y1 = Math.max(...item.shapes.map((s) => s.cy + (s.ry ?? s.rx)));
+  return [x0, y0, x1 - x0, y1 - y0];
+}
+const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(3)}%`;
 
 const layouts: Layout[] = [
   {
@@ -47,6 +68,15 @@ const layouts: Layout[] = [
     porto: (p) => ({ x: p.x + 30, y: p.y + 20 }),
     portoSize: 52,
     scenery: 'desktop',
+    sky: [
+      { kind: 'glow', shapes: [{ cx: 610, cy: 84, rx: 46 }] },
+      { kind: 'sun', shapes: [{ cx: 610, cy: 84, rx: 28 }] },
+      { kind: 'cloud', shapes: [{ cx: 140, cy: 90, rx: 46, ry: 16 }, { cx: 170, cy: 78, rx: 28, ry: 16 }] },
+      { kind: 'cloud', shapes: [{ cx: 480, cy: 70, rx: 54, ry: 16 }, { cx: 508, cy: 58, rx: 30, ry: 15 }] },
+      { kind: 'cloud', shapes: [{ cx: 320, cy: 170, rx: 34, ry: 11 }] },
+      { kind: 'birds', paths: ['M250 120 q7 -9 14 0 q7 -9 14 0', 'M286 144 q5 -7 10 0 q5 -7 10 0'], box: [246, 106, 64, 42] },
+      { kind: 'birds', paths: ['M760 150 q6 -8 12 0 q6 -8 12 0'], box: [756, 138, 32, 16] },
+    ],
   },
   {
     key: 'phone',
@@ -72,6 +102,13 @@ const layouts: Layout[] = [
     porto: (p) => ({ x: p.x + (p.x < 180 ? -64 : 18), y: p.y + 4 }),
     portoSize: 46,
     scenery: 'phone',
+    sky: [
+      { kind: 'glow', shapes: [{ cx: 290, cy: 60, rx: 34 }] },
+      { kind: 'sun', shapes: [{ cx: 290, cy: 60, rx: 20 }] },
+      { kind: 'cloud', shapes: [{ cx: 60, cy: 60, rx: 38, ry: 13 }, { cx: 84, cy: 50, rx: 22, ry: 12 }] },
+      { kind: 'cloud', shapes: [{ cx: 300, cy: 150, rx: 40, ry: 12 }] },
+      { kind: 'cloud', shapes: [{ cx: 60, cy: 600, rx: 30, ry: 10 }] },
+    ],
   },
 ];
 
@@ -98,6 +135,8 @@ const titleOf = (i: number) => (i === 8 ? dict.map.bossTitle : levels[i]!.title)
 const hrefOf = (i: number) =>
   i === 8 ? (bossExists ? localePath(lang, '/boss') : null) : levels[i]!.exists ? localePath(lang, `/level/${i + 1}`) : null;
 const weeksOf = (i: number) => (i === 8 ? 1 : levels[i]!.weeks);
+// Where the hover preview sits, so it never leaves the map.
+const tipSide = (p: Pt, w: number) => (p.y < 190 ? 'side' : p.x < 170 ? 'right' : p.x > w - 170 ? 'left' : 'top');
 const ariaOf = (i: number, state: string) =>
   i === 8
     ? fill(dict.map.bossLabel, { title: titleOf(i), state })
@@ -115,8 +154,30 @@ const ariaOf = (i: number, state: string) =>
     layouts.map((L) => {
       const segs = segments(L.points);
       return (
+        <div
+          class={`map-stage map-${L.key}`}
+          data-stage
+          data-nodes={JSON.stringify(L.points.map((p) => [pct(p.x, L.w), pct(p.y, L.h)]))}
+          data-porto={JSON.stringify(L.points.map((p) => { const at = L.porto(p); return [(at.x / L.w) * 100, ((at.y - L.portoSize) / L.h) * 100]; }))}
+        >
+        <div class="map-sky" aria-hidden="true">
+          {L.sky.map((item, i) => {
+            const [x, y, w, h] = boxOf(item);
+            return (
+              <svg
+                class={`sky-item sky-${item.kind}`}
+                viewBox={`${x} ${y} ${w} ${h}`}
+                style={`left:${pct(x, L.w)};top:${pct(y, L.h)};width:${pct(w, L.w)};--n:${i}`}
+              >
+                {item.kind === 'birds'
+                  ? item.paths.map((d) => <path d={d} />)
+                  : item.shapes.map((s) => <ellipse cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry ?? s.rx} />)}
+              </svg>
+            );
+          })}
+        </div>
         <svg
-          class={`map-svg map-${L.key}`}
+          class="map-svg"
           viewBox={`0 0 ${L.w} ${L.h}`}
           role="group"
           aria-labelledby={`map-title-${L.key}`}
@@ -132,22 +193,6 @@ const ariaOf = (i: number, state: string) =>
                 <path d="M0 640 V520 Q160 440 330 520 T660 500 T1000 470 V640 Z" fill="var(--map-hill)" />
                 <path d="M0 640 V600 Q220 540 460 600 T1000 580 V640 Z" fill="var(--map-hill-2)" />
                 <path d="M420 300 Q560 220 720 290 T1000 250 V330 Q840 300 720 340 T420 330 Z" fill="var(--map-hill)" opacity="0.6" />
-                <g class="map-sun">
-                  <circle cx="610" cy="84" r="46" fill="var(--sun)" opacity="0.22" />
-                  <circle cx="610" cy="84" r="28" fill="var(--sun)" opacity="0.75" />
-                </g>
-                <g class="map-birds" fill="none" stroke="var(--ink-soft)" stroke-width="2.4" stroke-linecap="round">
-                  <path d="M250 120 q7 -9 14 0 q7 -9 14 0" />
-                  <path d="M286 144 q5 -7 10 0 q5 -7 10 0" />
-                  <path d="M760 150 q6 -8 12 0 q6 -8 12 0" />
-                </g>
-                <g fill="var(--map-cloud)">
-                  <ellipse cx="140" cy="90" rx="46" ry="16" />
-                  <ellipse cx="170" cy="78" rx="28" ry="16" />
-                  <ellipse cx="480" cy="70" rx="54" ry="16" />
-                  <ellipse cx="508" cy="58" rx="30" ry="15" />
-                  <ellipse cx="320" cy="170" rx="34" ry="11" />
-                </g>
                 {[[40, 450], [150, 300], [450, 560], [610, 330], [960, 400], [560, 190], [300, 400]].map(([tx, ty]) => (
                   <g transform={`translate(${tx} ${ty})`}>
                     <rect x="-2" y="-6" width="4" height="10" fill="var(--map-trunk)" />
@@ -160,16 +205,6 @@ const ariaOf = (i: number, state: string) =>
                 <path d="M0 1100 V1040 Q100 990 200 1030 T360 1010 V1100 Z" fill="var(--map-hill)" />
                 <path d="M0 760 Q120 720 200 760 T360 740 V820 Q240 800 160 830 T0 820 Z" fill="var(--map-hill)" opacity="0.6" />
                 <path d="M0 420 Q140 380 220 420 T360 400 V470 Q240 450 160 480 T0 470 Z" fill="var(--map-hill)" opacity="0.6" />
-                <g class="map-sun">
-                  <circle cx="290" cy="60" r="34" fill="var(--sun)" opacity="0.22" />
-                  <circle cx="290" cy="60" r="20" fill="var(--sun)" opacity="0.75" />
-                </g>
-                <g fill="var(--map-cloud)">
-                  <ellipse cx="60" cy="60" rx="38" ry="13" />
-                  <ellipse cx="84" cy="50" rx="22" ry="12" />
-                  <ellipse cx="300" cy="150" rx="40" ry="12" />
-                  <ellipse cx="60" cy="600" rx="30" ry="10" />
-                </g>
                 {[[30, 960], [330, 840], [26, 720], [334, 610], [30, 490], [332, 380], [26, 260]].map(([tx, ty]) => (
                   <g transform={`translate(${tx} ${ty})`}>
                     <rect x="-2" y="-6" width="4" height="10" fill="var(--map-trunk)" />
@@ -246,18 +281,30 @@ const ariaOf = (i: number, state: string) =>
             );
           })}
 
-          {/* Porto stands next to the current node */}
-          <g class="map-porto" aria-hidden="true">
-            {L.points.map((p, i) => {
-              const at = L.porto(p);
+        </svg>
+        <div class="map-fx" aria-hidden="true">
+          <span class="map-ping" data-ping style={`width:${pct(64, L.w)}`} />
+          <span class="map-porto" data-map-porto style={`width:${pct(L.portoSize, L.w)}`}>
+            <Porto mood="hello" size={L.portoSize} />
+          </span>
+          {L.key === 'desktop' &&
+            levels.map((lv, i) => {
+              const p = L.points[i]!;
+              if (!lv.exists) return null;
               return (
-                <foreignObject x={at.x} y={at.y - L.portoSize} width={L.portoSize} height={L.portoSize * 1.04} class="porto-spot" data-hidden={i !== 0 ? "" : undefined}>
-                  <Porto mood="hello" size={L.portoSize} />
-                </foreignObject>
+                <div class={`map-tip tip-${tipSide(p, L.w)}`} data-tip={i + 1} style={`left:${pct(p.x, L.w)};top:${pct(p.y, L.h)}`}>
+                  <p class="map-tip-badge">
+                    <span>{lv.badge.emoji}</span> {dict.level.badgePreview}: {lv.badge.name}
+                  </p>
+                  <ol>
+                    {lv.missions.slice(0, 4).map((m) => <li>{m.title}</li>)}
+                  </ol>
+                  {lv.missions.length > 4 && <p class="map-tip-more">+ {plural(lang, lv.missions.length - 4, dict.plural.mission)}</p>}
+                </div>
               );
             })}
-          </g>
-        </svg>
+        </div>
+        </div>
       );
     })
   }
@@ -294,12 +341,66 @@ const ariaOf = (i: number, state: string) =>
     });
     root.classList.add('is-ready');
 
-    const current = Object.entries(states).find(([, s]) => s === 'current')?.[0];
-    root.querySelectorAll<SVGSVGElement>('.map-svg').forEach((svg) => {
-      svg.querySelectorAll<SVGForeignObjectElement>('.porto-spot').forEach((spot, i) => {
-        spot.toggleAttribute('data-hidden', String(i + 1) !== current);
+    const current = Number(Object.entries(states).find(([, s]) => s === 'current')?.[0] ?? 0);
+    placePorto(current);
+  }
+
+  // Porto stands by the current node (by the boss when all is done) and
+  // walks there from where the map last showed him.
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let shown = 0;
+  try {
+    shown = Number(sessionStorage.getItem('aiquest:mapAt')) || 0;
+  } catch {
+    /* no walk, that is all */
+  }
+  function placePorto(current: number) {
+    const at = current || 9;
+    root!.querySelectorAll<HTMLElement>('[data-stage]').forEach((stage) => {
+      const spots = JSON.parse(stage.dataset.porto!) as [number, number][];
+      const nodes = JSON.parse(stage.dataset.nodes!) as [string, string][];
+      const porto = stage.querySelector<HTMLElement>('[data-map-porto]')!;
+      const ping = stage.querySelector<HTMLElement>('[data-ping]')!;
+      const [left, top] = spots[at - 1]!;
+      porto.style.left = `${left}%`;
+      porto.style.top = `${top}%`;
+      ping.hidden = !current;
+      if (current) [ping.style.left, ping.style.top] = nodes[current - 1]!;
+
+      if (calm || !shown || shown === at || !stage.clientWidth) return;
+      // Up to three hops go node by node; a longer trip is one glide.
+      const dir = at > shown ? 1 : -1;
+      const hops = Math.abs(at - shown);
+      const stops = hops <= 3 ? Array.from({ length: hops + 1 }, (_, i) => shown + i * dir) : [shown, at];
+      const frames = stops.map((n) => {
+        const [l, t] = spots[n - 1]!;
+        return { translate: `${((l - left) / 100) * stage.clientWidth}px ${((t - top) / 100) * stage.clientHeight}px` };
       });
+      porto.animate(frames, { duration: 520 * (stops.length - 1) + 200, easing: 'cubic-bezier(0.45, 0, 0.2, 1)', delay: 350, fill: 'backwards' });
     });
+    shown = at;
+    try {
+      sessionStorage.setItem('aiquest:mapAt', String(at));
+    } catch {
+      /* fine */
+    }
+  }
+
+  // Hover preview (desktop map only).
+  if (root && matchMedia('(hover: hover)').matches) {
+    const show = (n: string | undefined, on: boolean) =>
+      n && root.querySelector(`[data-tip="${n}"]`)?.classList.toggle('is-on', on);
+    root.querySelectorAll<SVGElement>('a[data-node]').forEach((node) => {
+      node.addEventListener('pointerenter', () => show(node.dataset.node, true));
+      node.addEventListener('pointerleave', () => show(node.dataset.node, false));
+      node.addEventListener('focus', () => show(node.dataset.node, true));
+      node.addEventListener('blur', () => show(node.dataset.node, false));
+    });
+  }
+
+  // The sky stops moving while the map is off screen.
+  if (root && 'IntersectionObserver' in window) {
+    new IntersectionObserver(([e]) => root.classList.toggle('is-away', !e!.isIntersecting)).observe(root);
   }
 
   render();
