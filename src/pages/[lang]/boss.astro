@@ -8,6 +8,9 @@ import TickRow from '../../components/ui/TickRow.astro';
 import ProgressRing from '../../components/ui/ProgressRing.astro';
 import Diagram from '../../components/Diagram.astro';
 import Porto from '../../components/porto/Porto';
+import Icon from '../../components/ui/Icon.astro';
+import LevelUp from '../../components/fun/LevelUp.astro';
+import { portoPool } from '../../lib/porto';
 import { getDict, languages, localePath, type Lang } from '../../i18n';
 import { getPages } from '../../lib/pages';
 import { renderInline } from '../../lib/md';
@@ -27,6 +30,7 @@ const clientData = {
   lang,
   total: BOSS_ITEMS.length,
   t: { peek: L.peek, finishedOn: L.finishedOn, xpToast: B.xpToast },
+  lines: portoPool(lang, 'allDone'),
 };
 ---
 <Base lang={lang} title={B.title} description={B.tagline}>
@@ -43,7 +47,7 @@ const clientData = {
         <p class="level-pills">
           <Pill>{B.time}</Pill>
           <span class="badge-preview">
-            <span aria-hidden="true" class="badge-emoji">{dict.badges.questComplete.emoji}</span>
+            <span aria-hidden="true" class="badge-emoji"><Icon name={dict.badges.questComplete.emoji} size={22} /></span>
             {dict.badges.questComplete.name}
           </span>
         </p>
@@ -125,6 +129,15 @@ const clientData = {
     </section>
   </article>
 
+  <LevelUp
+    lang={lang}
+    kicker={dict.fun.bossUpKicker}
+    icon={dict.badges.questComplete.emoji}
+    name={dict.badges.questComplete.name}
+    title={portoPool(lang, 'titles')[8] ?? ''}
+    close={dict.fun.bossUpClose}
+  />
+
   <script type="application/json" id="boss-data" set:html={JSON.stringify(clientData)} />
 </Base>
 
@@ -135,8 +148,9 @@ const clientData = {
   import { setRing } from '../../lib/ring';
   import { toast } from '../../lib/toast';
   import { confetti } from '../../lib/confetti';
+  import { showLevelUp } from '../../lib/levelup';
 
-  type Data = { lang: Lang; total: number; t: Record<'peek' | 'finishedOn' | 'xpToast', string> };
+  type Data = { lang: Lang; total: number; t: Record<'peek' | 'finishedOn' | 'xpToast', string>; lines: string[] };
   const data = JSON.parse(document.getElementById('boss-data')!.textContent!) as Data;
   const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
   const ticks = Array.from(document.querySelectorAll<HTMLInputElement>('input[data-tick="boss"]'));
@@ -147,6 +161,7 @@ const clientData = {
   const certActions = $('[data-cert-actions]');
   const kindNote = $('[data-kind-note]');
   const ring = document.getElementById('boss-ring')!;
+  const dialog = document.getElementById('badge-dialog') as HTMLDialogElement;
 
   function render() {
     const p = getProgress();
@@ -190,8 +205,9 @@ const clientData = {
     if (!next?.boss.doneAt) return;
     confetti({ pieces: 240, duration: 3200 });
     toast(fill(data.t.xpToast, { xp: XP.boss }));
-    certificate.scrollIntoView({ block: 'center' });
+    showLevelUp(dialog, XP.boss, data.lines[Math.floor(Math.random() * data.lines.length)]!);
   });
+  dialog.addEventListener('close', () => certificate.scrollIntoView({ block: 'center' }));
 
   // Print only the certificate, on one page.
   $('[data-cert-print]').addEventListener('click', () => {

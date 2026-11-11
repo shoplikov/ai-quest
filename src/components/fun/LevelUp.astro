@@ -1,0 +1,42 @@
+---
+// The level-up screen: badge, XP that counts up, a silly "official title"
+// and Porto's verdict. Opened from the page script with showLevelUp().
+import Porto from '../porto/Porto';
+import Icon from '../ui/Icon.astro';
+import { getDict, type Lang } from '../../i18n';
+import { renderInline } from '../../lib/md';
+
+interface Props {
+  lang: Lang;
+  kicker: string;
+  /** Icon name or the badge emoji. */
+  icon: string;
+  name: string;
+  /** The silly title; may contain inline code. */
+  title: string;
+  close: string;
+}
+const { lang, kicker, icon, name, title, close } = Astro.props;
+const F = getDict(lang).fun;
+---
+<dialog class="dialog levelup" id="badge-dialog" aria-labelledby="levelup-title">
+  <form method="dialog" class="levelup-body">
+    <div class="levelup-rays" aria-hidden="true"></div>
+    <p class="levelup-kicker">{kicker}</p>
+    <div class="levelup-badge" aria-hidden="true"><Icon name={icon} size={84} /></div>
+    <h2 id="levelup-title" class="levelup-name">{name}</h2>
+    <p class="levelup-xp">+<span data-levelup-xp>0</span> XP</p>
+    <dl class="levelup-facts">
+      <div>
+        <dt>{F.levelUpOfficial}</dt>
+        <dd set:html={renderInline(title)} />
+      </div>
+      <div>
+        <dt>{F.levelUpVerdict}</dt>
+        <dd data-badge-line></dd>
+      </div>
+    </dl>
+    <div class="levelup-porto"><Porto mood="cheer" size={104} /></div>
+    <button class="btn btn-primary levelup-close" value="ok">{close}</button>
+  </form>
+</dialog>

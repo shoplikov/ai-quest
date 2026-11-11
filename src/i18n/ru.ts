@@ -793,6 +793,8 @@ export const ru: Dict = {
     excuseCopied: 'Скопировано. Я ничего не видел.',
     excuseEmpty: 'Нажми кнопку. У Порто заготовлены заявления.',
     levelUpKicker: 'Уровень {n} пройден',
+    bossUpKicker: 'Финальный босс повержен',
+    bossUpClose: 'Покажи сертификат',
     levelUpOfficial: 'Официальное звание',
     levelUpVerdict: 'Вердикт Порто',
     crashCode: 'OTTER_PANIC: PORT_NOT_FOUND',

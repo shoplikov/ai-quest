@@ -1,0 +1,12 @@
+---
+// A drawn icon in place of an emoji. `name` is an icon name or the emoji
+// from a content file; an emoji without a drawing is shown as it is.
+import { iconSvg } from '../../lib/icons';
+
+interface Props {
+  name: string;
+  size?: number;
+}
+const { name, size = 24 } = Astro.props;
+---
+<Fragment set:html={iconSvg(name, size)} />

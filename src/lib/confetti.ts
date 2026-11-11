@@ -1,5 +1,7 @@
 // Small canvas confetti: 120 pieces in palette colours, 1.8 s, then the
 // canvas removes itself. With reduced motion: a static sparkle instead.
+import { iconSvg } from './icons';
+
 const COLORS = ['#FF6B5E', '#1FA89A', '#FFC53D', '#8E7CF0', '#4AA8FF', '#F06292'];
 
 export function prefersReducedMotion(): boolean {
@@ -84,7 +86,7 @@ export function sparkle(): void {
   const el = document.createElement('div');
   el.className = 'sparkle';
   el.setAttribute('aria-hidden', 'true');
-  el.textContent = '✨';
+  el.innerHTML = iconSvg('star', 96);
   document.body.append(el);
   setTimeout(() => el.remove(), 1800);
 }

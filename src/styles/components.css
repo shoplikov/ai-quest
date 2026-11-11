@@ -639,8 +639,7 @@ html[data-view-mode] .site-header {
   align-items: flex-start;
 }
 .analogy-emoji {
-  font-size: 3rem;
-  line-height: 1;
+  line-height: 0;
   flex: none;
 }
 .analogy-kicker {
@@ -716,4 +715,46 @@ html[data-view-mode] .site-header {
 /* Shiki's comment grey is too dim on our code background (3.9:1). */
 .code-block span[style*='#6A737D'] {
   color: #9aa5b1 !important;
+}
+
+/* ---------- Drawn icons (lib/icons.ts) ---------- */
+.icon {
+  display: inline-block;
+  flex: none;
+  vertical-align: -0.22em;
+  overflow: visible;
+}
+.icon :is(path, circle, rect) {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icon .f-sun {
+  fill: var(--sun);
+}
+.icon .f-coral {
+  fill: var(--coral);
+}
+.icon .f-teal {
+  fill: var(--teal);
+}
+.icon .f-lilac {
+  fill: var(--lilac);
+}
+.icon .f-card {
+  fill: var(--card);
+}
+.icon .dot {
+  fill: var(--ink);
+  stroke: none;
+}
+.icon .thin {
+  stroke-width: 1;
+}
+.icon .teeth {
+  stroke-width: 3.2;
+  stroke-dasharray: 3.22 3.22;
+  stroke-linecap: butt;
 }

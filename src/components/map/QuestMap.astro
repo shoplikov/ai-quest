@@ -9,6 +9,8 @@
 // repaint the whole map on every frame.
 import Landmark from './Landmark.astro';
 import Porto from '../porto/Porto';
+import Icon from '../ui/Icon.astro';
+import { iconBody } from '../../lib/icons';
 import { fill, getDict, localePath, plural, type Lang } from '../../i18n';
 import type { LevelSummary } from '../../lib/levels';
 
@@ -75,7 +77,7 @@ const layouts: Layout[] = [
       { kind: 'cloud', shapes: [{ cx: 480, cy: 70, rx: 54, ry: 16 }, { cx: 508, cy: 58, rx: 30, ry: 15 }] },
       { kind: 'cloud', shapes: [{ cx: 320, cy: 170, rx: 34, ry: 11 }] },
       { kind: 'birds', paths: ['M250 120 q7 -9 14 0 q7 -9 14 0', 'M286 144 q5 -7 10 0 q5 -7 10 0'], box: [246, 106, 64, 42] },
-      { kind: 'birds', paths: ['M760 150 q6 -8 12 0 q6 -8 12 0'], box: [756, 138, 32, 16] },
+      { kind: 'birds', paths: ['M700 132 q6 -8 12 0 q6 -8 12 0'], box: [696, 120, 32, 16] },
     ],
   },
   {
@@ -244,9 +246,10 @@ const ariaOf = (i: number, state: string) =>
                   {i === 8 ? '★' : n}
                 </text>
                 <path class="node-check" d={`M${p.x - 12} ${p.y + 1} l8 8 l16 -18`} />
-                <text class="node-badge" x={p.x + 26} y={p.y - 22} text-anchor="middle">
-                  {i === 8 ? '🏰' : levels[i]!.badge.emoji}
-                </text>
+                <g class="icon node-badge" transform={`translate(${p.x + 14} ${p.y - 40}) scale(1.05)`}>
+                  <circle class="node-badge-bg" cx="12" cy="12" r="15" />
+                  <Fragment set:html={iconBody(i === 8 ? '🏰' : levels[i]!.badge.emoji) ?? ''} />
+                </g>
                 <foreignObject x={lab.x} y={lab.y} width={lab.w} height={lab.h}>
                   <div class={`node-label align-${lab.align}`}>
                     <span class="node-title">
@@ -294,7 +297,7 @@ const ariaOf = (i: number, state: string) =>
               return (
                 <div class={`map-tip tip-${tipSide(p, L.w)}`} data-tip={i + 1} style={`left:${pct(p.x, L.w)};top:${pct(p.y, L.h)}`}>
                   <p class="map-tip-badge">
-                    <span>{lv.badge.emoji}</span> {dict.level.badgePreview}: {lv.badge.name}
+                    <Icon name={lv.badge.emoji} size={20} /> {dict.level.badgePreview}: {lv.badge.name}
                   </p>
                   <ol>
                     {lv.missions.slice(0, 4).map((m) => <li>{m.title}</li>)}

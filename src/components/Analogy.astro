@@ -1,4 +1,5 @@
 ---
+import Icon from './ui/Icon.astro';
 // The analogy card. Used in level bodies as <Analogy /> with no props: it
 // reads the level from the page's route (lang + id).
 import { getDict, isLang } from '../i18n';
@@ -13,7 +14,7 @@ const dict = getDict(lang);
 {
   analogy && (
     <aside class="card card-soft analogy" aria-label={dict.analogy.kicker}>
-      <span class="analogy-emoji" aria-hidden="true">{analogy.emoji}</span>
+      <span class="analogy-emoji" aria-hidden="true"><Icon name={analogy.emoji} size={52} /></span>
       <div>
         <p class="analogy-kicker">{dict.analogy.kicker}</p>
         <p class="analogy-title">{analogy.title}</p>

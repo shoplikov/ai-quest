@@ -361,8 +361,7 @@
   }
 }
 .sheet-emoji {
-  font-size: 2.2rem;
-  line-height: 1;
+  line-height: 0;
 }
 .sheet-text {
   display: grid;

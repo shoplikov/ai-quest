@@ -1,6 +1,7 @@
 ---
 // Index of the printable cheat sheets, one per level.
 import Base from '../../../layouts/Base.astro';
+import Icon from '../../../components/ui/Icon.astro';
 import { fill, languages, localePath, type Lang } from '../../../i18n';
 import { getLevelEntries } from '../../../lib/levels';
 import { getPages } from '../../../lib/pages';
@@ -23,7 +24,7 @@ const levels = await getLevelEntries(lang);
     {levels.map((e) => (
       <li>
         <a class="card sheet-card" href={localePath(lang, `/cheatsheets/${e.data.id}`)}>
-          <span class="sheet-emoji" aria-hidden="true">{e.data.badge.emoji}</span>
+          <span class="sheet-emoji" aria-hidden="true"><Icon name={e.data.badge.emoji} size={40} /></span>
           <span class="sheet-text">
             <span class="sheet-kicker">{fill(C.level, { n: e.data.id })}</span>
             <span class="sheet-title">{e.data.title}</span>

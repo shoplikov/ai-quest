@@ -8,6 +8,8 @@ import ProgressRing from '../../../components/ui/ProgressRing.astro';
 import Reveal from '../../../components/ui/Reveal.astro';
 import CodeBlock from '../../../components/ui/CodeBlock.astro';
 import Porto from '../../../components/porto/Porto';
+import Icon from '../../../components/ui/Icon.astro';
+import LevelUp from '../../../components/fun/LevelUp.astro';
 import ErrorQuiz from '../../../components/widgets/ErrorQuiz';
 import { fill, getDict, languages, localePath, plural, type Lang } from '../../../i18n';
 import { getLevelEntries } from '../../../lib/levels';
@@ -134,7 +136,7 @@ const clientData = {
             <Pill tone="lilac">{plural(lang, d.missions.length, dict.plural.mission)}</Pill>
             <span class="badge-preview" title={L.badgePreview}>
               <span class="visually-hidden">{L.badgePreview}: </span>
-              <span aria-hidden="true" class="badge-emoji">{d.badge.emoji}</span>
+              <span aria-hidden="true" class="badge-emoji"><Icon name={d.badge.emoji} size={22} /></span>
               {d.badge.name}
             </span>
           </p>
@@ -288,27 +290,14 @@ const clientData = {
     </article>
   </div>
 
-  <dialog class="dialog levelup" id="badge-dialog" aria-labelledby="levelup-title">
-    <form method="dialog" class="levelup-body">
-      <div class="levelup-rays" aria-hidden="true"></div>
-      <p class="levelup-kicker">{fill(dict.fun.levelUpKicker, { n: d.id })}</p>
-      <div class="levelup-badge" aria-hidden="true"><span>{d.badge.emoji}</span></div>
-      <h2 id="levelup-title" class="levelup-name">{d.badge.name}</h2>
-      <p class="levelup-xp">+<span data-levelup-xp>0</span> XP</p>
-      <dl class="levelup-facts">
-        <div>
-          <dt>{dict.fun.levelUpOfficial}</dt>
-          <dd set:html={renderInline(portoPool(lang, 'titles')[d.id - 1] ?? '')} />
-        </div>
-        <div>
-          <dt>{dict.fun.levelUpVerdict}</dt>
-          <dd data-badge-line></dd>
-        </div>
-      </dl>
-      <div class="levelup-porto"><Porto mood="cheer" size={104} /></div>
-      <button class="btn btn-primary levelup-close" value="ok">{L.badgeClose}</button>
-    </form>
-  </dialog>
+  <LevelUp
+    lang={lang}
+    kicker={fill(dict.fun.levelUpKicker, { n: d.id })}
+    icon={d.badge.emoji}
+    name={d.badge.name}
+    title={portoPool(lang, 'titles')[d.id - 1] ?? ''}
+    close={L.badgeClose}
+  />
 
   <script type="application/json" id="level-data" set:html={JSON.stringify(clientData)} />
 </Base>
@@ -332,6 +321,7 @@ const clientData = {
   import { setRing } from '../../../lib/ring';
   import { toast } from '../../../lib/toast';
   import { confetti } from '../../../lib/confetti';
+  import { showLevelUp } from '../../../lib/levelup';
 
   type Data = {
     id: number;
@@ -407,18 +397,7 @@ const clientData = {
     if (!next?.levels[String(id)]?.doneAt) return;
     confetti();
     toast(fill(data.t.xpToast, { xp: XP.level }));
-    const line = document.querySelector<HTMLElement>('[data-badge-line]');
-    if (line) line.textContent = data.lines[Math.floor(Math.random() * data.lines.length)]!;
-    dialog.showModal();
-    // The XP number counts up.
-    const xpEl = dialog.querySelector<HTMLElement>('[data-levelup-xp]')!;
-    const start = performance.now();
-    const step = (now: number) => {
-      const k = Math.min(1, (now - start) / 900);
-      xpEl.textContent = String(Math.round(XP.level * (1 - (1 - k) ** 3)));
-      if (k < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
+    showLevelUp(dialog, XP.level, data.lines[Math.floor(Math.random() * data.lines.length)]!);
   });
   dialog.addEventListener('close', () => {
     kindNote.scrollIntoView({ block: 'center' });

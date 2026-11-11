@@ -4,7 +4,7 @@
   --map-ground: rgba(42, 36, 64, 0.08);
   --map-hill: #f6e6c8;
   --map-hill-2: #efd9b3;
-  --map-cloud: #ffffff;
+  --map-cloud: #e6edf7;
   --map-tree: #1fa89a;
   --map-trunk: #94603a;
   position: relative;
@@ -139,10 +139,10 @@
     opacity: 1;
   }
   50% {
-    translate: 110px -12px;
+    translate: 60px -10px;
   }
   to {
-    translate: 280px 4px;
+    translate: 150px 4px;
     opacity: 0;
   }
 }
@@ -283,8 +283,12 @@
   display: none;
 }
 .node-badge {
-  font-size: 22px;
   display: none;
+}
+.icon .node-badge-bg {
+  fill: var(--card);
+  stroke: var(--line);
+  stroke-width: 2;
 }
 .node-pulse {
   fill: none;
@@ -590,8 +594,7 @@ html:not([data-started]) .dashboard {
   font-size: 0.9rem;
 }
 .badge-sticker .emoji {
-  font-size: 1.3rem;
-  line-height: 1;
+  line-height: 0;
 }
 .badges-none {
   color: var(--ink-soft);

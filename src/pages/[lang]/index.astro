@@ -165,6 +165,7 @@ const clientData = {
   } from '../../lib/progress';
   import { getOwnProgress, getProgress, hasStarted, isViewMode, subscribe, updateProgress } from '../../lib/store';
   import { toast } from '../../lib/toast';
+  import { iconSvg } from '../../lib/icons';
 
   type Data = {
     lang: Lang;
@@ -243,8 +244,9 @@ const clientData = {
     lastXp = points;
 
     // Streak
-    $('[data-streak]').textContent =
-      s.days > 0 ? `🔥 ${fill(t.streak!, { count: plural(data.lang, s.days, data.dayForms) })}` : s.broken ? t.streakBroken! : t.streakNone!;
+    const streakEl = $('[data-streak]');
+    streakEl.textContent = s.days > 0 ? fill(t.streak!, { count: plural(data.lang, s.days, data.dayForms) }) : s.broken ? t.streakBroken! : t.streakNone!;
+    if (s.days > 0) streakEl.insertAdjacentHTML('afterbegin', iconSvg('flame', 22) + ' ');
 
     // Badges
     const ids = badgeIds(p);
@@ -259,7 +261,7 @@ const clientData = {
         const emoji = document.createElement('span');
         emoji.className = 'emoji';
         emoji.setAttribute('aria-hidden', 'true');
-        emoji.textContent = b?.emoji ?? '⭐';
+        emoji.innerHTML = iconSvg(b?.emoji ?? 'star', 24);
         li.append(emoji, document.createTextNode(b?.name ?? id));
         return li;
       }),

@@ -792,6 +792,8 @@ export const en = {
     excuseCopied: 'Copied. I saw nothing.',
     excuseEmpty: 'Press a button. Porto has prepared statements.',
     levelUpKicker: 'Level {n} complete',
+    bossUpKicker: 'Final boss defeated',
+    bossUpClose: 'Show me the certificate',
     levelUpOfficial: 'Official title',
     levelUpVerdict: "Porto's verdict",
     crashCode: 'OTTER_PANIC: PORT_NOT_FOUND',
