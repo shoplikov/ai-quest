@@ -366,7 +366,7 @@
 .node-title {
   font-weight: 800;
   background: color-mix(in srgb, var(--card) 80%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-xs);
   padding: 0 4px;
 }
 .node-meta {

@@ -96,7 +96,7 @@ textarea {
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
-  border-radius: 6px;
+  border-radius: var(--r-xs);
 }
 
 ::selection {
@@ -116,7 +116,7 @@ hr {
   font-size: 0.88em;
   background: var(--card-2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--r-xs);
   padding: 0.08em 0.36em;
   overflow-wrap: anywhere;
 }

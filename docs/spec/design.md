@@ -69,7 +69,7 @@ you use and adjust a shade if one fails.
 - **XP bar** — sun-coloured fill, rank title on the left, next rank on the
   right, small star that hops when XP increases.
 - **Speech bubble** — mascot lines.
-- **Analogy card** — soft panel with a large emoji, a title ("Think of it
+- **Analogy card** — soft panel with a large drawn icon, a title ("Think of it
   like…") and the text.
 - **Reveal** — "Show me why" disclosure used in break cards (`<details>`).
 - **Code block** — dark, rounded, copy button top-right, language label.
@@ -130,11 +130,33 @@ has a `<title>` and `<desc>` for screen readers. Max width 720px, scales down.
 
 ## Motion
 
-- Durations 150–300ms, ease-out. Path drawing on the map: 900ms once.
+- Durations 150–320ms. One easing for everything, `--ease`
+  (`cubic-bezier(0.2, 0, 0, 1)`). The overshoot `--ease-pop` is only for
+  rare happy moments: a fresh tick and the badge on the level-up screen.
+- Hover and open/close states use transitions, never keyframes. Hover
+  styles sit inside `@media (hover: hover)`.
+- Entrances move at most 12px. Exits are quicker than entrances (150ms).
+- Animate only `transform`, `translate`, `scale` and `opacity`. No
+  `backdrop-filter`, no animated `filter: drop-shadow`, no
+  `background-attachment: fixed`, no `transition: all`.
+- Nothing loops inside the map SVG. Clouds, sun glow, birds, Porto and the
+  ring around the current node are HTML layers above and below the SVG
+  (`.map-sky`, `.map-fx`); they pause while the map is off screen.
+- Scroll reveal runs once per block, only for blocks that start below the
+  fold. A tick restored from saved progress does not animate.
+- The theme switch turns transitions off for one frame.
+- Path drawing on the map: 900ms once. Porto walks from the node the map
+  last showed to the current one.
 - Confetti: own small canvas implementation (no library), 120 pieces in
   palette colours, 1.8 seconds, then the canvas removes itself.
-- Current node pulse: 2s loop, scale 1 → 1.08.
 - All motion off under `prefers-reduced-motion: reduce`.
+
+## Icons
+
+Badges and analogy cards use drawn icons from `src/lib/icons.ts`
+(24×24 grid, ink outline, flat palette fills), not emoji, so they look the
+same on every device. Content files still name the icon by its emoji; an
+emoji without a drawing is shown as it is.
 
 ## Print
 
