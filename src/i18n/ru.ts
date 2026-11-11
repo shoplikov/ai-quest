@@ -759,7 +759,7 @@ export const ru: Dict = {
   code: {
     copy: 'Копировать',
     copied: 'Скопировано!',
-    copyLabel: 'Скопировать код',
+    copyLabel: 'Копировать код',
   },
   theme: {
     toDark: 'Включить тёмную тему',
