@@ -12,12 +12,10 @@ skill:
   growing: "Пишу Dockerfile и читаю логи контейнеров."
   middle: "Проектирую стек в compose, храню данные в томах и чиню контейнер, который не запускается."
 itsNormal: >
-  Docker добавляет внутрь твоего компьютера второй, невидимый компьютер.
-  Путаться в вопросе «а это какой localhost?» — обычное дело, а не твоя
-  личная неудача. Его задают все. Хорошая новость: ответ всегда один и
-  тот же, и к концу уровня ты будешь произносить его раньше, чем тебя
-  спросят. Сам Docker вырос из фразы «у меня на машине работает» — теперь
-  машину отправляют вместе с кодом.
+  Docker добавляет внутрь твоего компьютера второй, невидимый. Вопрос «а
+  это какой localhost?» задают все, и ответ всегда один и тот же. Сам
+  Docker вырос из фразы «у меня на машине работает» — теперь машину
+  отправляют вместе с кодом.
 analogy:
   emoji: "🍱"
   title: "Контейнер — это ланч-бокс"
@@ -32,8 +30,17 @@ missions:
     title: "Собери ланч-бокс"
     why: "Ты кладёшь `quest-api` в бокс, которому не нужен Python с твоего ноутбука."
     steps:
-      - "Проверь, что Docker работает: `docker run --rm hello-world`. Если он пишет `permission denied` про сокет Docker, попроси ментора добавить тебя в группу `docker`, потом выйди из системы и зайди снова."
-      - "С активным venv обнови список покупок: `pip freeze > requirements.txt`."
+      - do: |
+          Проверь, что Docker работает:
+          ```bash
+          docker run --rm hello-world
+          ```
+        fail: "`permission denied` про сокет Docker? Попроси ментора добавить тебя в группу `docker`, потом выйди из системы и зайди снова."
+      - |
+        С активным venv обнови список покупок:
+        ```bash
+        pip freeze > requirements.txt
+        ```
       - |
         Напиши `Dockerfile` в папке проекта:
         ```dockerfile
@@ -46,33 +53,83 @@ missions:
         ```
       - |
         Напиши `.dockerignore`, чтобы бокс был маленьким, а секреты остались снаружи:
-        ```
+        ```text
         .venv
         .git
         __pycache__
         .env
         ```
-      - "Собери образ: `docker build -t quest-api .` Смотри, как проходят шаги: по одному на каждую строку Dockerfile."
-      - "Запусти из него бокс: `docker run --rm -p 8000:8000 quest-api`"
-      - "В другом терминале выйди из venv командой `deactivate` и вызови сервис: `curl -s localhost:8000/health`. Свой Python бокс принёс с собой."
+      - |
+        Собери образ:
+        ```bash
+        docker build -t quest-api .
+        ```
+        Смотри, как проходят шаги: по одному на каждую строку Dockerfile.
+      - |
+        Запусти из него бокс:
+        ```bash
+        docker run --rm -p 8000:8000 quest-api
+        ```
+      - |
+        В другом терминале выйди из venv и вызови сервис:
+        ```bash
+        deactivate
+        curl -s localhost:8000/health
+        ```
+        Свой Python бокс принёс с собой.
     check: "`curl -s localhost:8000/health` выводит `{\"status\":\"ok\"}`, хотя ни один venv не активен."
   - id: m2
     title: "Загляни внутрь"
     why: "Ты открываешь бокс и видишь, что это отдельный маленький мир."
     steps:
-      - "Запусти бокс в фоне и с именем: `docker run -d --rm --name quest -p 8000:8000 quest-api`. Проверь через `docker ps`."
-      - "Открой бокс: `docker exec -it quest sh`. Приглашение сменилось на `#` — ты внутри."
-      - "Осмотрись через `ls`: твой проект на месте, а `.venv` и `.env` нет. Это сработал `.dockerignore`."
-      - "Задай два вопроса: `hostname`, потом `env | sort`. Выйди через `exit`."
+      - |
+        Запусти бокс в фоне и с именем:
+        ```bash
+        docker run -d --rm --name quest -p 8000:8000 quest-api
+        ```
+      - |
+        Проверь, что он работает:
+        ```bash
+        docker ps
+        ```
+      - |
+        Открой бокс:
+        ```bash
+        docker exec -it quest sh
+        ```
+        Приглашение сменилось на `#` — ты внутри.
+      - |
+        Осмотрись:
+        ```bash
+        ls
+        ```
+        Твой проект на месте, а `.venv` и `.env` нет. Это сработал `.dockerignore`.
+      - |
+        Задай два вопроса и выйди:
+        ```bash
+        hostname
+        env | sort
+        exit
+        ```
       - "Задай те же два вопроса на своей машине, снаружи бокса. Сравни ответы."
-      - "Вызови сервис несколько раз и прочитай, что он написал: `docker logs -f quest`. Выйди через Ctrl+C и останови бокс командой `docker stop quest` (`--rm` удалит его сам)."
+      - |
+        Вызови сервис несколько раз и прочитай, что он написал:
+        ```bash
+        docker logs -f quest
+        ```
+        Выйди через Ctrl+C.
+      - |
+        Останови бокс. `--rm` удалит его сам.
+        ```bash
+        docker stop quest
+        ```
     check: "Ты можешь назвать три вещи, которые внутри бокса другие: имя хоста, файлы и окружение."
   - id: m3
     title: "Быстрые пересборки"
     why: "Ты с секундомером видишь, почему порядок строк в Dockerfile важен."
     steps:
       - |
-        Сделай медленную копию своего Dockerfile — `Dockerfile.slow`, где код копируется раньше, чем ставятся пакеты:
+        Сделай медленную копию своего Dockerfile — `Dockerfile.slow`. В ней код копируется раньше, чем ставятся пакеты:
         ```dockerfile
         FROM python:3.12-slim
         WORKDIR /app
@@ -80,19 +137,43 @@ missions:
         RUN pip install --no-cache-dir -r requirements.txt
         CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
         ```
-      - "Собери её один раз, чтобы наполнить кэш: `docker build -f Dockerfile.slow -t quest-api:slow .`"
-      - "Поменяй одну строку кода, например текст в `fake_answer`. Пересобери с секундомером: `time docker build -f Dockerfile.slow -t quest-api:slow .` Заметь: `RUN pip install` выполняется заново."
-      - "Поменяй строку ещё раз и пересобери своим хорошим Dockerfile: `time docker build -t quest-api .` Найди слово `CACHED` рядом с шагом `pip install`."
+      - |
+        Собери её один раз, чтобы наполнить кэш:
+        ```bash
+        docker build -f Dockerfile.slow -t quest-api:slow .
+        ```
+      - "Поменяй одну строку кода, например текст в `fake_answer`."
+      - |
+        Пересобери с секундомером:
+        ```bash
+        time docker build -f Dockerfile.slow -t quest-api:slow .
+        ```
+        Заметь: `RUN pip install` выполняется заново.
+      - |
+        Поменяй строку ещё раз и пересобери своим хорошим Dockerfile:
+        ```bash
+        time docker build -t quest-api .
+        ```
+        Найди слово `CACHED` рядом с шагом `pip install`.
       - "Сравни два времени. Потом удали `Dockerfile.slow`."
     check: "При хорошем порядке пересборка занимает секунды, и ты можешь объяснить почему одним предложением."
   - id: m4
     title: "Два бокса"
-    why: "Ты запускаешь API и настоящую базу данных рядом, а API проверяет, что может до неё достучаться."
+    why: "Ты запускаешь API рядом с настоящей базой данных, и API проверяет, что может до неё достучаться."
     steps:
-      - "Добавь драйвер PostgreSQL: `pip install \"psycopg[binary]\"`, потом `pip freeze > requirements.txt`."
-      - "В `app/config.py` добавь в `Settings` одно поле: `database_url: str = \"postgresql://postgres:postgres@localhost:5432/postgres\"`."
       - |
-        Добавь проверку готовности в `app/main.py` (и импортируй наверху `psycopg` и `HTTPException`):
+        Добавь драйвер PostgreSQL:
+        ```bash
+        pip install "psycopg[binary]"
+        pip freeze > requirements.txt
+        ```
+      - |
+        В `app/config.py` добавь в `Settings` одно поле:
+        ```python
+        database_url: str = "postgresql://postgres:postgres@localhost:5432/postgres"
+        ```
+      - |
+        Добавь проверку готовности в `app/main.py`:
         ```python
         @app.get("/ready")
         def ready():
@@ -104,12 +185,14 @@ missions:
                 raise HTTPException(status_code=503, detail="database not reachable")
             return {"status": "ready"}
         ```
+        Наверху файла нужны `import psycopg` и импорт `HTTPException`.
       - |
-        Добавь две строки в `.env` (пароль придумай свой), а те же ключи без настоящего пароля — в `.env.example`:
-        ```
+        Добавь две строки в `.env`. Пароль придумай свой.
+        ```text
         POSTGRES_PASSWORD=change-me
         DATABASE_URL=postgresql://postgres:change-me@db:5432/postgres
         ```
+      - "Те же ключи, но без настоящего пароля, добавь в `.env.example`."
       - |
         Напиши `compose.yaml`. У `api` своя проверка здоровья (healthcheck), чтобы было видно, что оба бокса в порядке:
         ```yaml
@@ -137,41 +220,147 @@ missions:
         volumes:
           pgdata:
         ```
-      - "Запусти оба: `docker compose up -d --build`. Подожди несколько секунд и выполни `docker compose ps` — обе строки кончаются на `(healthy)`."
-      - "Спроси API: `curl -s localhost:8000/ready` отвечает `{\"status\":\"ready\"}`. Останови базу командой `docker compose stop db` и спроси снова: 503. `docker compose logs api` объяснит почему. Запусти базу обратно: `docker compose start db`."
+      - |
+        Запусти оба:
+        ```bash
+        docker compose up -d --build
+        ```
+      - |
+        Подожди несколько секунд и проверь:
+        ```bash
+        docker compose ps
+        ```
+        Обе строки кончаются на `(healthy)`.
+      - |
+        Спроси API:
+        ```bash
+        curl -s localhost:8000/ready
+        ```
+        Ответ: `{"status":"ready"}`.
+      - |
+        Останови базу и спроси снова:
+        ```bash
+        docker compose stop db
+        curl -s localhost:8000/ready
+        ```
+        Теперь ответ — 503.
+      - |
+        Лог объяснит почему:
+        ```bash
+        docker compose logs api
+        ```
+      - |
+        Запусти базу обратно:
+        ```bash
+        docker compose start db
+        ```
     check: "`docker compose ps` показывает оба сервиса здоровыми, `/ready` отвечает 200, а с остановленной базой — 503."
   - id: m5
     title: "Данные, которые выживают"
     why: "Ты видишь, где на самом деле живут данные базы и что их удаляет."
     steps:
-      - "Открой оболочку базы: `docker compose exec db psql -U postgres`. Приглашение станет `postgres=#`."
-      - "Создай таблицу и строку: `CREATE TABLE notes (id serial PRIMARY KEY, text text);`, потом `INSERT INTO notes (text) VALUES ('hello from the box');`, потом `SELECT * FROM notes;`. Выйди через `\\q`."
-      - "Выброси боксы: `docker compose down`. Потом `docker volume ls`: том `quest-api_pgdata` на месте."
-      - "Верни всё командой `docker compose up -d`, дождись healthy и посмотри: `docker compose exec db psql -U postgres -c \"SELECT * FROM notes;\"`. Твоя строка на месте."
-      - "А теперь осторожно и только на этом учебном проекте: `docker compose down -v`, потом `up -d` и тот же `SELECT`. Ответ: `ERROR:  relation \"notes\" does not exist`. `-v` убрал полку."
+      - |
+        Открой оболочку базы:
+        ```bash
+        docker compose exec db psql -U postgres
+        ```
+        Приглашение станет `postgres=#`.
+      - |
+        Создай таблицу и строку, потом посмотри на неё:
+        ```sql
+        CREATE TABLE notes (id serial PRIMARY KEY, text text);
+        INSERT INTO notes (text) VALUES ('hello from the box');
+        SELECT * FROM notes;
+        ```
+        Выйди через `\q`.
+      - |
+        Выброси боксы:
+        ```bash
+        docker compose down
+        ```
+      - |
+        Посмотри список томов:
+        ```bash
+        docker volume ls
+        ```
+        Том `quest-api_pgdata` на месте.
+      - |
+        Верни всё и дождись healthy:
+        ```bash
+        docker compose up -d
+        ```
+      - |
+        Посмотри:
+        ```bash
+        docker compose exec db psql -U postgres -c "SELECT * FROM notes;"
+        ```
+        Твоя строка на месте.
+      - |
+        А теперь осторожно и только на этом учебном проекте:
+        ```bash
+        docker compose down -v
+        docker compose up -d
+        ```
+      - |
+        Выполни тот же `SELECT`:
+        ```bash
+        docker compose exec db psql -U postgres -c "SELECT * FROM notes;"
+        ```
+        Ответ: `ERROR:  relation "notes" does not exist`. `-v` убрал полку.
     check: "Ты можешь объяснить, где жила строка и почему `down` её сохранил, а `down -v` — нет."
 breaks:
   - id: b1
     title: "Только для своих — в боксе"
-    do: "Запусти бокс с приложением на 127.0.0.1: `docker run --rm -p 8000:8000 quest-api uvicorn app.main:app --host 127.0.0.1 --port 8000`. В другом терминале: `curl localhost:8000/health`"
+    do: |
+      Запусти бокс с приложением на 127.0.0.1:
+      ```bash
+      docker run --rm -p 8000:8000 quest-api uvicorn app.main:app --host 127.0.0.1 --port 8000
+      ```
+      В другом терминале:
+      ```bash
+      curl localhost:8000/health
+      ```
     see: "curl: (56) Recv failure: Connection reset by peer"
     why: "Внутри бокса 127.0.0.1 — это сам бокс. Дверца Docker приводит твой стук снаружи бокса, а там никто не слушает. Это «только для своих» из уровня 2 — на этаж глубже."
     fix: "Слушай `--host 0.0.0.0`, как уже делает `CMD` в твоём Dockerfile."
   - id: b2
     title: "Бокс, который сразу закрывается"
-    do: "Запусти бокс с опечаткой в имени модуля: `docker run -d --name broken quest-api uvicorn app.mian:app --host 0.0.0.0`. Выполни `docker ps`: его там нет. Выполни `docker ps -a`."
+    do: |
+      Запусти бокс с опечаткой в имени модуля:
+      ```bash
+      docker run -d --name broken quest-api uvicorn app.mian:app --host 0.0.0.0
+      ```
+      Поищи его. Первая команда его не покажет, вторая покажет:
+      ```bash
+      docker ps
+      docker ps -a
+      ```
     see: "Exited (3) 2 seconds ago"
     why: "Контейнер живёт ровно столько, сколько его главный процесс. Процесс завершился с ошибкой — и бокс закрылся. Docker не гадает почему: программа сама сказала это в логах."
     fix: "`docker logs broken` показывает `Error loading ASGI app. Could not import module \"app.mian\".` Исправь имя и убери мёртвый бокс: `docker rm broken`. Когда бокс умирает, первым делом — логи. Всегда."
   - id: b3
     title: "Какой localhost?"
-    do: "В `.env` замени `@db:5432` на `@localhost:5432`. Выполни `docker compose up -d`, потом `curl -s localhost:8000/ready` и `docker compose logs api`."
+    do: |
+      В `.env` замени `@db:5432` на `@localhost:5432`. Потом выполни:
+      ```bash
+      docker compose up -d
+      curl -s localhost:8000/ready
+      docker compose logs api
+      ```
     see: "connection failed: connection to server at \"127.0.0.1\", port 5432 failed: Connection refused"
     why: "`localhost` внутри бокса API — это бокс API. Никакой базы там нет. Внутри compose до каждого бокса добираются по имени сервиса."
     fix: "Верни `@db:5432` и снова выполни `docker compose up -d`. `/ready` отвечает 200."
   - id: b4
     title: "Дверь уже занята"
-    do: "Пока работает бокс из Миссии 2 (`docker run -d --rm --name quest -p 8000:8000 quest-api`), запусти второй на ту же дверь: `docker run --rm -p 8000:8000 quest-api`"
+    do: |
+      Пусть работает бокс из Миссии 2:
+      ```bash
+      docker run -d --rm --name quest -p 8000:8000 quest-api
+      ```
+      Запусти второй на ту же дверь:
+      ```bash
+      docker run --rm -p 8000:8000 quest-api
+      ```
     see: "Bind for 0.0.0.0:8000 failed: port is already allocated"
     why: "Порт 8000 на твоей машине — одна дверь, и её уже занял первый бокс. Внутри оба бокса могли бы слушать 8000 — проблема только в левой части `-p`."
     fix: "`docker ps` покажет, кто занял дверь. Останови его через `docker stop quest` или дай второму боксу другую дверь: `-p 8001:8000`."
@@ -283,24 +472,28 @@ import PortPlayground from '../../../components/widgets/PortPlayground';
 import DockerfileStacker from '../../../components/widgets/DockerfileStacker';
 import Diagram from '../../../components/Diagram.astro';
 import Analogy from '../../../components/Analogy.astro';
+import Reveal from '../../../components/ui/Reveal.astro';
 
-Твой сервис работает на ноутбуке. На сервере ему нужен тот же Python, те же
-пакеты, те же настройки — и что-нибудь всегда чуть-чуть отличается. Ответ
-Docker звучит коротко: не описывай свою машину — отправь её целиком.
+Твой сервис работает на ноутбуке. На сервере что-нибудь всегда чуть-чуть
+отличается: Python, пакеты, настройки. Ответ Docker: не описывай свою
+машину — отправь её целиком.
 
 <Analogy />
 
 ## Отправь машину целиком
 
-Ты один раз пишешь рецепт в `Dockerfile`. `docker build` следует ему и
-собирает **образ** (image): твой код, Python и все пакеты, замороженные.
-`docker run` достаёт один бокс и открывает его — это **контейнер**
-(container). Из одного образа можно открыть сколько угодно боксов — здесь
-или на любом сервере.
+**Образ — собранный бокс. Контейнер — один открытый бокс.**
 
 <Diagram name="image-vs-container" />
 
+Ты один раз пишешь рецепт в `Dockerfile`. `docker build` собирает
+**образ** (image): твой код, Python и все пакеты, замороженные.
+`docker run` открывает один бокс — **контейнер** (container). Боксов
+может быть сколько угодно, на любом сервере.
+
 ## Dockerfile по строчкам
+
+**Каждая строка — слой. Медленные и стабильные строки идут первыми.**
 
 ```dockerfile
 FROM python:3.12-slim                  # начать с маленького бокса с Python
@@ -311,18 +504,17 @@ COPY . .                               # принести свой код
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-Каждая строка создаёт **слой** (layer), и Docker слои запоминает. При
-следующей сборке он берёт из кэша каждый слой, у которого не изменились
-входные данные, — до первого, у которого изменились. Начиная с него всё
-собирается заново. Поэтому медленная строка, которая меняется редко
-(установка пакетов), идёт выше быстрой строки, которая меняется
-постоянно (твой код). Это и есть кэш сборки.
+Docker запоминает **слои** (layers) — это кэш сборки. При пересборке он
+берёт из кэша все слои до первого, у которого изменились входные данные.
+Начиная с него всё собирается заново.
 
-Попробуй своими руками. Строки стоят в плохом порядке:
+Строки стоят в плохом порядке. Исправь его:
 
 <DockerfileStacker client:visible strings={props.ui.dockerfileStacker} />
 
 ## Собери, запусти, загляни внутрь
+
+**Пяти команд хватает на всю жизнь бокса.**
 
 ```bash
 docker build -t quest-api .                 # приготовить по рецепту
@@ -332,36 +524,45 @@ docker logs -f <имя>                        # что он говорит?
 docker exec -it <имя> sh                    # открыть бокс и заглянуть внутрь
 ```
 
-Файл `.dockerignore` не пускает лишнее в бокс: `.venv` (у бокса свои
-пакеты), `.git`, кэши и `.env` с твоими секретами. Чем меньше бокс, тем
-быстрее он собирается и тем меньше из него может утечь. Базовый образ
-`-slim` тоже помогает.
+<Reveal summary="Что не попадает в бокс?">
+Файл `.dockerignore` не пускает в бокс `.venv` (у бокса свои пакеты),
+`.git`, кэши и `.env` с твоими секретами. Маленький бокс быстрее
+собирается, и утекать из него нечему. Базовый образ `-slim` тоже помогает.
+</Reveal>
 
 ## Порты — на этаж глубже
 
-`-p 8000:8000` прорезает в боксе дверцу. **Слева — твоя машина, справа —
-бокс.** `-p 8080:8000` значит «дверь 8080 на моей машине ведёт к двери
-8000 в боксе».
+**Слева — твоя машина, справа — бокс.**
 
-И тут возвращается уровень 2: внутри бокса `127.0.0.1` — это сам бокс.
-Дверца Docker приводит гостей снаружи, поэтому приложение в боксе должно
-слушать `0.0.0.0`. Переключи песочницу в режим Docker:
+`-p 8000:8000` прорезает в боксе дверцу. Внутри бокса `127.0.0.1` — это
+сам бокс, как в уровне 2. Гости приходят снаружи, поэтому приложение
+должно слушать `0.0.0.0`.
+
+<Reveal summary="Что значит -p 8080:8000?">
+«Дверь 8080 на моей машине ведёт к двери 8000 в боксе»
+</Reveal>
+
+Переключи песочницу в режим Docker:
 
 <PortPlayground client:visible strings={props.ui.portPlayground} />
 
 ## Данные живут на полке
 
-Контейнеры одноразовые. Удалишь контейнер — и всё, что было записано
-внутри, пропадёт. Это даже удобно: новый бокс всегда чистый. Но база
-данных забывать не должна. Всё ценное хранится в **томе** (volume) — полке
-на настоящей кухне, которая переживёт бокс.
+**Удалишь бокс — его файлы пропадут. Том останется.**
 
 <Diagram name="volume" />
 
+Контейнеры одноразовые: новый бокс всегда чистый. Но база данных забывать
+не должна. Всё ценное хранится в **томе** (volume) — на полке настоящей
+кухни.
+
 ## Compose: боксы, которые знают друг друга
 
+**Один файл описывает все боксы. Одна команда запускает их вместе.**
+
+<Diagram name="compose-network" />
+
 Настоящий сервис — это несколько боксов: API, база данных, потом кэш.
-`compose.yaml` описывает их все, а одна команда запускает их вместе:
 
 ```yaml
 services:
@@ -385,24 +586,29 @@ volumes:
   pgdata:
 ```
 
-Compose кладёт боксы в одну сеть, где они находят друг друга **по имени
-сервиса**. API обращается к базе по адресу `db:5432` — и никогда не по
-`localhost:5432`: это собственный бокс API.
+Боксы живут в одной сети и находят друг друга **по имени сервиса**. API
+обращается к базе по адресу `db:5432` — и никогда не по `localhost:5432`:
+это собственный бокс API.
 
-<Diagram name="compose-network" />
+Команды на каждый день:
 
-Команды на каждый день: `docker compose up -d --build` (запустить и
-пересобрать то, что изменилось), `docker compose logs -f api`, `docker
-compose ps`, `docker compose exec api sh`, `docker compose down`.
+```bash
+docker compose up -d --build    # запустить и пересобрать то, что изменилось
+docker compose logs -f api
+docker compose ps
+docker compose exec api sh
+docker compose down
+```
 
 > ⚠️ `docker compose down -v` удаляет ещё и тома — а с ними данные твоей
 > базы. На настоящем проекте остановись и перечитай команду дважды.
 
 ## Теперь ты можешь прочитать этот сайт
 
-Этот сайт тоже работает в Docker. Открой в репозитории его `Dockerfile` и
-`compose.yaml` и прочитай. Ещё несколько недель назад это был шум. Теперь
-ты можешь сказать, что делает каждая строка.
+**Этот сайт тоже работает в Docker.**
+
+Открой в репозитории его `Dockerfile` и `compose.yaml`. Несколько недель
+назад это был шум. Теперь ты можешь сказать, что делает каждая строка.
 
 ## Что запомнить
 

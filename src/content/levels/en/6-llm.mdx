@@ -12,12 +12,10 @@ skill:
   growing: "I handle streaming, limits, timeouts and structured output."
   middle: "My LLM calls are observable, bounded, retried safely, and I can explain their latency."
 itsNormal: >
-  The model is the first part of your career that gives a different answer
-  every time you ask the same question. If that makes you uneasy, good:
-  that unease is a correct engineering instinct. This level turns it into
-  habits — limits, timeouts, validation — so the uneasy part stays small.
-  The model is also the first colleague who answers every question with
-  total confidence, including questions about things that do not exist.
+  A model gives a different answer every time you ask the same question.
+  If that makes you uneasy, good: this level turns that instinct into
+  limits, timeouts and validation. It also answers with total confidence
+  about things that do not exist.
 analogy:
   emoji: "👩‍🍳"
   title: "A brilliant chef with a small table"
@@ -33,32 +31,50 @@ missions:
     title: "First call"
     why: "You talk to a model server from code and read what it charged you, in tokens."
     steps:
-      - "Ask your mentor which model server to use. If there is one, you get an address, a key and a model name: put them into `.env` in step 4 and skip the Ollama steps."
+      - "Ask your mentor which model server to use. If there is one, you get an address, a key and a model name: put them into `.env` in step 6 and skip the Ollama steps."
       - |
-        No server? Run a small model in your own box. Add a service to `compose.yaml`, and `ollama:` next to `pgdata:` under the top-level `volumes:`:
+        No server? Run a small model in your own box. Add this service to `compose.yaml`:
         ```yaml
           ollama:
             image: ollama/ollama
             ports: ["127.0.0.1:11434:11434"]
             volumes: ["ollama:/root/.ollama"]
         ```
-        Start it and download a small model, about 1.3 GB: `docker compose up -d ollama`, then `docker compose exec ollama ollama pull llama3.2:1b`.
-      - "Ask the server which models it serves: `curl -s localhost:11434/v1/models`. The `id` is the exact name it accepts — not roughly, exactly."
+        Also add `ollama:` next to `pgdata:` under the top-level `volumes:`.
+      - |
+        Start it and download a small model, about 1.3 GB:
+        ```bash
+        docker compose up -d ollama
+        docker compose exec ollama ollama pull llama3.2:1b
+        ```
+      - |
+        Ask the server which models it serves:
+        ```bash
+        curl -s localhost:11434/v1/models
+        ```
+        The `id` is the exact name it accepts — not roughly, exactly.
       - |
         Add two settings to `Settings` in `app/config.py`, under `llm_base_url`:
         ```python
             llm_api_key: str = "not-needed"
             llm_model: str = "llama3.2:1b"
         ```
-        In `.env`, point the API at the server by its service name (Level 4) and add the other two values; put the same keys into `.env.example`:
-        ```
+      - |
+        In `.env`, point the API at the server by its service name (Level 4) and add the other two values:
+        ```text
         LLM_BASE_URL=http://ollama:11434/v1
         LLM_API_KEY=not-needed
         LLM_MODEL=llama3.2:1b
         ```
-        Ollama does not check the key, but the client insists on having one. A real server gives you a real key — and that one never goes into git.
+        Put the same keys into `.env.example`. Ollama does not check the key, but the client insists on one — and a real key never goes into git.
       - |
-        Add `openai` to `requirements.txt` (and `pip install openai` on your laptop, for the tests). This client speaks to any OpenAI-compatible server, not only to OpenAI. One client for the app — `app/llm.py`:
+        Add `openai` to `requirements.txt`, and install it on your laptop for the tests:
+        ```bash
+        pip install openai
+        ```
+        This client speaks to any OpenAI-compatible server, not only to OpenAI.
+      - |
+        Make one client for the whole app. Write `app/llm.py`:
         ```python
         from openai import OpenAI
 
@@ -85,7 +101,13 @@ missions:
         print(choice.message.content)
         print(choice.finish_reason, response.usage)
         ```
-      - "Rebuild and call: `docker compose up -d --build`, then `docker compose exec api python -m scripts.first_call`. Read the last line: `finish_reason` first, then `prompt_tokens` (what went in) and `completion_tokens` (what came out)."
+      - |
+        Rebuild and call:
+        ```bash
+        docker compose up -d --build
+        docker compose exec api python -m scripts.first_call
+        ```
+        Read the last line: `finish_reason` first, then `prompt_tokens` (what went in) and `completion_tokens` (what came out).
     check: "You can say how many tokens went in and how many came out."
   - id: m2
     title: "Real answers"
@@ -93,7 +115,7 @@ missions:
     steps:
       - |
         Prompts are code, so they live in files. Write `prompts/answer_v1.txt`:
-        ```
+        ```text
         You are the helper of the Otter Café.
         Answer in two or three short sentences.
         If you do not know the answer, say so. Do not make anything up.
@@ -137,9 +159,9 @@ missions:
             )
             return choice.message.content
         ```
-      - "In `app/routers/ask.py`, import `llm_answer` instead of `fake_answer`, and call it in the route. Keep the route a plain `def`: this client waits without `await`, and FastAPI runs plain `def` routes in a thread pool, so one slow answer does not freeze `/health` (Level 3)."
+      - "In `app/routers/ask.py`, import `llm_answer` instead of `fake_answer` and call it in the route. Keep the route a plain `def`: this client waits without `await`, and FastAPI runs plain `def` routes in a thread pool, so `/health` does not freeze (Level 3)."
       - |
-        The test for `/ask` would now call a real model: slow, and different every time. Swap the model for a stand-in in `tests/test_api.py`:
+        The `/ask` test would now call a real model: slow, and different every time. Swap in a stand-in in `tests/test_api.py`:
         ```python
         def test_ask_valid(monkeypatch):
             monkeypatch.setattr("app.routers.ask.llm_answer", lambda question: "We open at 8.")
@@ -147,8 +169,19 @@ missions:
             assert response.status_code == 200
             assert response.json()["answer"] == "We open at 8."
         ```
-        Run `pytest`: green, and no model was asked.
-      - "Rebuild, ask `When does the café open?` with the curl from Level 3, and read `docker compose logs api | grep llm`. Notice the answer: the model does not know your handbook, so it may invent an opening time with a straight face. Level 7 gives it the handbook."
+      - |
+        Run the tests:
+        ```bash
+        pytest
+        ```
+        Green, and no model was asked.
+      - "Rebuild, then ask `When does the café open?` with the curl from Level 3."
+      - |
+        Read the log line of that call:
+        ```bash
+        docker compose logs api | grep llm
+        ```
+        The model does not know your handbook, so it may invent an opening time with a straight face. Level 7 gives it the handbook.
     check: "Every call leaves one log line with the model, prompt tokens, output tokens and duration."
   - id: m3
     title: "Word by word"
@@ -196,7 +229,12 @@ missions:
         def ask_stream(body: AskRequest) -> StreamingResponse:
             return StreamingResponse(llm_stream(body.question), media_type="text/plain")
         ```
-      - "Rebuild and watch: `curl -N -X POST localhost:8000/ask/stream -H \"Content-Type: application/json\" -d '{\"question\":\"Tell me about otters in three sentences.\"}'`. `-N` tells curl not to wait and collect: it prints every piece the moment it arrives."
+      - |
+        Rebuild and watch:
+        ```bash
+        curl -N -X POST localhost:8000/ask/stream -H "Content-Type: application/json" -d '{"question":"Tell me about otters in three sentences."}'
+        ```
+        `-N` tells curl not to wait and collect: it prints every piece the moment it arrives.
       - "Run the same with `time` in front, then find the `llm stream` line in the logs. Write down `first_token` and `total` for three different questions."
     check: "The text appears piece by piece, and the log line holds both numbers."
   - id: m4
@@ -217,7 +255,7 @@ missions:
         ```
       - |
         Write `prompts/extract_v1.txt`:
-        ```
+        ```text
         You read one guest complaint about the Otter Café.
         Return JSON with:
         - category: one of food, drinks, service, cleanliness, price, other
@@ -225,7 +263,7 @@ missions:
         - summary: one short sentence in the language of the complaint
         ```
       - |
-        Add the extraction to `app/services/answer.py` (with `from pydantic import ValidationError` and `from app.schemas import Complaint` at the top). The schema goes along with the request, so the server can hold the model to it — and Pydantic checks anyway:
+        Add the extraction to `app/services/answer.py` (with `from pydantic import ValidationError` and `from app.schemas import Complaint` at the top):
         ```python
         EXTRACT_PROMPT = "extract_v1"
 
@@ -254,8 +292,9 @@ missions:
                     log.warning("extract attempt %d failed: %s", attempt, error.errors()[0]["msg"])
             raise ExtractionFailed("the model did not return a valid complaint")
         ```
+        The schema goes along with the request, so the server can hold the model to it — and Pydantic checks anyway.
       - |
-        Add the route (import `HTTPException`, the two schemas, `extract_complaint` and `ExtractionFailed`). A broken answer from the model is not the caller's fault, so it gets `502`, not `422`:
+        Add the route (import `HTTPException`, the two schemas, `extract_complaint` and `ExtractionFailed`):
         ```python
         @router.post("/extract", response_model=Complaint)
         def extract(body: ExtractRequest) -> Complaint:
@@ -264,8 +303,9 @@ missions:
             except ExtractionFailed as error:
                 raise HTTPException(status_code=502, detail=str(error))
         ```
+        A broken answer from the model is not the caller's fault, so it gets `502`, not `422`.
       - |
-        Write `scripts/extract_samples.py` and run it in the box:
+        Write `scripts/extract_samples.py`:
         ```python
         from app.services.answer import ExtractionFailed, extract_complaint
 
@@ -309,8 +349,13 @@ missions:
         if __name__ == "__main__":
             main()
         ```
-        `docker compose exec api python -m scripts.extract_samples`
-      - "Read the table like a reviewer: valid is not the same as right. Look for answers that pass Pydantic and are still wrong: a double charge filed anywhere but `price`, broken glass or hidden nuts with a low urgency. Change one thing in the prompt, save it as `extract_v2.txt`, run again, and compare."
+      - |
+        Run it in the box:
+        ```bash
+        docker compose exec api python -m scripts.extract_samples
+        ```
+      - "Read the table like a reviewer: valid is not the same as right. Look for answers that pass Pydantic and are still wrong: a double charge filed anywhere but `price`, broken glass or hidden nuts with a low urgency."
+      - "Change one thing in the prompt, save it as `extract_v2.txt`, run again, and compare."
     check: "A table of 20 results with a success rate at the bottom."
   - id: m5
     title: "Be a good guest"
@@ -362,7 +407,12 @@ missions:
 
         asyncio.run(main())
         ```
-      - "Rebuild and run it: `docker compose exec api python -m scripts.load_test`. Watch `in flight`: it climbs to 4 and never higher. Write down the total time and the slowest call."
+      - |
+        Rebuild and run it:
+        ```bash
+        docker compose exec api python -m scripts.load_test
+        ```
+        Watch `in flight`: it climbs to 4 and never higher. Write down the total time and the slowest call.
       - "Change the `4` to `1` and run again. Then to `20`. Which total is fastest on your server, and what happens to the slowest call?"
     check: "`in flight` never goes above 4, and you have the total time and the slowest call written down."
 breaks:
@@ -374,19 +424,32 @@ breaks:
     fix: "Ask the server: `curl -s localhost:11434/v1/models`, and copy the `id` into `LLM_MODEL`. Put `settings.llm_model` back in the script."
   - id: b2
     title: "Table too small"
-    do: "Put a whole book in front of the question: `docker compose exec api python -c \"from app.config import settings; from app.llm import client; r = client.with_options(timeout=300).chat.completions.create(model=settings.llm_model, messages=[{'role': 'user', 'content': 'otter ' * 300000 + 'How many otters?'}], max_tokens=50); print(r.usage)\"`. On a laptop this can take a minute or two."
+    do: |
+      Put a whole book in front of the question:
+      ```bash
+      docker compose exec api python -c "from app.config import settings; from app.llm import client; r = client.with_options(timeout=300).chat.completions.create(model=settings.llm_model, messages=[{'role': 'user', 'content': 'otter ' * 300000 + 'How many otters?'}], max_tokens=50); print(r.usage)"
+      ```
+      On a laptop this can take a minute or two.
     see: "openai.BadRequestError: Error code: 400"
     why: "Prompt plus `max_tokens` must fit in the context window. vLLM refuses with a `400` that says the input length exceeds the model's maximum context length. Ollama says nothing at all: look at `prompt_tokens` — far fewer than the 300,000 words you sent. It quietly dropped the start of your prompt. The table was full, and something fell off."
     fix: "Count before you send: keep the input well inside the window and leave room for `max_tokens`. When an answer suddenly ignores your instructions, compare `prompt_tokens` with what you meant to send."
   - id: b3
     title: "Half a sentence"
-    do: "Give the model five tokens of room: `docker compose exec api python -c \"from app.config import settings; from app.llm import client; r = client.chat.completions.create(model=settings.llm_model, messages=[{'role': 'user', 'content': 'Explain what a port is.'}], max_tokens=5); print(r.choices[0].finish_reason, '|', r.choices[0].message.content)\"`"
+    do: |
+      Give the model five tokens of room:
+      ```bash
+      docker compose exec api python -c "from app.config import settings; from app.llm import client; r = client.chat.completions.create(model=settings.llm_model, messages=[{'role': 'user', 'content': 'Explain what a port is.'}], max_tokens=5); print(r.choices[0].finish_reason, '|', r.choices[0].message.content)"
+      ```
     see: "length | In computer networking, a"
     why: "`max_tokens` is the size of the dish. The model stopped mid-sentence because it ran out of room, and `finish_reason` says so: `length`, not `stop`. Thinking models first write hidden reasoning, which also counts — with a small `max_tokens` their answer can come back completely empty."
     fix: "Give it enough room, and check `finish_reason` in your code: `length` means the answer is not finished, so do not show it as if it were."
   - id: b4
     title: "No patience"
-    do: "Give the model half a second: `docker compose exec api python -c \"from app.config import settings; from app.llm import client; client.with_options(timeout=0.5).chat.completions.create(model=settings.llm_model, messages=[{'role': 'user', 'content': 'Write 200 words about otters.'}], max_tokens=300)\"`"
+    do: |
+      Give the model half a second:
+      ```bash
+      docker compose exec api python -c "from app.config import settings; from app.llm import client; client.with_options(timeout=0.5).chat.completions.create(model=settings.llm_model, messages=[{'role': 'user', 'content': 'Write 200 words about otters.'}], max_tokens=300)"
+      ```
     see: "openai.APITimeoutError: Request timed out."
     why: "Writing an answer takes seconds, not milliseconds. Notice also that it took longer than half a second to fail: with `max_retries=2` the client quietly tried three times before giving up."
     fix: "A sensible timeout — 30 seconds for an answer — and streaming, so the user sees progress instead of a spinner."
@@ -498,24 +561,17 @@ kindNote: >
 
 import Diagram from '../../../components/Diagram.astro';
 import Analogy from '../../../components/Analogy.astro';
+import Reveal from '../../../components/ui/Reveal.astro';
 
-Until now `/ask` has been pretending. In this level it asks a real
-language model — and you learn to treat that model like any other service
-over a network: with limits, timeouts, logs and a healthy distrust of
-what comes back.
-
-**Where do you get a model?** Ask your mentor which endpoint to use. If
-there is none, run a small model on your laptop with Ollama, which serves
-an OpenAI-compatible API at `http://localhost:11434/v1`. Mission 1 shows
-both ways.
+Until now `/ask` has been pretending. Now it asks a real language model,
+and you treat it like any other service over a network: with limits,
+timeouts, logs and a healthy distrust of what comes back.
 
 <Analogy />
 
 ## The shape of the API
 
-Most model servers — vLLM, Ollama and many others — speak the same
-language as OpenAI's API. So one client works with all of them; you only
-change the address:
+**One client speaks to every model server. You only change the address.**
 
 ```python
 from openai import OpenAI
@@ -533,75 +589,78 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content, response.usage)
 ```
 
-The **system** message sets the rules; the **user** message is the
-question. `GET /v1/models` lists the exact model names the server
-accepts — copy them, do not guess them.
+vLLM, Ollama and many others speak OpenAI's API. The **system** message
+sets the rules; the **user** message is the question.
 
 ## Tokens and the context window
 
-Models read and write **tokens**: pieces of words. "Otter" may be one
-token; a long rare word may be four. Everything counts against one limit,
-the **context window**: the system prompt, any documents, the question —
-and the answer still to be written. Prompt tokens plus `max_tokens` must
-fit.
+**Prompt tokens plus `max_tokens` must fit in one window.**
 
 <Diagram name="context-window" />
 
-Every response tells you what it cost in `usage`: `prompt_tokens` went
-in, `completion_tokens` came out. And every response says why it stopped,
-in `finish_reason`: `stop` means the model finished; `length` means it
-ran out of `max_tokens` mid-thought.
+**Tokens** are pieces of words. The window holds the system prompt, any
+documents, the question — and the answer still to be written.
 
-What happens when it does not fit depends on the server. vLLM refuses
-with a `400`. Ollama quietly cuts off the start of your prompt and answers
-anyway — which is worse, because nothing tells you. Reading `usage` is how
-you find out.
+Every response says what it cost, in `usage`, and why it stopped, in
+`finish_reason`:
+
+<ul class="chips">
+  <li class="ok"><b>stop</b> The model finished</li>
+  <li class="you"><b>length</b> It ran out of <code>max_tokens</code> mid-thought</li>
+</ul>
+
+<Reveal summary="What happens when it does not fit?">
+vLLM refuses with a `400`. Ollama quietly cuts off the start of your
+prompt and answers anyway. Reading `usage` is how you find out.
+</Reveal>
 
 ## Streaming
 
-A model writes one token at a time. Without streaming, you wait for the
-last one before you see the first. With streaming, the server sends each
-piece as it is made, as **server-sent events**: lines that start with
-`data:`.
-
-Two numbers describe the speed: **time to first token** — how long the
-user stares at nothing — and **tokens per second** after that. In FastAPI,
-a `StreamingResponse` passes the pieces on to the caller as they come.
+**Send each token as it is made. Speed is two numbers.**
 
 <Diagram name="streaming-timeline" />
 
+Without streaming, you wait for the last token before you see the first.
+With it, each piece arrives as a **server-sent event**: a line that
+starts with `data:`.
+
+- **Time to first token**: how long the user stares at nothing.
+- **Tokens per second** after that.
+
 ## Things fail
 
-A model server is a service over a network, and it fails like one: it
-times out, it answers `429 Too Many Requests` when you push too hard, it
-gives `5xx` while it restarts. Give every client a `timeout=` and a
-`max_retries=`. The client waits a little longer before each new try —
-and stops after the limit. **Never retry forever**: a stuck server
-plus endless retries is a traffic jam you built yourself.
+**Give every client a `timeout=` and a `max_retries=`.**
+
+<ul class="chips">
+  <li><b>timeout</b> No answer in time</li>
+  <li class="you"><b>429</b> Too Many Requests: you push too hard</li>
+  <li class="us"><b>5xx</b> The server is restarting</li>
+</ul>
+
+The client waits a little longer before each new try. **Never retry
+forever**: a stuck server plus endless retries is a traffic jam you built
+yourself.
 
 ## Structured output
 
-When code reads the answer, prose is not enough. Ask for JSON that
-matches a schema, pass the schema along (`response_format`) so the server
-can hold the model to it, and validate the result with Pydantic anyway.
-Then decide what happens when it does not validate: retry once, then fail
-clearly. For extraction, use `temperature=0`: you want the same form
-filled the same way, not creativity.
+**Ask for JSON that matches a schema. Validate it anyway.**
+
+Pass the schema along (`response_format`) so the server can hold the
+model to it, then check with Pydantic. Not valid? Retry once, then fail
+clearly. For extraction, use `temperature=0`: you want the same form, not
+creativity.
 
 ## Prompts are code
 
-A prompt changes what your service does, the same way code does. So it lives in a
-file, in git, with a version in its name: `answer_v1.txt`,
-`answer_v2.txt`. Change one thing at a time, and compare the results on
-the same questions. "I tweaked the prompt and now it feels better" is not
-a result.
+**A prompt lives in a file, in git, with a version in its name.**
+
+Change one thing at a time, and compare on the same questions:
+`answer_v1.txt`, then `answer_v2.txt`. "I tweaked the prompt and now it
+feels better" is not a result.
 
 ## Many requests at once
 
-Waiting for a model is mostly waiting — the work you met in Level 3's
-event loop. With the async client, one process can wait for many answers
-at once. But the server has limits too, so you put a bouncer at the door:
-an `asyncio.Semaphore(4)` lets at most four calls in at a time.
+**Wait for many answers at once, with a bouncer at the door.**
 
 ```python
 limit = asyncio.Semaphore(4)
@@ -612,13 +671,20 @@ async def ask(question: str) -> str:
         return response.choices[0].message.content
 ```
 
+With the async client, one process waits for many answers (Level 3's
+event loop). The server has limits too, so the semaphore lets at most
+four calls in at a time.
+
 ## Where the model lives
 
-A model server such as vLLM loads the model onto a GPU once and serves
-many callers: `vllm serve <model> --port 8000`. The model's weights fill
-most of the GPU's memory before the first question arrives; `nvidia-smi`
-shows how much. You will mostly be a caller — but now you know what sits
-on the other side of the port.
+**The model sits on a GPU behind a port. You will mostly be a caller.**
+
+<Reveal summary="What is on the other side of the port?">
+A server such as vLLM loads the model onto a GPU once and serves many
+callers: `vllm serve <model> --port 8000`. The weights fill most of the
+GPU's memory before the first question arrives; `nvidia-smi` shows how
+much.
+</Reveal>
 
 ## What to remember
 

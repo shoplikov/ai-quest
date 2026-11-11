@@ -13,10 +13,8 @@ skill:
   middle: "On an unfamiliar server I find what runs, where it logs and why it stopped."
 itsNormal: >
   The terminal gives no hints and has no undo button, so at first it feels
-  hostile. It is not. It is only quiet: it does exactly what you type and
-  says nothing unless something is wrong. And everybody looks up the flags
-  for `tar`. Everybody. Forever. Somebody has had that manual open since
-  1979.
+  hostile. It is only quiet: it does exactly what you type. Everybody looks
+  up the flags for `tar`; somebody has had that manual open since 1979.
 analogy:
   emoji: "🏠"
   title: "The server is a house with the lights off"
@@ -31,75 +29,230 @@ missions:
     title: "Treasure hunt"
     why: "You move around, make files and find them again without a file manager."
     steps:
-      - "Make the folders in one go: `mkdir -p ~/quest/level1/{notes,logs,scripts}`. The `-p` creates every missing folder on the way, and the `{…}` makes three folders at once."
-      - "Walk in and switch on the light: `cd ~/quest/level1`, then `pwd` and `ls -la`. You should see `notes`, `logs` and `scripts`, plus `.` (this room) and `..` (the room above)."
-      - "Write your first file: `echo \"hello\" > notes/first.txt`. Read it back with `cat notes/first.txt`."
-      - "Add a second line with two arrows: `echo \"hello again\" >> notes/first.txt`, then `cat` the file again. One `>` replaces the whole file; `>>` adds to the end."
-      - "Go somewhere else (`cd /tmp`) and hunt for the file by its name: `find ~ -name first.txt`."
-      - "Now hunt for the word inside files: `grep -rn hello ~/quest`. Read the answer: the path, the line number, then the line itself."
+      - |
+        Make the folders in one go:
+        ```bash
+        mkdir -p ~/quest/level1/{notes,logs,scripts}
+        ```
+        `-p` creates every missing folder on the way; `{…}` makes three folders at once.
+      - |
+        Walk in and switch on the light:
+        ```bash
+        cd ~/quest/level1
+        pwd
+        ls -la
+        ```
+        You see `notes`, `logs` and `scripts`, plus `.` (this room) and `..` (the room above).
+      - |
+        Write your first file and read it back:
+        ```bash
+        echo "hello" > notes/first.txt
+        cat notes/first.txt
+        ```
+      - |
+        Add a second line with two arrows and read the file again:
+        ```bash
+        echo "hello again" >> notes/first.txt
+        cat notes/first.txt
+        ```
+        One `>` replaces the whole file; `>>` adds to the end.
+      - |
+        Go somewhere else and hunt for the file by its name:
+        ```bash
+        cd /tmp
+        find ~ -name first.txt
+        ```
+      - |
+        Now hunt for the word inside files:
+        ```bash
+        grep -rn hello ~/quest
+        ```
+        Read the answer: the path, the line number, then the line itself.
     check: "`find` prints the path to `first.txt`, and `grep` prints the same path with a line number."
   - id: m2
     title: "Watch a log live"
     why: "You start a process, watch what it writes and stop it by its PID."
     steps:
       - |
-        Open a new file in the editor: `nano ~/quest/level1/scripts/ticker.sh`. Type this, save with Ctrl+O and Enter, and leave with Ctrl+X:
+        Open a new file in the editor:
+        ```bash
+        nano ~/quest/level1/scripts/ticker.sh
+        ```
+      - |
+        Type this, save with Ctrl+O and Enter, and leave with Ctrl+X:
         ```bash
         #!/usr/bin/env bash
         while true; do echo "$(date +%T) tick" >> ~/quest/level1/logs/ticker.log; sleep 2; done
         ```
-      - "Make it runnable: `chmod +x ~/quest/level1/scripts/ticker.sh`. Check with `ls -l ~/quest/level1/scripts`: the first column now has `x` in it."
-      - "Start it in the background with `&`: `~/quest/level1/scripts/ticker.sh &`. The shell prints a job number and a PID, for example `[1] 4242`, and gives you the prompt back."
-      - "Watch the diary being written: `tail -f ~/quest/level1/logs/ticker.log`. A new line arrives every two seconds. Leave with Ctrl+C — that stops `tail`, not the ticker."
-      - "Find the ticker among all processes: `ps aux | grep ticker`. The number in the second column is the PID. One of the lines is the `grep` itself; ignore that one."
-      - "Ask it to stop: `kill <pid>`, with the PID you found. Then run `tail -n 3 ~/quest/level1/logs/ticker.log` twice, a few seconds apart."
+      - |
+        Make it runnable and check:
+        ```bash
+        chmod +x ~/quest/level1/scripts/ticker.sh
+        ls -l ~/quest/level1/scripts
+        ```
+        The first column now has `x` in it.
+      - |
+        Start it in the background with `&`:
+        ```bash
+        ~/quest/level1/scripts/ticker.sh &
+        ```
+        The shell prints a job number and a PID, for example `[1] 4242`, and gives you the prompt back.
+      - |
+        Watch the diary being written. A new line arrives every two seconds.
+        ```bash
+        tail -f ~/quest/level1/logs/ticker.log
+        ```
+        Leave with Ctrl+C — that stops `tail`, not the ticker.
+      - |
+        Find the ticker among all processes:
+        ```bash
+        ps aux | grep ticker
+        ```
+        The second column is the PID. One of the lines is the `grep` itself; ignore that one.
+      - |
+        Ask it to stop, with the PID you found:
+        ```bash
+        kill <pid>
+        ```
+      - |
+        Run this twice, a few seconds apart:
+        ```bash
+        tail -n 3 ~/quest/level1/logs/ticker.log
+        ```
     check: "After `kill`, the last line of `ticker.log` stays the same no matter how long you wait."
   - id: m3
     title: "A room that stays lit"
     why: "You keep a job running after you close the terminal — the way long jobs run on real servers."
     steps:
-      - "Install tmux if it is missing: `sudo apt install tmux`."
-      - "Open a new room: `tmux new -s quest`. A bar appears at the bottom of the window: you are inside tmux now."
-      - "Start the ticker inside it, without `&` this time: `~/quest/level1/scripts/ticker.sh`."
+      - |
+        Install tmux if it is missing:
+        ```bash
+        sudo apt install tmux
+        ```
+      - |
+        Open a new room:
+        ```bash
+        tmux new -s quest
+        ```
+        A bar appears at the bottom of the window: you are inside tmux now.
+      - |
+        Start the ticker inside it, without `&` this time:
+        ```bash
+        ~/quest/level1/scripts/ticker.sh
+        ```
       - "Leave the room with the light on: press Ctrl+b, let go, then press d. You are back in your normal terminal and tmux says `[detached (from session quest)]`."
-      - "Close the terminal window completely. Open a new one and check that the diary still grows: `tail -n 2 ~/quest/level1/logs/ticker.log`."
-      - "List your rooms with `tmux ls`, then walk back in: `tmux attach -t quest`. The ticker is still ticking."
-      - "Stop the ticker with Ctrl+C, leave with Ctrl+b then d, and close the room for good: `tmux kill-session -t quest`."
+      - |
+        Close the terminal window completely. Open a new one and check that the diary still grows:
+        ```bash
+        tail -n 2 ~/quest/level1/logs/ticker.log
+        ```
+      - |
+        List your rooms, then walk back in:
+        ```bash
+        tmux ls
+        tmux attach -t quest
+        ```
+        The ticker is still ticking.
+      - |
+        Stop the ticker with Ctrl+C, leave with Ctrl+b then d, and close the room for good:
+        ```bash
+        tmux kill-session -t quest
+        ```
     check: "The ticker kept writing to the log while your terminal was closed."
   - id: m4
     title: "Keys, not passwords"
     why: "You log in to another machine the way engineers do: with a key and a short name."
     steps:
       - "Ask your mentor for a Linux machine you may log in to: its address, your user name and a password for the first login. Below it is `203.0.113.10` with the user `student`; use your own values."
-      - "Make a key pair on your laptop: `ssh-keygen -t ed25519`. Press Enter to keep the default file, then choose a passphrase. In `~/.ssh/` you now have `id_ed25519` (the private key — it never leaves your laptop) and `id_ed25519.pub` (the public one)."
-      - "Give the server your lock: `ssh-copy-id student@203.0.113.10`. It asks for the server password one last time."
+      - |
+        Make a key pair on your laptop:
+        ```bash
+        ssh-keygen -t ed25519
+        ```
+        Press Enter to keep the default file, then choose a passphrase.
+      - "In `~/.ssh/` you now have `id_ed25519` (the private key — it never leaves your laptop) and `id_ed25519.pub` (the public one)."
+      - |
+        Give the server your lock:
+        ```bash
+        ssh-copy-id student@203.0.113.10
+        ```
+        It asks for the server password one last time.
       - |
         Add a shortcut to `~/.ssh/config` (create the file if it does not exist):
-        ```
+        ```text
         Host quest
             HostName 203.0.113.10
             User student
             IdentityFile ~/.ssh/id_ed25519
         ```
-      - "Connect with the short name: `ssh quest`. The server does not ask for its password. If you set a passphrase, you type that instead — it unlocks the key on your own laptop. Type `exit` to come back."
-      - "Send a file across: `scp ~/quest/level1/notes/first.txt quest:~/`, then read it on the other side: `ssh quest cat first.txt`."
+      - |
+        Connect with the short name. The server does not ask for its password.
+        ```bash
+        ssh quest
+        ```
+        If you set a passphrase, you type that instead — it unlocks the key on your own laptop.
+      - |
+        Come back to your laptop:
+        ```bash
+        exit
+        ```
+      - |
+        Send a file across, then read it on the other side:
+        ```bash
+        scp ~/quest/level1/notes/first.txt quest:~/
+        ssh quest cat first.txt
+        ```
     check: "`ssh quest` logs you in without asking for the server's password."
   - id: m5
     title: "Health check of a machine"
     why: "You answer the questions people ask about a server — with commands as proof."
     steps:
-      - "Log in with `ssh quest` and open a file for your answers: `nano REPORT.md`. Keep a second terminal with another `ssh quest` for running the commands."
-      - "How full is the disk? Run `df -h` and find the line whose `Mounted on` is `/`. Write down its `Use%`."
-      - "What are the 3 biggest folders in your home? `du -sh ~/* | sort -h | tail -3`"
-      - "How much memory is free? `free -h`. Read the `available` column: it counts the memory that new programs can really get."
-      - "Which 3 processes use the most memory? `ps aux --sort=-%mem | head -4` (the first line is the header)."
-      - "What was the last line in the system journal? `journalctl -n 1`. If it says you are not seeing messages from other users and the system, run `sudo journalctl -n 1`."
+      - |
+        Log in and open a file for your answers:
+        ```bash
+        ssh quest
+        nano REPORT.md
+        ```
+        Keep a second terminal with another `ssh quest` for running the commands.
+      - |
+        How full is the disk?
+        ```bash
+        df -h
+        ```
+        Find the line whose `Mounted on` is `/` and write down its `Use%`.
+      - |
+        What are the 3 biggest folders in your home?
+        ```bash
+        du -sh ~/* | sort -h | tail -3
+        ```
+      - |
+        How much memory is free?
+        ```bash
+        free -h
+        ```
+        Read the `available` column: it counts the memory that new programs can really get.
+      - |
+        Which 3 processes use the most memory? The first line is the header.
+        ```bash
+        ps aux --sort=-%mem | head -4
+        ```
+      - do: |
+          What was the last line in the system journal?
+          ```bash
+          journalctl -n 1
+          ```
+        fail: "It says you are not seeing messages from other users and the system? Run `sudo journalctl -n 1`."
       - "Under every answer, paste the command you ran. Without the command an answer is a story; with it, it is evidence."
     check: "Every answer in `REPORT.md` has the command next to it."
 breaks:
   - id: b1
     title: "Not allowed"
-    do: "In `~/quest/level1/scripts`, create a script: `echo 'echo hi' > hello.sh`. Run it: `./hello.sh`"
+    do: |
+      In `~/quest/level1/scripts`, create a script and run it:
+      ```bash
+      echo 'echo hi' > hello.sh
+      ./hello.sh
+      ```
     see: "bash: ./hello.sh: Permission denied"
     why: "The file is there, but nobody gave it the execute bit. Linux does not run a file because its name ends in `.sh`; it runs it because the `x` says it may."
     fix: "`chmod +x hello.sh`, then `./hello.sh` prints `hi`."
@@ -111,13 +264,31 @@ breaks:
     fix: "If the program sits in the current folder, give its path: `./mytool`. If it should be installed, install it. `which mytool` tells you whether the shell can find it at all."
   - id: b3
     title: "Wrong room"
-    do: "Go to another folder with `cd /tmp`, then run `cat notes/first.txt`"
+    do: |
+      Go to another folder, then read the file from there:
+      ```bash
+      cd /tmp
+      cat notes/first.txt
+      ```
     see: "cat: notes/first.txt: No such file or directory"
     why: "A relative path starts from where you stand. There is no `notes` folder in `/tmp`. The file is fine; you are in a different room. `pwd` says which one."
     fix: "`cd ~/quest/level1` first, or use the absolute path: `cat ~/quest/level1/notes/first.txt`."
   - id: b4
     title: "The vanishing job"
-    do: "Copy the ticker to the server and make its log folder there: `scp ~/quest/level1/scripts/ticker.sh quest:~/` and `ssh quest mkdir -p quest/level1/logs`. Log in with `ssh quest`, start it with `./ticker.sh &` — no tmux — and close the terminal window. Log in again and look for it: `ps aux | grep ticker`"
+    do: |
+      Copy the ticker to the server and make its log folder there:
+      ```bash
+      scp ~/quest/level1/scripts/ticker.sh quest:~/
+      ssh quest mkdir -p quest/level1/logs
+      ```
+      Log in with `ssh quest` and start it — no tmux:
+      ```bash
+      ./ticker.sh &
+      ```
+      Close the terminal window. Log in again and look for it:
+      ```bash
+      ps aux | grep ticker
+      ```
     see: "student   5123  0.0  0.0   9212  2304 pts/0    S+   10:42   0:00 grep --color=auto ticker"
     why: "Only the `grep` itself is left. When the SSH session closed, the shell received a hang-up signal and passed it on to the jobs it had started. The ticker was one of them."
     fix: "Start long jobs inside tmux, exactly as in Mission 3. Then you can close the window as often as you like: the room stays lit."
@@ -227,6 +398,7 @@ kindNote: >
 
 import Diagram from '../../../components/Diagram.astro';
 import Analogy from '../../../components/Analogy.astro';
+import Reveal from '../../../components/ui/Reveal.astro';
 
 Sooner or later someone says "can you check the server?" and hands you an
 address. There is no desktop there, no icons, no mouse — only a blinking
@@ -236,13 +408,12 @@ cursor. This level turns that cursor from a wall into a door.
 
 ## Where am I?
 
-The files on a Linux machine form one big tree. It starts at `/`, the
-root. Your own folder is `/home/<your name>`, and it has a short nickname:
-`~`.
+**Files form one big tree. `pwd` says where you stand in it.**
 
 <Diagram name="file-tree" />
 
-Three commands are your eyes and your feet:
+The tree starts at `/`, the root. Your own folder is `/home/<your name>`,
+nicknamed `~`.
 
 ```bash
 pwd          # which room am I in?
@@ -250,28 +421,23 @@ ls -la       # switch on the light: what is here, hidden files too
 cd notes     # walk into the room called notes
 ```
 
-A path that starts with `/` is **absolute**: it works from anywhere, like
-a full street address. A path without it is **relative**: it starts from
-where you stand. `.` means "this folder" and `..` means "the folder
-above", so `cd ..` takes one step up. When a file "is not there", check
-`pwd` first. Most of the time the file is fine and you are in another room.
+A path that starts with `/` is **absolute**: it works from anywhere. A
+path without it is **relative**: it starts from where you stand. File "not
+there"? Check `pwd` first.
 
 ## Reading and finding
 
-To read a file, pick the tool by its size:
+**Pick the reading tool by file size, and join small tools with `|`.**
 
-- `cat file` prints it all at once — good for short files.
-- `less file` lets you scroll; press `q` to leave.
+- `cat file` prints it all — good for short files.
+- `less file` lets you scroll; `q` to leave.
 - `head file` and `tail -n 50 file` show the beginning and the last 50 lines.
-- `tail -f file` keeps the file open and prints new lines as they arrive.
-  That is how you watch a log live.
+- `tail -f file` prints new lines as they arrive: a log, live.
 
-To find things, you have two hunters: `find . -name "*.py"` looks for
-files **by name**, and `grep -rn "text" .` looks for text **inside** files
-and tells you the file and the line number.
+`find . -name "*.py"` finds files **by name**. `grep -rn "text" .` finds
+text **inside** files, with file and line number.
 
-The real trick is the pipe, `|`. It takes everything one command prints
-and hands it to the next one, instead of to your screen:
+The pipe, `|`, hands what one command prints to the next one:
 
 ```bash
 ps aux | grep python
@@ -279,47 +445,49 @@ ps aux | grep python
 
 <Diagram name="pipe" />
 
-`ps aux` lists every process — hundreds of lines. `grep` keeps the few you
-care about. Small tools, joined by pipes, do most of the work on a server.
-
 ## Who may do what
 
-Run `ls -l` and look at the first column:
-
-```
--rwxr-xr-x 1 student student 112 Mar  3 10:42 ticker.sh
-```
+**A script runs only when it has an `x`.**
 
 <Diagram name="permissions" />
 
-After the type come three groups of `r` (read), `w` (write) and `x`
-(run): for the owner, for the group, and for everyone else. A script
-needs an `x` before you can start it — `chmod +x script.sh` adds one.
-Some actions belong to the whole machine: installing software, editing
-files in `/etc`. For those you put `sudo` in front, which means "ask as
-the building manager". It will ask for your password. That pause is on
-purpose.
+Run `ls -l` and look at the first column:
+
+```text
+-rwxr-xr-x 1 student student 112 Mar  3 10:42 ticker.sh
+```
+
+Three groups of letters: owner, group, everyone else. `chmod +x script.sh`
+adds the `x`.
+
+<ul class="chips">
+  <li><b>r</b> read</li>
+  <li><b>w</b> write</li>
+  <li><b>x</b> run</li>
+</ul>
+
+<Reveal summary="And what is sudo?">
+Installing software or editing files in `/etc` belongs to the whole
+machine. Put `sudo` in front: "ask as the building manager". It asks for
+your password, and that pause is on purpose.
+</Reveal>
 
 ## The people in the house: processes
 
-Every running program is a **process** with a number, its **PID**. `ps aux`
-lists them all; `htop` shows them live, sorted by how busy they are (`q`
-to leave).
+**Every running program has a PID. Background jobs leave when you do.**
 
-- `kill <pid>` asks a process to stop. Most programs tidy up and leave.
-- `kill -9 <pid>` forces it. The program gets no chance to clean up, so it
-  is the last resort, not the first.
-- A command with `&` at the end runs in the background and gives you the
-  prompt back.
+`ps aux` lists every **process**; `htop` shows them live (`q` to leave).
 
-Here is the catch: background jobs belong to your session. Close the SSH
-window and they stop too. For anything long — a training run, a big
-download — use **tmux**: a room that stays lit when you leave. You walk
-out, the job keeps working, and you come back later to look.
+- `kill <pid>` asks a process to stop.
+- `kill -9 <pid>` forces it, with no chance to clean up. The last resort.
+- `&` at the end runs a command in the background.
+
+Close the SSH window and background jobs stop too. For anything long, use
+**tmux**: a room that stays lit when you leave.
 
 ## Is the house healthy?
 
-Four commands answer the questions people ask about a server:
+**Four commands answer what people ask about a server.**
 
 ```bash
 df -h          # how full is each disk?
@@ -328,8 +496,7 @@ free -h        # how much memory is used, how much is available?
 nvidia-smi     # the GPU and who is using it (only if there is one)
 ```
 
-Most programs that run all the time are **services**, started and watched
-by systemd. Two commands tell you their story:
+Programs that run all the time are **services**, watched by systemd:
 
 ```bash
 systemctl status nginx       # is it running? since when?
@@ -338,32 +505,28 @@ journalctl -u nginx -f       # its diary, live
 
 ## The environment and "command not found"
 
-Every shell carries a set of named values, **environment variables**.
-`export NAME=value` sets one, `echo $NAME` reads it, `env` lists them all.
+**`command not found` means no folder on `$PATH` had it.**
 
-One of them is very important: `$PATH`. It is the list of folders where
-the shell looks for programs. When you type `python3`, the shell walks
-through those folders in order and runs the first match. `command not
-found` means no folder on the list had it. `which python3` shows where the
-shell found it — or that it found nothing.
+`$PATH` is the list of folders where the shell looks for programs, in
+order. `which python3` shows where it found one — or that it found nothing.
+
+<Reveal summary="What else is in the environment?">
+`$PATH` is one of the shell's **environment variables**. `export
+NAME=value` sets one, `echo $NAME` reads it, `env` lists them all.
+</Reveal>
 
 ## Other machines
 
-`ssh user@host` opens a terminal on another machine. Passwords work, but
-engineers use **keys**: a pair of files made on your laptop. The public key
-is a lock you can hand out to every server. The private key is the only
-key that opens it, and it never leaves your laptop.
+**The public key is a lock you hand out. The private key stays home.**
+
+`ssh user@host` opens a terminal on another machine. Engineers log in
+with **keys**: a pair of files made on your laptop.
 
 A few lines in `~/.ssh/config` turn `ssh student@203.0.113.10` into `ssh
-quest`. And `scp file quest:~/` copies a file across.
+quest`. `scp file quest:~/` copies a file across.
 
 ## What to remember
-
-When you walk into a dark server:
 
 1. **Where am I, and what is here?** → `pwd`, `ls -la`.
 2. **Who is home, and are they well?** → `ps aux`, `systemctl status`, `df -h`, `free -h`.
 3. **What does the diary say?** → `tail -f`, `journalctl -u`.
-
-The house only looked scary because the lights were off. The missions
-below switch them on.

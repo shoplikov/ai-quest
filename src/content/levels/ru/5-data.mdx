@@ -12,12 +12,10 @@ skill:
   growing: "Пишу SQL и миграции, храню эмбеддинги."
   middle: "Проектирую таблицы под задачу, слежу за миграциями и бэкапами и понимаю, почему запрос медленный."
 itsNormal: >
-  SQL читается как английский, а потом отказывается вести себя как
-  английский. Первые десять JOIN у всех получаются неправильными, и каждый
-  хоть раз запускал UPDATE, который поменял больше строк, чем хотелось.
-  База данных строгая, чтобы твои данные были в безопасности. Строгая — не
-  значит недобрая. SQL придумали в семидесятых, чтобы с базами могли
-  разговаривать не программисты. Получилось примерно так, как ты думаешь.
+  Первые десять JOIN у всех получаются неправильными. База данных строгая,
+  чтобы твои данные были в безопасности; строгая — не значит недобрая. SQL
+  придумали в семидесятых, чтобы с базами могли разговаривать не
+  программисты, и получилось примерно так, как ты думаешь.
 analogy:
   emoji: "🏛️"
   title: "Три вида памяти"
@@ -32,21 +30,61 @@ missions:
     title: "Открой библиотеку"
     why: "Ты разговариваешь с Postgres напрямую и создаёшь первую таблицу руками."
     steps:
-      - "В `compose.yaml` поставь сервису `db` образ `pgvector/pgvector:pg17` (Postgres 17 со встроенным pgvector) и открой дверь только для своего ноутбука: `ports: [\"127.0.0.1:5432:5432\"]`. Если порт 5432 на ноутбуке занят, используй `127.0.0.1:5433:5432` и 5433 везде ниже. Выполни `docker compose up -d`."
-      - "Открой библиотеку: `docker compose exec db psql -U postgres`. Осмотрись: `\\l` (базы данных) и `\\dt` (таблицы — пока ни одной)."
-      - "Создай таблицу: `CREATE TABLE documents (id serial PRIMARY KEY, title text NOT NULL, source text);`"
-      - "Поставь на полку три книги: `INSERT INTO documents (title, source) VALUES ('Opening hours', 'handbook.md'), ('Refunds', 'handbook.md'), ('Coffee recipes', 'recipes.md');`"
-      - "Попроси их обратно: `SELECT * FROM documents ORDER BY title;` Потом опиши таблицу: `\\d documents`."
+      - do: |
+          В `compose.yaml` поставь сервису `db` новый образ и открой дверь только для своего ноутбука:
+          ```yaml
+          image: pgvector/pgvector:pg17
+          ports: ["127.0.0.1:5432:5432"]
+          ```
+          Этот образ — Postgres 17 со встроенным pgvector.
+        fail: "Порт 5432 на ноутбуке занят? Используй `127.0.0.1:5433:5432` и 5433 везде ниже."
+      - |
+        Запусти:
+        ```bash
+        docker compose up -d
+        ```
+      - |
+        Открой библиотеку:
+        ```bash
+        docker compose exec db psql -U postgres
+        ```
+      - |
+        Осмотрись: базы данных, потом таблицы (пока ни одной).
+        ```text
+        \l
+        \dt
+        ```
+      - |
+        Создай таблицу:
+        ```sql
+        CREATE TABLE documents (id serial PRIMARY KEY, title text NOT NULL, source text);
+        ```
+      - |
+        Поставь на полку три книги:
+        ```sql
+        INSERT INTO documents (title, source) VALUES ('Opening hours', 'handbook.md'), ('Refunds', 'handbook.md'), ('Coffee recipes', 'recipes.md');
+        ```
+      - |
+        Попроси их обратно, потом опиши таблицу:
+        ```sql
+        SELECT * FROM documents ORDER BY title;
+        \d documents
+        ```
       - "Снова выполни `\\dt` и выйди через `\\q`."
     check: "`\\dt` показывает `documents`, а `SELECT` — три твои строки."
   - id: m2
     title: "Схема как код"
     why: "Ты перестаёшь менять таблицы руками: отныне схему строят миграции."
     steps:
-      - "Убери таблицу, сделанную руками: `docker compose exec db psql -U postgres -c \"DROP TABLE documents;\"`. Отныне схему меняют только миграции."
       - |
-        В Миссии 3 боксу понадобится пакет, который не нужен твоему ноутбуку, поэтому `pip freeze` запишет неправильный список. С этого момента пиши `requirements.txt` руками — по одному пакету, который ты импортируешь, на строку:
+        Убери таблицу, сделанную руками:
+        ```bash
+        docker compose exec db psql -U postgres -c "DROP TABLE documents;"
         ```
+        Отныне схему меняют только миграции.
+      - |
+        С этого момента пиши `requirements.txt` руками — по одному пакету, который ты импортируешь, на строку:
+        ```text
         fastapi[standard]
         pydantic-settings
         psycopg[binary]
@@ -54,10 +92,24 @@ missions:
         alembic
         pgvector
         ```
-        Новые пакеты поставь и на ноутбук: `pip install sqlalchemy alembic pgvector`.
-      - "SQLAlchemy должен знать драйвер. В `.env` поменяй `DATABASE_URL` на `postgresql+psycopg://postgres:change-me@db:5432/postgres` (с твоим паролем), а значение по умолчанию в `app/config.py` — на `postgresql+psycopg://postgres:postgres@localhost:5432/postgres`."
+        В Миссии 3 боксу понадобится пакет, который не нужен твоему ноутбуку, поэтому `pip freeze` запишет неправильный список.
       - |
-        Один движок с пулом соединений на всё приложение — `app/db.py`:
+        Новые пакеты поставь и на ноутбук:
+        ```bash
+        pip install sqlalchemy alembic pgvector
+        ```
+      - |
+        SQLAlchemy должен знать драйвер. В `.env` поменяй `DATABASE_URL` на такой, с твоим паролем:
+        ```text
+        postgresql+psycopg://postgres:change-me@db:5432/postgres
+        ```
+      - |
+        В `app/config.py` поменяй значение по умолчанию у той же настройки на:
+        ```text
+        postgresql+psycopg://postgres:postgres@localhost:5432/postgres
+        ```
+      - |
+        Напиши `app/db.py`: один движок с пулом соединений на всё приложение.
         ```python
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
@@ -70,7 +122,7 @@ missions:
         SessionLocal = sessionmaker(bind=engine)
         ```
       - |
-        Опиши таблицы в `app/models.py`. Индекс в конце потом сделает векторный поиск быстрым:
+        Опиши таблицы в `app/models.py`:
         ```python
         from datetime import datetime
 
@@ -109,8 +161,9 @@ missions:
                 ),
             )
         ```
+        Индекс в конце потом сделает векторный поиск быстрым.
       - |
-        Теперь `/ready` спрашивает движок, а не открывает своё соединение. Замени его в `app/main.py` (и убери `import psycopg`):
+        В `app/main.py` замени `/ready` и убери `import psycopg`:
         ```python
         from sqlalchemy import text
         from sqlalchemy.exc import OperationalError
@@ -128,20 +181,85 @@ missions:
                 raise HTTPException(status_code=503, detail="database not reachable")
             return {"status": "ready"}
         ```
-      - "Запусти Alembic: `alembic init migrations`. В `migrations/env.py` добавь `from app.config import settings` и `from app.models import Base` под остальными импортами, добавь `config.set_main_option(\"sqlalchemy.url\", settings.database_url)` сразу после `config = context.config` и замени `target_metadata = None` на `target_metadata = Base.metadata`."
-      - "Alembic работает на ноутбуке, где база — не `db`, а открытая тобой дверь: `export DATABASE_URL=postgresql+psycopg://postgres:change-me@localhost:5432/postgres`. Переменная окружения важнее `.env` — и действует только в этом терминале."
-      - "Пусть Alembic сравнит модели с пустой базой: `alembic revision --autogenerate -m \"create documents and chunks\"`. Открой новый файл в `migrations/versions/` и поправь две вещи, о которых он знать не может: добавь `import pgvector.sqlalchemy` под `import sqlalchemy as sa` и сделай первой строкой `upgrade()` вызов `op.execute(\"CREATE EXTENSION IF NOT EXISTS vector\")`."
-      - "Примени: `alembic upgrade head`, потом `alembic current`. В `psql` команда `\\dt` покажет `documents`, `chunks` и `alembic_version`, а `\\d chunks` — `vector(384)` и индекс."
-      - "Докажи, что всё строится с нуля: `docker compose down -v`, потом `docker compose up -d --build`, дождись healthy и снова `alembic upgrade head`."
+        Теперь `/ready` спрашивает движок, а не открывает своё соединение.
+      - |
+        Запусти Alembic:
+        ```bash
+        alembic init migrations
+        ```
+      - |
+        Покажи Alembic свои настройки и модели. Три правки в `migrations/env.py`:
+        ```python
+        from app.config import settings   # под остальными импортами
+        from app.models import Base       # под остальными импортами
+
+        config.set_main_option("sqlalchemy.url", settings.database_url)   # сразу после config = context.config
+
+        target_metadata = Base.metadata   # вместо target_metadata = None
+        ```
+      - |
+        Alembic работает на ноутбуке, где база — не `db`, а открытая тобой дверь:
+        ```bash
+        export DATABASE_URL=postgresql+psycopg://postgres:change-me@localhost:5432/postgres
+        ```
+        Переменная окружения важнее `.env` — и действует только в этом терминале.
+      - |
+        Пусть Alembic сравнит модели с пустой базой:
+        ```bash
+        alembic revision --autogenerate -m "create documents and chunks"
+        ```
+      - |
+        Открой новый файл в `migrations/versions/` и поправь две вещи, о которых Alembic знать не может:
+        ```python
+        import pgvector.sqlalchemy   # под import sqlalchemy as sa
+
+        op.execute("CREATE EXTENSION IF NOT EXISTS vector")   # первая строка upgrade()
+        ```
+      - |
+        Примени миграцию и спроси, где сейчас база:
+        ```bash
+        alembic upgrade head
+        alembic current
+        ```
+      - |
+        Посмотри на результат в `psql`:
+        ```text
+        \dt
+        \d chunks
+        ```
+        `\dt` покажет `documents`, `chunks` и `alembic_version`, а `\d chunks` — `vector(384)` и индекс.
+      - |
+        Докажи, что всё строится с нуля. Выброси базу и собери заново:
+        ```bash
+        docker compose down -v
+        docker compose up -d --build
+        ```
+        Дождись healthy.
+      - |
+        Снова примени миграции:
+        ```bash
+        alembic upgrade head
+        ```
     check: "На пустой базе `alembic upgrade head` создаёт обе таблицы и индекс, а `curl -s localhost:8000/ready` отвечает 200."
   - id: m3
     title: "Полки по смыслу"
     why: "Ты хранишь предложения как векторы и находишь их по смыслу, а не по словам."
     steps:
-      - "Модели эмбеддингов нужен PyTorch, а он большой. Поставь его версию только для процессора в `Dockerfile` — отдельной строкой сразу после `WORKDIR /app`: меняется она редко, поэтому стоит высоко: `RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu`. Потом добавь `sentence-transformers` в `requirements.txt`."
-      - "Модель скачивается при первом использовании. Положи её на полку, чтобы новый бокс не качал её заново: в сервис `api` добавь `volumes: [\"hf-cache:/root/.cache/huggingface\"]`, а в верхний раздел `volumes:` рядом с `pgdata:` — `hf-cache:`."
       - |
-        Напиши `app/services/embeddings.py`. Эта модель ждёт `passage: ` перед сохраняемыми текстами и `query: ` перед вопросами:
+        Модели эмбеддингов нужен PyTorch, а он большой. В `Dockerfile` добавь его версию только для процессора — отдельной строкой сразу после `WORKDIR /app`:
+        ```dockerfile
+        RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+        ```
+        Меняется она редко, поэтому стоит высоко.
+      - "Добавь `sentence-transformers` в `requirements.txt`."
+      - |
+        Модель скачивается при первом использовании. Положи её на полку в `compose.yaml`, чтобы новый бокс не качал её заново:
+        ```yaml
+        volumes: ["hf-cache:/root/.cache/huggingface"]   # в сервис api
+        hf-cache:                                         # рядом с pgdata: в верхнем разделе volumes:
+        ```
+      - |
+        Напиши `app/services/embeddings.py`:
         ```python
         from functools import lru_cache
 
@@ -164,6 +282,7 @@ missions:
         def embed_query(text: str) -> list[float]:
             return get_model().encode(f"query: {text}", normalize_embeddings=True).tolist()
         ```
+        Эта модель ждёт `passage: ` перед сохраняемыми текстами и `query: ` перед вопросами.
       - |
         Напиши `scripts/load_sentences.py` с двадцатью предложениями из справочника кафе:
         ```python
@@ -213,7 +332,7 @@ missions:
             main()
         ```
       - |
-        Напиши `app/routers/search.py` и подключи его в `app/main.py` так же, как `ask`:
+        Напиши `app/routers/search.py`:
         ```python
         from fastapi import APIRouter, Query
         from sqlalchemy import select
@@ -233,17 +352,54 @@ missions:
                 rows = session.execute(select(Chunk.id, Chunk.content, distance).order_by(distance).limit(k)).all()
             return [{"id": r.id, "content": r.content, "distance": round(r.distance, 3)} for r in rows]
         ```
-      - "Пересобери и загрузи: `docker compose up -d --build` (первая сборка качает PyTorch и занимает несколько минут), потом `docker compose exec api python -m scripts.load_sentences`. Первый запуск ещё и скачает модель — несколько сотен мегабайт. В конце он напишет `Loaded 20 sentences.`"
-      - "Ищи по смыслу: `curl -s \"localhost:8000/search?q=вернуть+деньги\"`. Первым придёт предложение про возврат, хотя слов «вернуть деньги» в нём нет. Попробуй `когда вы открываетесь`, а потом тот же вопрос на английском: модель многоязычная."
+        Подключи его в `app/main.py` так же, как `ask`.
+      - |
+        Пересобери:
+        ```bash
+        docker compose up -d --build
+        ```
+        Первая сборка качает PyTorch и занимает несколько минут.
+      - |
+        Загрузи предложения. Первый запуск ещё и скачает модель — несколько сотен мегабайт.
+        ```bash
+        docker compose exec api python -m scripts.load_sentences
+        ```
+        В конце он напишет `Loaded 20 sentences.`
+      - |
+        Ищи по смыслу:
+        ```bash
+        curl -s "localhost:8000/search?q=вернуть+деньги"
+        ```
+        Первым придёт предложение про возврат, хотя слов «вернуть деньги» в нём нет.
+      - "Попробуй `когда вы открываетесь`, а потом тот же вопрос на английском: модель многоязычная."
     check: "Поиск «вернуть деньги» первым возвращает предложение про возврат, хотя слова в нём другие."
   - id: m4
     title: "Стикеры"
     why: "Ты ставишь кэш перед медленной работой и видишь его в логах."
     steps:
-      - "Добавь Redis в `compose.yaml` третьим сервисом: `redis:` с `image: redis:7-alpine`."
-      - "Добавь `redis` в `requirements.txt` (и выполни `pip install redis` на ноутбуке, чтобы тесты по-прежнему могли импортировать приложение), `REDIS_URL=redis://redis:6379/0` — в `.env`, а `redis_url: str = \"redis://localhost:6379/0\"` — в `Settings`."
       - |
-        Один клиент на всё приложение — `app/cache.py`:
+        Добавь Redis в `compose.yaml` третьим сервисом:
+        ```yaml
+        redis:
+          image: redis:7-alpine
+        ```
+      - |
+        Добавь `redis` в `requirements.txt` и поставь его на ноутбук, чтобы тесты по-прежнему могли импортировать приложение:
+        ```bash
+        pip install redis
+        ```
+      - |
+        Добавь адрес в `.env`:
+        ```text
+        REDIS_URL=redis://redis:6379/0
+        ```
+      - |
+        Добавь ту же настройку в `Settings`:
+        ```python
+        redis_url: str = "redis://localhost:6379/0"
+        ```
+      - |
+        Напиши `app/cache.py`: один клиент на всё приложение.
         ```python
         import redis
 
@@ -252,7 +408,17 @@ missions:
         cache = redis.Redis.from_url(settings.redis_url)
         ```
       - |
-        Сначала посмотри на стикер, потом делай работу. Поменяй `search` в `app/routers/search.py` (наверху — `import json`, `import logging` и `from app.cache import cache`, а под роутером — `log = logging.getLogger("quest-api")`):
+        Подготовь `app/routers/search.py` к кэшу:
+        ```python
+        import json      # наверху
+        import logging   # наверху
+
+        from app.cache import cache   # наверху
+
+        log = logging.getLogger("quest-api")   # под роутером
+        ```
+      - |
+        В том же файле поменяй `search`. Сначала он смотрит на стикер, потом делает работу:
         ```python
         @router.get("/search")
         def search(q: str = Query(min_length=2, max_length=200), k: int = Query(default=5, ge=1, le=20)):
@@ -272,42 +438,111 @@ missions:
             cache.set(key, json.dumps(results), ex=60)
             return results
         ```
-      - "Пересобери: `docker compose up -d --build`. Задай один и тот же вопрос дважды и засеки время: `time curl -s \"localhost:8000/search?q=вернуть+деньги\" > /dev/null`. Потом `docker compose logs api | grep cache`: сначала `cache miss`, потом `cache hit`."
-      - "Прочитай сам стикер: `docker compose exec redis redis-cli TTL \"search:5:вернуть деньги\"` показывает, сколько секунд ему осталось. Через 60 секунд он отвалится, и следующий вызов снова будет промахом."
+      - |
+        Пересобери:
+        ```bash
+        docker compose up -d --build
+        ```
+      - |
+        Задай один и тот же вопрос дважды и засеки время:
+        ```bash
+        time curl -s "localhost:8000/search?q=вернуть+деньги" > /dev/null
+        ```
+      - |
+        Найди кэш в логах:
+        ```bash
+        docker compose logs api | grep cache
+        ```
+        Сначала `cache miss`, потом `cache hit`.
+      - |
+        Прочитай сам стикер. Команда показывает, сколько секунд ему осталось.
+        ```bash
+        docker compose exec redis redis-cli TTL "search:5:вернуть деньги"
+        ```
+        Через 60 секунд он отвалится, и следующий вызов снова будет промахом.
     check: "Второй одинаковый вызов пишет в лог `cache hit` и работает быстрее первого."
   - id: m5
     title: "Учебная тревога"
     why: "Ты один раз спокойно восстанавливаешь бэкап — до того дня, когда это понадобится."
     steps:
-      - "Посчитай, что у тебя есть: `docker compose exec db psql -U postgres -c \"SELECT count(*) FROM chunks;\"`. Запиши число."
-      - "Сделай бэкап: `docker compose exec -T db pg_dump -U postgres -Fc postgres > backup.dump`. `-T` убирает терминал с дороги, и двоичный файл доходит нетронутым. Добавь `*.dump` в `.gitignore`: бэкапы — это данные, а не код."
-      - "Авария — нарочно и только на этом учебном проекте: `docker compose down -v`, потом `docker compose up -d db`. Подожди, пока `docker compose ps` не скажет healthy. База пустая."
-      - "Восстанови: `docker compose exec -T db pg_restore -U postgres -d postgres < backup.dump`"
-      - "Посчитай снова — число то же. Запусти всё через `docker compose up -d` и ещё раз поищи."
+      - |
+        Посчитай, что у тебя есть, и запиши число:
+        ```bash
+        docker compose exec db psql -U postgres -c "SELECT count(*) FROM chunks;"
+        ```
+      - |
+        Сделай бэкап:
+        ```bash
+        docker compose exec -T db pg_dump -U postgres -Fc postgres > backup.dump
+        ```
+        `-T` убирает терминал с дороги, и двоичный файл доходит нетронутым.
+      - "Добавь `*.dump` в `.gitignore`: бэкапы — это данные, а не код."
+      - |
+        Авария — нарочно и только на этом учебном проекте:
+        ```bash
+        docker compose down -v
+        docker compose up -d db
+        ```
+        Подожди, пока `docker compose ps` не скажет healthy. База пустая.
+      - |
+        Восстанови:
+        ```bash
+        docker compose exec -T db pg_restore -U postgres -d postgres < backup.dump
+        ```
+      - "Посчитай снова — число то же."
+      - |
+        Запусти всё и ещё раз поищи:
+        ```bash
+        docker compose up -d
+        ```
       - "Напиши `BACKUP.md`: точные команды для бэкапа и восстановления, куда кладётся файл и сколько заняла тревога."
     check: "После восстановления число строк то же, поиск работает, а в `BACKUP.md` записаны шаги."
 breaks:
   - id: b1
     title: "Не тот ключ от библиотеки"
-    do: "В `.env` поменяй `POSTGRES_PASSWORD` и пароль внутри `DATABASE_URL` на `new-secret`. Выполни `docker compose up -d`, потом `curl -s localhost:8000/ready` и `docker compose logs api | tail -3`."
+    do: |
+      В `.env` поменяй `POSTGRES_PASSWORD` и пароль внутри `DATABASE_URL` на `new-secret`. Потом:
+      ```bash
+      docker compose up -d
+      curl -s localhost:8000/ready
+      docker compose logs api | tail -3
+      ```
     see: "FATAL:  password authentication failed for user \"postgres\""
     why: "`POSTGRES_PASSWORD` используется один раз: когда база создаётся в пустом томе. В твоём томе уже лежит база со старым паролем, и если поменять переменную потом, он не изменится."
     fix: "Верни старый пароль и выполни `docker compose up -d`. Чтобы действительно сменить пароль, сначала поменяй его внутри базы (`ALTER USER postgres PASSWORD '…';` в `psql`), а потом в `.env`."
   - id: b2
     title: "Не та форма"
-    do: "В `psql` сохрани вектор из трёх чисел: `INSERT INTO chunks (document_id, content, embedding) VALUES (1, 'tiny', '[1,2,3]');`"
+    do: |
+      В `psql` сохрани вектор из трёх чисел:
+      ```sql
+      INSERT INTO chunks (document_id, content, embedding) VALUES (1, 'tiny', '[1,2,3]');
+      ```
     see: "ERROR:  expected 384 dimensions, not 3"
     why: "Колонка фиксирует размер: `vector(384)`, потому что твоя модель выдаёт 384 числа. Другая модель выдаёт векторы другого размера — на другой карте. Сменить модель — значит заново посчитать эмбеддинги для всего."
     fix: "Храни векторы от той же модели, что и колонка. Ничего не сохранилось, так что и отменять нечего."
   - id: b3
     title: "Перечитать все книги"
-    do: "В `psql`: добавь 200 000 строк командой `INSERT INTO documents (title, source) SELECT 'Document ' || n, 'source-' || n FROM generate_series(1, 200000) AS n;`, обнови статистику через `ANALYZE documents;` и спроси `EXPLAIN ANALYZE SELECT * FROM documents WHERE source = 'source-123456';`"
+    do: |
+      В `psql` добавь 200 000 строк, обнови статистику и спроси, как Postgres ищет одну строку:
+      ```sql
+      INSERT INTO documents (title, source) SELECT 'Document ' || n, 'source-' || n FROM generate_series(1, 200000) AS n;
+      ANALYZE documents;
+      EXPLAIN ANALYZE SELECT * FROM documents WHERE source = 'source-123456';
+      ```
     see: "Seq Scan on documents"
     why: "Индекса по `source` нет, поэтому Postgres читает все строки, чтобы найти одну, — каждую книгу на каждой полке. (На мощной машине он напишет `Parallel Seq Scan`: читателей несколько, но книги всё равно все.) Посмотри на `Execution Time`."
     fix: "Заведи каталог: `CREATE INDEX ON documents (source);` и снова тот же `EXPLAIN ANALYZE`. Теперь там `Index Scan using documents_source_idx`, а время падает в сотню раз и больше. Прибери за собой: `DELETE FROM documents WHERE source LIKE 'source-%';` и `DROP INDEX documents_source_idx;`."
   - id: b4
     title: "Забытая миграция"
-    do: "Добавь в `Document` в `app/models.py` колонку: `language: Mapped[str] = mapped_column(String(10), server_default=\"en\")`. В терминале, где экспортирован `DATABASE_URL`, прочитай документы: `python -c \"from sqlalchemy import select; from app.db import SessionLocal; from app.models import Document; print(SessionLocal().scalars(select(Document)).all())\"`"
+    do: |
+      Добавь в `Document` в `app/models.py` колонку:
+      ```python
+      language: Mapped[str] = mapped_column(String(10), server_default="en")
+      ```
+      В терминале, где экспортирован `DATABASE_URL`, прочитай документы:
+      ```bash
+      python -c "from sqlalchemy import select; from app.db import SessionLocal; from app.models import Document; print(SessionLocal().scalars(select(Document)).all())"
+      ```
     see: "sqlalchemy.exc.ProgrammingError: (psycopg.errors.UndefinedColumn) column documents.language does not exist"
     why: "Модель говорит, что колонка есть, а база о ней никогда не слышала. Код и схема разошлись."
     fix: "Запиши изменение миграцией: `alembic revision --autogenerate -m \"add language to documents\"`, потом `alembic upgrade head`. Запусти ту же команду снова — работает."
@@ -424,27 +659,35 @@ kindNote: >
 
 import Diagram from '../../../components/Diagram.astro';
 import Analogy from '../../../components/Analogy.astro';
+import Reveal from '../../../components/ui/Reveal.astro';
 
-Пока что `quest-api` всё забывает в тот момент, когда отвечает. Настоящий
-сервис должен помнить: какие документы он знает, что они значат и что он
-ответил минуту назад. Этот уровень даёт ему три вида памяти — и учит
-хранить их в безопасности.
+Пока что `quest-api` всё забывает в тот момент, когда отвечает. Этот
+уровень даёт ему три вида памяти — и учит хранить их в безопасности.
 
 <Analogy />
 
 ## Таблицы, строки и ключи
 
-Postgres хранит данные в **таблицах**. У таблицы есть колонки с
-фиксированными типами и строки, которые им подчиняются. У каждой строки
-есть **первичный ключ** (primary key), обычно `id`, который никогда не
-меняется. Колонка, где хранится id из другой таблицы, — **внешний ключ**
-(foreign key): так чанк говорит «я принадлежу документу 2».
+**Таблица — полка с правилами. Ключи связывают полки между собой.**
 
-С Postgres разговаривают в `psql`. Четыре команды для начала: `\l` — список
-баз данных, `\dt` — список таблиц, `\d documents` — описание одной таблицы,
-`\q` — выход.
+У каждой строки есть **первичный ключ** (primary key), обычно `id`,
+который никогда не меняется. **Внешний ключ** (foreign key) хранит id из
+другой таблицы: так чанк говорит «я принадлежу документу 2».
+
+Четыре команды `psql` для начала:
+
+<ul class="chips">
+  <li><b>\l</b> список баз данных</li>
+  <li><b>\dt</b> список таблиц</li>
+  <li><b>\d documents</b> описание одной таблицы</li>
+  <li><b>\q</b> выход</li>
+</ul>
 
 ## SQL, который нужен каждую неделю
+
+**Четыре глагола делают всю работу. `JOIN` ставит две таблицы рядом.**
+
+<Diagram name="join" />
 
 ```sql
 SELECT title, source FROM documents WHERE source = 'handbook.md' ORDER BY title LIMIT 10;
@@ -453,27 +696,19 @@ UPDATE documents SET title = 'Refund rules' WHERE id = 2;
 SELECT source, COUNT(*) FROM documents GROUP BY source;
 ```
 
-Прочитай `UPDATE` дважды, прежде чем нажать Enter. **Без `WHERE` он меняет
-все строки в таблице.** С `DELETE` то же самое.
+**Без `WHERE` команда `UPDATE` меняет все строки в таблице.** `DELETE`
+тоже.
 
-`JOIN` ставит две таблицы рядом и сопоставляет строки по ключу:
+`JOIN` сопоставляет строки по ключу:
 
 ```sql
 SELECT documents.title, chunks.content
 FROM chunks JOIN documents ON documents.id = chunks.document_id;
 ```
 
-<Diagram name="join" />
-
 ## Из Python — безопасно
 
-В сервисе ты работаешь через SQLAlchemy 2 с драйвером psycopg 3. Адрес базы
-приходит из настроек, а не из кода. Движок держит **пул**: несколько
-открытых соединений, которые запросы берут и возвращают, вместо того чтобы
-каждый раз открывать новое.
-
-И одно правило без исключений: **значения передаются параметрами и никогда
-не склеиваются с SQL.**
+**Значения передаются параметрами и никогда не склеиваются с SQL.**
 
 ```python
 # Никогда: ввод становится частью SQL
@@ -482,47 +717,57 @@ session.execute(text(f"SELECT * FROM documents WHERE title = '{title}'"))
 session.execute(text("SELECT * FROM documents WHERE title = :title"), {"title": title})
 ```
 
-В первой строке название вроде `x' OR '1'='1` вернёт все строки. Это и есть
-SQL-инъекция, а параметры делают её невозможной.
+В первой строке название вроде `x' OR '1'='1` вернёт все строки: это
+SQL-инъекция. Параметры делают её невозможной.
+
+<Reveal summary="Что такое пул соединений?">
+Движок SQLAlchemy держит **пул**: несколько открытых соединений, которые
+запросы берут и возвращают, вместо того чтобы каждый раз открывать новое.
+</Reveal>
 
 ## Миграции и бэкапы
 
-Твои таблицы — тоже код. **Миграции** — небольшие пронумерованные шаги,
-которые строят схему и хранятся в git. Alembic пишет их за тебя по моделям
-(`alembic revision --autogenerate -m "…"`) и применяет (`alembic upgrade
-head`). Каждая база — на твоём ноутбуке, у коллеги, на сервере — получает
-одну и ту же схему одним и тем же путём.
+**Твои таблицы — тоже код: их шаг за шагом строят миграции.**
 
 <Diagram name="migrations-timeline" />
 
-Вторая половина безопасности данных — бэкап. `pg_dump -Fc` записывает базу
-в один файл, `pg_restore` возвращает её обратно. **Бэкап, который ни разу
-не восстанавливали, — это надежда, а не бэкап.** В Миссии 5 ты его
-восстановишь.
+**Миграции** — небольшие пронумерованные шаги, которые хранятся в git.
+Alembic пишет их по моделям, поэтому каждая база получает одну и ту же
+схему одним и тем же путём.
+
+`pg_dump -Fc` записывает базу в один файл, `pg_restore` возвращает её
+обратно. **Бэкап, который ни разу не восстанавливали, — это надежда, а не
+бэкап.**
 
 ## Индексы: каталог библиотеки
 
-Спроси Postgres, как он нашёл ответ:
+**Индекс — это каталог. Без него Postgres читает каждую книгу.**
 
 ```sql
 EXPLAIN ANALYZE SELECT * FROM documents WHERE source = 'handbook.md';
 ```
 
-`Seq Scan` значит, что он прочитал все строки — каждую книгу на каждой
-полке. `Index Scan` — что он воспользовался каталогом. Индекс по колонке,
-по которой ты фильтруешь, превращает секунды в миллисекунды. Индексы
-немного замедляют каждую запись, поэтому их ставят там, где ищут, а не
-везде.
+<ul class="chips">
+  <li class="you"><b>Seq Scan</b> прочитал все строки</li>
+  <li class="ok"><b>Index Scan</b> воспользовался каталогом</li>
+</ul>
+
+Индекс по колонке, по которой ты фильтруешь, превращает секунды в
+миллисекунды.
+
+<Reveal summary="Почему не поставить индекс на каждую колонку?">
+Индексы немного замедляют каждую запись, поэтому их ставят там, где ищут,
+а не везде.
+</Reveal>
 
 ## Векторы: полки по смыслу
 
-**Эмбеддинг** — это список чисел, который помещает текст на карту смысла.
-Тексты с похожим смыслом оказываются рядом, даже если у них нет общих
-слов.
+**Эмбеддинг помещает текст на карту смысла.**
 
 <Diagram name="meaning-map" />
 
-pgvector хранит такие списки в колонке и измеряет расстояния:
+**Эмбеддинг** — это список чисел. Похожие смыслы оказываются рядом, даже
+без общих слов. pgvector хранит такие списки и измеряет расстояния:
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
@@ -537,13 +782,15 @@ CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
 ```
 
 `<=>` — косинусное расстояние: чем меньше, тем ближе по смыслу. Число `384`
-задаёт твоя модель, `intfloat/multilingual-e5-small`. В compose используется
-образ `pgvector/pgvector:pg17`: Postgres, в котором pgvector уже есть.
+задаёт твоя модель, `intfloat/multilingual-e5-small`.
 
 ## Redis: стикеры
 
-Некоторая работа медленная, а просят её снова и снова. Redis держит ответ
-какое-то время:
+**Сначала посмотри на стикер. Настоящая работа — только при промахе.**
+
+<Diagram name="cache-aside" />
+
+Redis какое-то время держит ответ на медленную повторяющуюся работу:
 
 ```
 SET search:money-back "[…]" EX 60
@@ -551,11 +798,8 @@ GET search:money-back
 TTL search:money-back
 ```
 
-Этот приём называется **cache-aside**: сначала посмотри на стикер; если
-ответ там, отвечай сразу; если нет — сделай настоящую работу и приклей
-ответ на 60 секунд.
-
-<Diagram name="cache-aside" />
+Это **cache-aside**: при промахе сделай работу и приклей ответ на 60
+секунд.
 
 ## Что запомнить
 

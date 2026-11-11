@@ -72,6 +72,16 @@ you use and adjust a shade if one fails.
 - **Analogy card** — soft panel with a large drawn icon, a title ("Think of it
   like…") and the text.
 - **Reveal** — "Show me why" disclosure used in break cards (`<details>`).
+- **Level tabs** — a level page is three tabs: Learn (it's normal,
+  explain, go deeper), Do (missions, breaks, traps) and Check (quiz,
+  deliverable, self-check, finish). The tab bar sticks under the header
+  and shows done/total for Do and Check. Without JavaScript and in print
+  all three parts show one after the other. The side contents list shows
+  the sections of the open tab; on small screens the tab bar replaces it.
+- **Mission fold** — a mission is a `<details>` card that folds to one
+  line: stamp, title, step count. One is open at a time; the first undone
+  one opens on load and the next opens after a tick. A link to a mission
+  opens its tab and its fold.
 - **Code block** — dark, rounded, copy button top-right, language label.
   Use Astro's built-in Shiki highlighting with a dark theme.
 - **Trap table** — on phones each row becomes a stacked card.

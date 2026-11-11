@@ -53,14 +53,17 @@ skill:                     # used on /skills
   junior: "one sentence"   # shown under the column "Starting"
   growing: "one sentence"
   middle: "one sentence"   # shown under the column "Confident"
-itsNormal: "2–3 sentences"
+itsNormal: "at most 3 short sentences, 45 words"
 analogy: { emoji: "🚪", title: "…", text: "…" }
 missions:                  # 3–6
   - id: m1
     week: "optional sub-header shown above this mission, e.g. Week 1 — …"
     title: "…"
-    why: "one sentence — what this teaches"
-    steps: ["markdown string", "…"]   # may contain `inline code` and fenced blocks
+    why: "one sentence, at most 18 words — what this teaches"
+    steps:                 # one action per step
+      - "markdown string"  # action line, then the command in a fenced block
+      - do: "markdown"     # a step with an "if it fails" fold
+        fail: "markdown"
     check: "How the learner knows they did it"
 breaks:                    # 3–4
   - id: b1
@@ -98,20 +101,29 @@ kindNote: "3–5 sentences, shown when the level is finished"
 The body is the **Explain it** and **Play with it** part. Structure:
 
 1. An opening of 2–4 sentences: the everyday problem this level solves.
-2. 4–7 short sections with `##` headings. Each one: idea → picture or
-   analogy → command → what you should see.
+2. 4–7 short sections with `##` headings. The paragraph right after
+   the heading is one bold takeaway sentence and nothing else. Then the
+   picture, then at most two short paragraphs: command → what you see.
+   Nice-to-know detail goes behind `<Reveal summary="a question">`
+   (at most 3 per level). Short code → meaning lists may be
+   `<ul class="chips">` with `ok`, `you` or `us` on each `<li>`.
 3. Diagram components where a picture helps: `<Diagram name="…" />`.
 4. The analogy card once, near the top: `<Analogy />` (reads frontmatter).
 5. The widget(s), each introduced by one sentence:
    `<PortPlayground client:visible />`.
 6. A closing 2–3 sentence recap: "What to remember".
 
-Length of body: 600–1,000 words. The missions teach the rest.
+Length of body: at most about 600 words of prose. The missions teach the rest.
 
 ### Missions
 
 - Each mission is 20–60 minutes of hands-on work.
 - Steps are things to type and observe, not things to read.
+- One action per step: a short action line (about 20 words at most), the
+  command or file in a fenced block with a language tag, then at most
+  one line about what the learner sees. Commands to type are never inline.
+- Troubleshooting goes into the step's `fail` text, shown as a small
+  "If it fails" fold. Both languages have folds on the same steps.
 - The check is something the learner can see on their own screen.
 - Missions build on each other inside a level and reuse earlier levels'
   repos where possible (the FastAPI app from Level 3 is put in Docker in
