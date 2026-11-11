@@ -11,7 +11,7 @@ export const ru: Dict = {
     label: 'Язык',
     en: 'English',
     ru: 'Русский',
-    switchTo: 'Переключить на русский',
+    switchTo: 'RU — переключить на русский',
   },
   nav: {
     label: 'Основная навигация',
@@ -23,7 +23,7 @@ export const ru: Dict = {
     cheatsheets: 'Шпаргалки',
     menu: 'Меню',
     xpPill: '{xp} XP',
-    xpLabel: 'Твой опыт: {xp} XP',
+    xpLabel: '{xp} XP — твой опыт',
   },
   footer: {
     line: 'Сделано с заботой. Ломать — часть плана.',

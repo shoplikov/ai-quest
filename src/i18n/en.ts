@@ -10,7 +10,7 @@ export const en = {
     label: 'Language',
     en: 'English',
     ru: 'Русский',
-    switchTo: 'Switch to English',
+    switchTo: 'EN — switch to English',
   },
   nav: {
     label: 'Main',
@@ -22,7 +22,7 @@ export const en = {
     cheatsheets: 'Cheat sheets',
     menu: 'Menu',
     xpPill: '{xp} XP',
-    xpLabel: 'Your XP: {xp}',
+    xpLabel: '{xp} XP — your points',
   },
   footer: {
     line: 'Made with care. Breaking things is part of the plan.',

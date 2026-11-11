@@ -705,3 +705,8 @@ html[data-view-mode] .site-header {
 .dg-mono {
   font-family: var(--font-code);
 }
+
+/* Shiki's comment grey is too dim on our code background (3.9:1). */
+.code-block span[style*='#6A737D'] {
+  color: #9aa5b1 !important;
+}

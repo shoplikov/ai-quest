@@ -145,27 +145,27 @@ words from the content guide (`grep -rniE "\b(simply|obviously|just|easy)\b" src
 
 ## Phase 6 — Ship-ready
 
-- [ ] **6.1 Link checker.** `scripts/check-links.mjs`: collect every
+- [x] **6.1 Link checker.** `scripts/check-links.mjs`: collect every
       external URL from the level files, request each, print failures.
       Replace dead links with the closest official page.
       *Check:* `npm run links` reports zero failures.
-- [ ] **6.2 Docker.** `docker build -t ai-quest .` then
+- [x] **6.2 Docker.** `docker build -t ai-quest .` then
       `docker compose up -d`.
       *Check:* `curl -I http://localhost:8080` is 200;
       `curl http://localhost:8080/healthz` prints `ok`;
       `docker inspect -f '{{.State.Health.Status}}' ai-quest` is `healthy`;
       a deep link such as `/level/2` loads directly; an unknown path shows
       the 404 page. Then `docker compose down`.
-- [ ] **6.3 README.** Short: what it is, screenshot, how to run locally,
+- [x] **6.3 README.** Short: what it is, screenshot, how to run locally,
       how to edit a level, link to the setup guide. Use Mermaid for any
       diagram, not ASCII art.
-- [ ] **6.4 Final pass.** Delete `/kitchen-sink`. Run `npm run check`,
+- [x] **6.4 Final pass.** Delete `/kitchen-sink`. Run `npm run check`,
       `npm test`, `npm run build` — all clean. In Chrome, walk the whole
       map in both languages at desktop and 360px, light and dark, with reduced motion on and
       off. Lighthouse desktop: performance ≥ 95, accessibility ≥ 95.
       Search the repo for personal data, real hostnames and internal IPs
       — there must be none.
-- [ ] **6.5 Report to the owner:** what was built, what was checked and
+- [x] **6.5 Report to the owner:** what was built, what was checked and
       how, anything that could not be verified, and that the repo is ready
       for `docs/SETUP-GITHUB-AWS.md`.
 
