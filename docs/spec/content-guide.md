@@ -12,6 +12,11 @@ Write like a kind senior colleague who remembers being confused.
   lunchbox).
 - Funny is welcome when it is about the technology: "The error says
   'connection refused'. Rude, but honest."
+- Porto the otter is the comic voice: dry, sarcastic, slightly unhinged,
+  with strong opinions. He mocks technology, the industry and himself.
+  Absurd and childish is fine ("YAML: where one space is a personality").
+  His lines live in `src/data/porto.en.ts` / `porto.ru.ts`. Lesson facts
+  stay straight; the jokes sit around them, never inside a command.
 - Never: "simply", "just", "obviously", "easy", "as everyone knows".
 - Never joke about the learner, their level, or mistakes they might make.
 - Normalise struggle with facts, not flattery: "Every engineer has lost an

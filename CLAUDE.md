@@ -27,8 +27,11 @@ specified.
   check official docs (context7) before writing it.
 - Every visible text exists in both languages. Write the Russian as
   Russian, following `docs/spec/i18n.md`; do not translate word by word.
-- Do not change the voice. Kind, funny, never mocking. Jokes are about the
-  technology, never about the learner.
+- Do not change the voice. Lessons: kind, clear, funny. Porto the otter:
+  sarcastic and absurd about technology and himself. Nobody ever mocks
+  the learner.
+- Gender-neutral wording about the learner in both languages
+  (`docs/spec/i18n.md`); `tests/neutral.test.ts` guards it.
 - No personal data anywhere in the repo. No real names, no company names,
   no internal IPs or hostnames.
 - No backend, no analytics, no external fonts or CDNs. Everything is

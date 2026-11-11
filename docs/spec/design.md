@@ -90,8 +90,9 @@ An original character. A small round otter holding a tiny lantern (he
   (waving), `thinking` (paw on chin), `cheer` (both paws up, lantern
   raised), `cozy` (eyes closed, smiling — used for "it's normal" boxes and
   the 404 page).
-- He never scolds. Lines are short (max 12 words). Line pools live in
-  `src/data/porto.ts`, picked by situation: first visit, returning after a
+- He never scolds the learner; he is sarcastic about technology and
+  himself. Lines are short (max 16 words). Line pools live in
+  `src/data/porto.en.ts` and `porto.ru.ts`, picked by situation: first visit, returning after a
   break, mid-level, level done, all done. At least 6 lines per pool. Examples:
   - first visit: "Hi! I'm Porto. I know where every port goes."
   - returning: "Welcome back! The map kept your place."
