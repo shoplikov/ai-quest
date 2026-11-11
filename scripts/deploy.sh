@@ -4,7 +4,8 @@
 set -euo pipefail
 
 HOST="${1:?usage: deploy.sh <ssh-host>}"
-TAG="$(git rev-parse --short HEAD)"
+# Image tag: $QUEST_TAG if set, else the git tag on HEAD, else the commit.
+TAG="${QUEST_TAG:-$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)}"
 REMOTE_DIR="ai-quest"
 
 cd "$(dirname "$0")/.."

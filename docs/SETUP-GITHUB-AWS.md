@@ -120,10 +120,12 @@ To update the site later: change something, commit, run the same script.
 To go back to an earlier version: `./scripts/rollback.sh quest` lists the
 versions on the server; `./scripts/rollback.sh quest <tag>` starts one.
 
-## Part 4 — Optional: deploy on every push
+## Part 4 — Optional: deploy by pushing a version tag
 
-The repo ships with a deploy workflow that is switched off. It does what
-`deploy.sh` does, from GitHub's machines.
+The repo ships with `.github/workflows/deploy.yml`. Pushing a tag that
+starts with `v` (for example `v1.0.0`) runs the checks on GitHub's
+machines, then does what `deploy.sh` does and checks that the site answers.
+Pushes to `main` only run CI; nothing goes live until you tag.
 
 Trade-off: GitHub's machines have changing addresses, so SSH (port 22) on
 the server must be open to everyone, not only your IP. Access is still by
@@ -134,12 +136,30 @@ key only. If you prefer the port closed, keep using the script.
    ssh-keygen -t ed25519 -f ~/.ssh/quest-deploy -N "" -C "github-deploy"
    ssh-copy-id -i ~/.ssh/quest-deploy.pub quest
    ```
-2. GitHub repo → **Settings → Secrets and variables → Actions**:
-   - Secrets: `DEPLOY_HOST` = `<server-ip>`, `DEPLOY_USER` = `ubuntu`,
-     `DEPLOY_KEY` = the full contents of `~/.ssh/quest-deploy`
-   - Variables: `DEPLOY_ENABLED` = `true`
-3. Security group → SSH rule → Source **Anywhere-IPv4**.
-4. Push to `main` and watch the **Actions** tab.
+2. Save the server's host keys, so GitHub refuses an impostor server:
+   ```bash
+   ssh-keyscan -t ed25519,rsa,ecdsa <server-ip> 2>/dev/null
+   ```
+3. GitHub repo → **Settings → Environments → New environment** →
+   name `production`. (Optional: add yourself under **Required reviewers**
+   to approve each deploy by hand.)
+4. In that environment, under **Environment secrets**, add:
+   - `DEPLOY_HOST` = `<server-ip>`
+   - `DEPLOY_USER` = `ubuntu`
+   - `DEPLOY_KEY` = the full contents of `~/.ssh/quest-deploy`
+     (the private key, including the `BEGIN` and `END` lines)
+   - `DEPLOY_KNOWN_HOSTS` = the output of step 2
+5. Security group → SSH rule → Source **Anywhere-IPv4**.
+6. Release:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+   Watch the **Deploy** run in the **Actions** tab.
+
+Next release: commit, push `main`, then tag `v1.0.1` (or `v1.1.0`) and push
+the tag. The image on the server is named after the tag, so
+`./scripts/rollback.sh quest v1.0.0` goes back to that release.
 
 ## Part 5 — Optional: your own name and HTTPS
 

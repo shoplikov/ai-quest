@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: ['**']   # tags run deploy.yml instead
   pull_request:
 
 jobs:
@@ -18,28 +19,3 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  # Switched off until the repo variable DEPLOY_ENABLED is "true".
-  # See docs/SETUP-GITHUB-AWS.md, Part 4.
-  deploy:
-    needs: build
-    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up SSH
-        env:
-          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
-          cat >> ~/.ssh/config <<CONF
-          Host quest
-              HostName $DEPLOY_HOST
-              User $DEPLOY_USER
-              IdentityFile ~/.ssh/deploy_key
-          CONF
-      - run: ./scripts/deploy.sh quest

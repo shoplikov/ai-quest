@@ -126,7 +126,7 @@ The repo is ready for one small server with Docker. [docs/SETUP-GITHUB-AWS.md](d
 ./scripts/rollback.sh <server> <tag>
 ```
 
-`deploy.sh` builds the image locally, tags it with the git commit, sends it over SSH and starts it. CI (`.github/workflows/ci.yml`) runs the checks on every push; its deploy job stays off until you switch it on.
+`deploy.sh` builds the image locally, tags it with the git tag on `HEAD` (or the commit if there is none), sends it over SSH and starts it. CI (`.github/workflows/ci.yml`) runs the checks on every branch push. Pushing a `v*` tag runs `.github/workflows/deploy.yml`, which checks, deploys and smoke-tests the site; it needs the `production` environment secrets from Part 4 of the setup guide.
 
 ## Troubleshooting
 
