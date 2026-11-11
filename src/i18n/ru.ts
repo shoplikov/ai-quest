@@ -123,6 +123,10 @@ export const ru: Dict = {
     missionNumber: 'Миссия {n}',
     missionWhy: 'Чему это учит',
     steps: 'Шаги',
+    stepFail: 'Если не вышло',
+    tabs: { label: 'Части уровня', learn: 'Теория', do: 'Практика', check: 'Проверка' },
+    tabNext: 'Дальше: {tab}',
+    tabDone: 'готово',
     check: 'Как проверить',
     missionTick: 'Миссия выполнена',
     breaksIntro: 'Безопасно, локально и обратимо. Сначала угадай, почему ломается, потом открывай ответ.',
@@ -816,5 +820,6 @@ export const ru: Dict = {
     day: { one: 'день', few: 'дня', many: 'дней', other: 'дня' },
     level: { one: 'уровень', few: 'уровня', many: 'уровней', other: 'уровня' },
     point: { one: 'балл', few: 'балла', many: 'баллов', other: 'балла' },
+    step: { one: 'шаг', few: 'шага', many: 'шагов', other: 'шага' },
   },
 };

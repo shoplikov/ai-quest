@@ -51,7 +51,13 @@ const playAnchor = widgetNames.length ? `widget-${kebab(widgetNames[0]!)}` : nul
 const missions = await Promise.all(
   d.missions.map(async (m) => ({
     ...m,
-    stepsHtml: await Promise.all(m.steps.map((s) => renderMarkdown(lang, s))),
+    stepsHtml: await Promise.all(
+      m.steps.map(async (s) =>
+        typeof s === 'string'
+          ? { html: await renderMarkdown(lang, s), fail: '' }
+          : { html: await renderMarkdown(lang, s.do), fail: await renderMarkdown(lang, s.fail) },
+      ),
+    ),
   })),
 );
 const breaks = await Promise.all(
@@ -69,19 +75,24 @@ const deliverables = [
   { key: 'demo', label: L.deliverableDemo, text: d.deliverable.demo },
 ] as const;
 
+// The level is three tabs. Each contents link belongs to one of them.
+const tabs = [
+  { id: 'learn', label: L.tabs.learn },
+  { id: 'do', label: L.tabs.do },
+  { id: 'check', label: L.tabs.check },
+] as const;
 const toc = [
-  { id: 'top', label: S.top },
-  { id: 'normal', label: S.normal },
-  { id: 'explain', label: S.explain },
-  ...(playAnchor ? [{ id: playAnchor, label: S.play }] : []),
-  { id: 'missions', label: S.missions },
-  { id: 'breaks', label: S.breaks },
-  { id: 'traps', label: S.traps },
-  { id: 'quiz', label: S.quiz },
-  { id: 'deliverable', label: S.deliverable },
-  { id: 'middle', label: S.middle },
-  { id: 'deeper', label: S.deeper },
-  { id: 'finish', label: S.finish },
+  { id: 'normal', label: S.normal, tab: 'learn' },
+  { id: 'explain', label: S.explain, tab: 'learn' },
+  ...(playAnchor ? [{ id: playAnchor, label: S.play, tab: 'learn' }] : []),
+  { id: 'deeper', label: S.deeper, tab: 'learn' },
+  { id: 'missions', label: S.missions, tab: 'do' },
+  { id: 'breaks', label: S.breaks, tab: 'do' },
+  { id: 'traps', label: S.traps, tab: 'do' },
+  { id: 'quiz', label: S.quiz, tab: 'check' },
+  { id: 'deliverable', label: S.deliverable, tab: 'check' },
+  { id: 'middle', label: S.middle, tab: 'check' },
+  { id: 'finish', label: S.finish, tab: 'check' },
 ];
 
 const tickTotal = d.missions.length + d.breaks.length + 3 + d.selfCheck.length;
@@ -116,7 +127,7 @@ const clientData = {
       <p class="toc-title">{L.toc}</p>
       <ul>
         {toc.map((item) => (
-          <li><a href={`#${item.id}`} data-toc-link={item.id}>{item.label}</a></li>
+          <li data-group={item.tab}><a href={`#${item.id}`} data-toc-link={item.id}>{item.label}</a></li>
         ))}
       </ul>
     </nav>
@@ -144,6 +155,34 @@ const clientData = {
         <ProgressRing label={L.progress} size={92} id="level-ring" />
       </header>
 
+      <div class="level-tabs" role="tablist" aria-label={L.tabs.label}>
+        {tabs.map((t, i) => (
+          <button type="button" role="tab" class="level-tab" id={`tab-${t.id}`} aria-controls={`panel-${t.id}`} aria-selected="false" data-tab-btn={t.id}>
+            <span class="tab-num" aria-hidden="true">{i + 1}</span>
+            <span class="tab-name">{t.label}</span>
+            {t.id !== 'learn' && <span class="tab-count" data-tab-count={t.id}></span>}
+          </button>
+        ))}
+      </div>
+      <script is:inline define:vars={{ levelId: d.id }}>
+        // Pick the tab before the panels are drawn, so nothing jumps.
+        (() => {
+          const hash = location.hash.slice(1);
+          let tab = '';
+          if (/^(missions|breaks|traps|mission-|break-|tick-[mb]\d)/.test(hash)) tab = 'do';
+          else if (/^(quiz|deliverable|middle|finish|tick-)/.test(hash)) tab = 'check';
+          else if (hash && hash !== 'top') tab = 'learn';
+          if (!tab) {
+            try {
+              tab = localStorage.getItem('aiquest:tab:' + levelId) || '';
+            } catch {}
+          }
+          if (!['learn', 'do', 'check'].includes(tab)) tab = 'learn';
+          document.querySelector('[data-level-page]').dataset.tab = tab;
+        })();
+      </script>
+
+      <div class="level-panel" id="panel-learn" role="tabpanel" aria-labelledby="tab-learn" data-panel="learn">
       <section id="normal" data-anchor aria-labelledby="h-normal">
         <Card variant="soft" class="its-normal">
           <Porto mood="cozy" size={86} />
@@ -160,22 +199,53 @@ const clientData = {
         <Content components={{ pre: CodeBlock }} ui={dict.widgets} />
       </section>
 
+      <section id="deeper" data-anchor aria-labelledby="h-deeper">
+        <h2 id="h-deeper" class="section-title">{S.deeper}</h2>
+        <ul class="deeper-list">
+          {d.links.map((l) => (
+            <li>
+              <a href={l.url} rel="noopener noreferrer">{l.title}</a>
+              <span set:html={` — ${renderInline(l.why)}`} />
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <p class="panel-next"><button type="button" class="btn btn-primary" data-tab-go="do">{fill(L.tabNext, { tab: L.tabs.do })} →</button></p>
+      </div>
+
+      <div class="level-panel" id="panel-do" role="tabpanel" aria-labelledby="tab-do" data-panel="do">
       <section id="missions" data-anchor aria-labelledby="h-missions">
         <h2 id="h-missions" class="section-title">{S.missions}</h2>
         {missions.map((m, i) => (
           <Fragment>
           {m.week && <h3 class="mission-week">{m.week}</h3>}
-          <Card as="article" class="mission" id={`mission-${m.id}`} aria-labelledby={`mt-${m.id}`}>
-            <p class="mission-kicker">{fill(L.missionNumber, { n: i + 1 })}</p>
-            <h3 id={`mt-${m.id}`} class="mission-title">{m.title}</h3>
-            <p class="mission-why"><strong>{L.missionWhy}:</strong> <Fragment set:html={renderInline(m.why)} /></p>
-            <h4 class="visually-hidden">{L.steps}</h4>
-            <ol class="steps">
-              {m.stepsHtml.map((html) => <li set:html={html} />)}
-            </ol>
-            <p class="mission-check"><strong>{L.check}:</strong> <Fragment set:html={renderInline(m.check)} /></p>
-            <TickRow id={`tick-${m.id}`} kind="mission" level={d.id} item={m.id} class="tick-main">{L.missionTick}</TickRow>
-          </Card>
+          <details class="card mission" id={`mission-${m.id}`} name={`missions-${d.id}`} open={i === 0} data-mission={m.id}>
+            <summary>
+              <span class="mission-kicker">{fill(L.missionNumber, { n: i + 1 })}</span>
+              <h3 class="mission-title">{m.title}</h3>
+              <span class="mission-meta">{plural(lang, m.steps.length, dict.plural.step)}</span>
+            </summary>
+            <div class="mission-body">
+              <p class="mission-why"><Fragment set:html={renderInline(m.why)} /></p>
+              <h4 class="visually-hidden">{L.steps}</h4>
+              <ol class="steps">
+                {m.stepsHtml.map((step) => (
+                  <li>
+                    <Fragment set:html={step.html} />
+                    {step.fail && (
+                      <details class="step-fail">
+                        <summary>{L.stepFail}</summary>
+                        <div class="step-fail-body" set:html={step.fail} />
+                      </details>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              <p class="mission-check"><strong>{L.check}:</strong> <Fragment set:html={renderInline(m.check)} /></p>
+              <TickRow id={`tick-${m.id}`} kind="mission" level={d.id} item={m.id} class="tick-main">{L.missionTick}</TickRow>
+            </div>
+          </details>
           </Fragment>
         ))}
       </section>
@@ -223,6 +293,10 @@ const clientData = {
         </table>
       </section>
 
+      <p class="panel-next"><button type="button" class="btn btn-primary" data-tab-go="check">{fill(L.tabNext, { tab: L.tabs.check })} →</button></p>
+      </div>
+
+      <div class="level-panel" id="panel-check" role="tabpanel" aria-labelledby="tab-check" data-panel="check">
       <section id="quiz" data-anchor aria-labelledby="h-quiz">
         <h2 id="h-quiz" class="section-title">{S.quiz}</h2>
         <p class="section-intro">{L.quizIntro}</p>
@@ -251,18 +325,6 @@ const clientData = {
         </Card>
       </section>
 
-      <section id="deeper" data-anchor aria-labelledby="h-deeper">
-        <h2 id="h-deeper" class="section-title">{S.deeper}</h2>
-        <ul class="deeper-list">
-          {d.links.map((l) => (
-            <li>
-              <a href={l.url} rel="noopener noreferrer">{l.title}</a>
-              <span set:html={` — ${renderInline(l.why)}`} />
-            </li>
-          ))}
-        </ul>
-      </section>
-
       <section id="finish" data-anchor aria-labelledby="h-finish" class="finish">
         <h2 id="h-finish" class="visually-hidden">{S.finish}</h2>
         <div class="finish-row">
@@ -281,6 +343,7 @@ const clientData = {
           <a class="btn btn-primary" href={nextHref}>{nextLabel}</a>
         </Card>
       </section>
+      </div>
 
       <nav class="level-nav" aria-label={dict.nav.label}>
         {prev ? <a href={localePath(lang, `/level/${prev.data.id}`)}>← {fill(L.prev, { n: prev.data.id })}: {prev.data.title}</a> : <span />}
@@ -344,6 +407,7 @@ const clientData = {
   const peek = document.querySelector<HTMLElement>('[data-peek]')!;
   const peekText = document.querySelector<HTMLElement>('[data-peek-text]')!;
   const dialog = document.getElementById('badge-dialog') as HTMLDialogElement;
+  const counts = Array.from(document.querySelectorAll<HTMLElement>('[data-tab-count]'));
 
   const XP_FOR: Record<TickKind, number> = { mission: XP.mission, break: XP.break, selfCheck: XP.selfCheck, deliverable: 0 };
 
@@ -360,6 +424,12 @@ const clientData = {
       if (on) done++;
     }
     setRing(ring, done / data.total);
+    for (const el of counts) {
+      const mine = ticks.filter((t) => t.closest('[data-panel]')?.id === `panel-${el.dataset.tabCount}`);
+      const n = mine.filter((t) => t.checked).length;
+      el.textContent = `${n}/${mine.length}`;
+      el.classList.toggle('is-done', n === mine.length);
+    }
 
     const cur = currentLevel(p);
     const ahead = !canTick(p, id);
@@ -404,6 +474,85 @@ const clientData = {
     kindNote.querySelector<HTMLAnchorElement>('a')?.focus({ preventScroll: true });
   });
 
+  // ----- Tabs: Learn, Do, Check -----
+  type Tab = 'learn' | 'do' | 'check';
+  const layout = document.querySelector<HTMLElement>('[data-level-page]')!;
+  const tabBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-tab-btn]'));
+  const tabBar = document.querySelector<HTMLElement>('.level-tabs')!;
+
+  function setTab(tab: Tab, opts: { scroll?: boolean; focus?: boolean } = {}) {
+    layout.dataset.tab = tab;
+    for (const b of tabBtns) {
+      const on = b.dataset.tabBtn === tab;
+      b.setAttribute('aria-selected', String(on));
+      b.tabIndex = on ? 0 : -1;
+      if (on && opts.focus) b.focus({ preventScroll: true });
+    }
+    try {
+      localStorage.setItem(`aiquest:tab:${id}`, tab);
+    } catch {
+      /* storage blocked: the tab still opens */
+    }
+    // The new panel starts at its top, right under the tab bar.
+    if (opts.scroll && tabBar.getBoundingClientRect().top <= stickyTop() + 1) {
+      const anchor = document.getElementById(`panel-${tab}`)!;
+      window.scrollTo({ top: anchor.getBoundingClientRect().top + scrollY - stickyTop() - tabBar.offsetHeight - 12 });
+    }
+  }
+  function stickyTop(): number {
+    return parseFloat(getComputedStyle(tabBar).top) || 0;
+  }
+  tabBtns.forEach((b, i) => {
+    b.addEventListener('click', () => setTab(b.dataset.tabBtn as Tab, { scroll: true }));
+    b.addEventListener('keydown', (e) => {
+      const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!step) return;
+      e.preventDefault();
+      const next = tabBtns[(i + step + tabBtns.length) % tabBtns.length]!;
+      setTab(next.dataset.tabBtn as Tab, { scroll: true, focus: true });
+    });
+  });
+  for (const b of document.querySelectorAll<HTMLButtonElement>('[data-tab-go]')) {
+    b.addEventListener('click', () => setTab(b.dataset.tabGo as Tab, { scroll: true, focus: true }));
+  }
+
+  // A link to something inside a closed tab or a folded mission opens it.
+  function openHash(scroll: boolean) {
+    const target = location.hash.length > 1 ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+    const panel = target?.closest<HTMLElement>('[data-panel]');
+    if (!target || !panel) return false;
+    setTab(panel.dataset.panel as Tab);
+    const fold = target.closest<HTMLDetailsElement>('details.mission');
+    if (fold) fold.open = true;
+    if (scroll) target.scrollIntoView();
+    return Boolean(fold);
+  }
+  addEventListener('hashchange', () => openHash(true));
+
+  // ----- Missions: one open at a time, the next undone one first -----
+  const folds = Array.from(document.querySelectorAll<HTMLDetailsElement>('details.mission'));
+  const missionDone = (d: HTMLDetailsElement) => isTicked(getProgress(), id, 'mission', d.dataset.mission!);
+  function openNextMission(after = -1) {
+    const next = folds.find((d, i) => i > after && !missionDone(d)) ?? folds.find((d) => !missionDone(d));
+    for (const d of folds) d.open = d === next;
+    return next;
+  }
+  let settled = false;
+  for (const d of folds) {
+    // Closing the mission above moves this one up. Bring its title back.
+    d.addEventListener('toggle', () => {
+      if (!settled || !d.open || !d.getClientRects().length) return;
+      const top = d.getBoundingClientRect().top;
+      if (top < stickyTop() + tabBar.offsetHeight || top > innerHeight * 0.7) d.scrollIntoView();
+    });
+    d.querySelector<HTMLInputElement>('input[data-tick="mission"]')?.addEventListener('change', (e) => {
+      if (!(e.target as HTMLInputElement).checked) return;
+      setTimeout(() => {
+        if (missionDone(d)) openNextMission(folds.indexOf(d));
+      }, 700);
+    });
+  }
+
   // Highlight the current section in the contents list.
   const links = new Map(
     Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]')).map((a) => [a.dataset.tocLink!, a]),
@@ -433,4 +582,7 @@ const clientData = {
 
   render();
   subscribe(render);
+  setTab((layout.dataset.tab as Tab) ?? 'learn');
+  if (!openHash(false)) openNextMission();
+  setTimeout(() => (settled = true), 400);
 </script>

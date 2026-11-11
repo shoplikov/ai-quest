@@ -51,55 +51,124 @@
   .level-layout {
     grid-template-columns: minmax(0, var(--prose));
   }
+  /* On small screens the tab bar is the navigation. */
   .toc {
-    position: sticky;
-    top: 65px;
-    z-index: 30;
-    max-height: none;
-    overflow: visible;
-    margin: 0 calc(var(--gutter) * -1);
-    background: var(--paper);
-    border-bottom: var(--border);
-  }
-  .toc-title {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-  }
-  .toc ul {
-    display: flex;
-    gap: var(--s2);
-    overflow-x: auto;
-    border-left: none;
-    padding: var(--s2) var(--gutter);
-    scrollbar-width: none;
-  }
-  .toc ul::-webkit-scrollbar {
     display: none;
-  }
-  .toc li {
-    flex: none;
-  }
-  .toc a {
-    border: 2px solid var(--line);
-    border-radius: var(--r-pill);
-    margin: 0;
-    padding: 4px 12px;
-    white-space: nowrap;
-    background: var(--card);
-  }
-  .toc a[aria-current='true'] {
-    border-color: var(--coral);
-    background: var(--coral-soft);
-  }
-  html {
-    scroll-padding-top: 130px;
   }
 }
 
-.level > section {
+/* ---------- Tabs: Learn, Do, Check ---------- */
+/* Without the script there is no data-tab: every panel shows, no tab bar. */
+.level-tabs {
+  display: none;
+}
+.level-layout[data-tab] .level-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s2);
+  position: sticky;
+  top: 72px;
+  z-index: 30;
+  margin: 0 calc(var(--s2) * -1) var(--s6);
+  padding: var(--s2);
+  background: var(--paper);
+  border-radius: var(--r-card);
+}
+.level-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  min-height: 48px;
+  padding: var(--s2) var(--s3);
+  border: var(--border);
+  border-radius: var(--r-ctl);
+  background: var(--card);
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    scale var(--t-fast) var(--ease);
+}
+.level-tab:active {
+  scale: 0.96;
+}
+@media (hover: hover) {
+  .level-tab:hover {
+    color: var(--ink);
+    border-color: var(--coral);
+  }
+}
+.level-tab[aria-selected='true'] {
+  color: var(--ink);
+  border-color: var(--coral);
+  background: var(--coral-soft);
+  box-shadow: 0 3px 0 var(--coral);
+}
+.tab-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.tab-count {
+  flex: none;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  background: var(--card-2);
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.tab-count.is-done {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+.level-layout[data-tab='learn'] [data-panel]:not([data-panel='learn']),
+.level-layout[data-tab='do'] [data-panel]:not([data-panel='do']),
+.level-layout[data-tab='check'] [data-panel]:not([data-panel='check']),
+.level-layout[data-tab='learn'] .toc li:not([data-group='learn']),
+.level-layout[data-tab='do'] .toc li:not([data-group='do']),
+.level-layout[data-tab='check'] .toc li:not([data-group='check']) {
+  display: none;
+}
+.level-layout:not([data-tab]) .panel-next {
+  display: none;
+}
+.panel-next {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 var(--s7);
+}
+.level-panel section[id],
+.mission {
+  scroll-margin-top: 150px;
+}
+@media (max-width: 520px) {
+  .level-layout[data-tab] .level-tabs {
+    top: 60px;
+    gap: var(--s1);
+    margin-bottom: var(--s5);
+  }
+  .level-tab {
+    padding: var(--s2) var(--s1);
+    gap: 6px;
+  }
+  .tab-num {
+    display: none;
+  }
+}
+
+.level section[data-anchor] {
   margin-bottom: var(--s7);
 }
 .section-title {
@@ -220,6 +289,7 @@
   margin-top: var(--s4);
 }
 .mission-kicker {
+  flex: none;
   margin: 0;
   font-size: var(--fs-small);
   font-weight: 800;
@@ -230,8 +300,125 @@
 .mission-title {
   margin: 0 0 var(--s3);
 }
+/* A mission folds to one line: stamp, title, step count, arrow. */
+details.mission {
+  padding: 0;
+  margin-bottom: var(--s4);
+}
+details.mission > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  border-radius: var(--r-card);
+  cursor: pointer;
+  list-style: none;
+}
+details.mission > summary::-webkit-details-marker {
+  display: none;
+}
+details.mission > summary .mission-kicker {
+  margin: 0;
+}
+details.mission > summary .mission-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+.mission-meta {
+  flex: none;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+details.mission > summary::after {
+  content: '';
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-right: 3px solid var(--ink-soft);
+  border-bottom: 3px solid var(--ink-soft);
+  rotate: 45deg;
+  translate: 0 -3px;
+  transition:
+    rotate var(--t-mid) var(--ease),
+    translate var(--t-mid) var(--ease);
+}
+details.mission[open] > summary::after {
+  rotate: 225deg;
+  translate: 0 3px;
+}
+@media (hover: hover) {
+  details.mission:not([open]) > summary:hover .mission-title {
+    color: var(--coral-strong);
+  }
+}
+.mission-body {
+  padding: 0 var(--s5) var(--s5);
+}
+.mission-body > :last-child {
+  margin-bottom: 0;
+}
+@media (max-width: 520px) {
+  details.mission > summary {
+    flex-wrap: wrap;
+    gap: var(--s1) var(--s3);
+    padding: var(--s3) var(--s4);
+  }
+  details.mission > summary .mission-title {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .mission-meta {
+    margin-left: auto;
+  }
+  .mission-body {
+    padding: 0 var(--s4) var(--s4);
+  }
+}
+/* "If it fails": a small fold under a step. */
+.step-fail {
+  margin: var(--s2) 0 0;
+  font-size: 0.95rem;
+}
+.step-fail > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-pill);
+  color: var(--ink-soft);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.step-fail > summary::-webkit-details-marker {
+  display: none;
+}
+.step-fail > summary::before {
+  content: '?';
+  font-weight: 800;
+  color: var(--coral-strong);
+}
+.step-fail[open] > summary {
+  border-style: solid;
+  color: var(--ink);
+}
+.step-fail-body {
+  margin-top: var(--s2);
+  padding: var(--s2) var(--s3);
+  border-left: 4px solid var(--sun);
+  background: var(--card-2);
+  border-radius: 0 var(--r-ctl) var(--r-ctl) 0;
+}
+.step-fail-body > :last-child {
+  margin-bottom: 0;
+}
 .mission-why {
   color: var(--ink-soft);
+  font-style: italic;
 }
 .steps {
   padding-left: 1.4em;
@@ -418,4 +605,48 @@
 .break-part pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* Short facts as coloured chips (status codes and the like). */
+.chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  padding: 0;
+  max-width: none;
+}
+.chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 4px 12px 4px 4px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  font-size: 0.95rem;
+}
+.chips b {
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  background: var(--card-2);
+  font-family: var(--font-code);
+  font-size: 0.9em;
+}
+.chips .ok b {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+.chips .you b {
+  background: var(--sun-soft);
+}
+.chips .us b {
+  background: var(--coral-soft);
+  color: var(--coral-strong);
+}
+/* The takeaway line that opens each part of "Explain it". */
+.level-body h2:not(.section-title) + p > strong:only-child {
+  display: block;
+  font-size: 1.15rem;
+  line-height: 1.4;
 }

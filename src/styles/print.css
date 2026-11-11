@@ -63,4 +63,18 @@
     font-size: 0.85em;
     word-break: break-all;
   }
+  /* Paper gets the whole level: every tab and every mission. */
+  .level-tabs,
+  .panel-next {
+    display: none !important;
+  }
+  .level-layout [data-panel] {
+    display: block !important;
+  }
+  details.mission::details-content,
+  .step-fail::details-content {
+    content-visibility: visible;
+    block-size: auto;
+    opacity: 1;
+  }
 }

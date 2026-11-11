@@ -13,9 +13,7 @@ skill:
   middle: "I design a small service others can use without asking me questions."
 itsNormal: >
   A script runs once and ends. A service runs for months and talks to
-  strangers who send it strange things. That is a different way of
-  thinking, and it takes a few weeks to settle. If your first endpoints
-  feel clumsy, that is exactly how everyone's first endpoints felt.
+  strangers, so your first endpoints will feel clumsy, like everyone's did.
   Somewhere, right now, a stranger is sending an emoji into a field called
   `age`.
 analogy:
@@ -33,10 +31,31 @@ missions:
     title: "Hello, service"
     why: "You make a real service, run it and call it in two different ways."
     steps:
-      - "Make the project and its own toolbox: `mkdir -p ~/quest-api/app && cd ~/quest-api`, then `python3 -m venv .venv` and `source .venv/bin/activate`. Your prompt now starts with `(.venv)`. If Python says `ensurepip is not available`, run `sudo apt install python3-venv` and try again."
-      - "Install FastAPI with its standard extras: `pip install \"fastapi[standard]\"`. Write down what you installed: `pip freeze > requirements.txt`."
       - |
-        Create an empty `app/__init__.py` (`touch app/__init__.py`) so `app` is a package, and write `app/main.py`:
+        Make the project folder and step into it:
+        ```bash
+        mkdir -p ~/quest-api/app && cd ~/quest-api
+        ```
+      - do: |
+          Give the project its own toolbox. Your prompt now starts with `(.venv)`.
+          ```bash
+          python3 -m venv .venv
+          source .venv/bin/activate
+          ```
+        fail: "`ensurepip is not available`? Run `sudo apt install python3-venv` and try again."
+      - |
+        Install FastAPI and write down what you installed:
+        ```bash
+        pip install "fastapi[standard]"
+        pip freeze > requirements.txt
+        ```
+      - |
+        Make `app` a package:
+        ```bash
+        touch app/__init__.py
+        ```
+      - |
+        Write `app/main.py`:
         ```python
         from fastapi import FastAPI
 
@@ -47,14 +66,27 @@ missions:
         def health():
             return {"status": "ok"}
         ```
-      - "Start it: `fastapi dev app/main.py`. It prints `Server started at http://127.0.0.1:8000` and watches your files: save a change and it restarts by itself. Leave it running."
-      - "In a second terminal, call it: `curl -s localhost:8000/health`"
-      - "Open `http://localhost:8000/docs` in the browser. Find `GET /health`, press **Try it out**, then **Execute**. Same answer, different door."
-      - "Make it a repo: `git init`, and a `.gitignore` with one line for now: `.venv/`"
+      - |
+        Start it and leave it running. It restarts by itself on every save.
+        ```bash
+        fastapi dev app/main.py
+        ```
+      - |
+        In a second terminal, call it:
+        ```bash
+        curl -s localhost:8000/health
+        ```
+      - "Open `http://localhost:8000/docs`. On `GET /health` press **Try it out**, then **Execute**. Same answer, different door."
+      - |
+        Make it a repo and keep the toolbox out of it:
+        ```bash
+        git init
+        echo ".venv/" > .gitignore
+        ```
     check: "`curl -s localhost:8000/health` prints `{\"status\":\"ok\"}`."
   - id: m2
     title: "Take an order"
-    why: "You describe what a good order looks like, and the waiter starts refusing bad ones for you."
+    why: "You describe a good order, and the waiter starts refusing bad ones for you."
     steps:
       - |
         Describe the order and the plate in `app/schemas.py`:
@@ -72,13 +104,23 @@ missions:
             sources: list[str]
         ```
       - |
-        The kitchen gets its own place. Run `mkdir -p app/services && touch app/services/__init__.py`, then write `app/services/answer.py`:
+        Give the kitchen its own place:
+        ```bash
+        mkdir -p app/services && touch app/services/__init__.py
+        ```
+      - |
+        Write `app/services/answer.py`:
         ```python
         def fake_answer(question: str) -> str:
             return f"I will know soon. You asked: {question}"
         ```
       - |
-        The menu item goes into a router. Run `mkdir -p app/routers && touch app/routers/__init__.py`, then write `app/routers/ask.py`:
+        Make a place for the menu:
+        ```bash
+        mkdir -p app/routers && touch app/routers/__init__.py
+        ```
+      - |
+        Write `app/routers/ask.py`:
         ```python
         from fastapi import APIRouter
 
@@ -92,23 +134,44 @@ missions:
         def ask(body: AskRequest) -> AskResponse:
             return AskResponse(answer=fake_answer(body.question), sources=[])
         ```
-      - "Add the router to the app in `app/main.py`: `from app.routers import ask` at the top, and `app.include_router(ask.router)` after `app = FastAPI()`."
+      - |
+        Add the router to `app/main.py`:
+        ```python
+        from app.routers import ask      # at the top
+
+        app.include_router(ask.router)   # after app = FastAPI()
+        ```
       - |
         Send a good order:
         ```bash
         curl -s -X POST localhost:8000/ask -H "Content-Type: application/json" -d '{"question":"When does the café open?"}'
         ```
-      - "Send an empty question: the same command with `'{\"question\":\"\"}'`. Read the 422: `loc` says `[\"body\",\"question\"]` and `msg` says `String should have at least 3 characters`."
-      - "Ask for too much: `'{\"question\":\"hi there\",\"top_k\":100}'`. This time `loc` points at `top_k` and the message is `Input should be less than or equal to 20`."
-      - "Refresh `/docs`. Under **Schemas** you find `AskRequest` and `AskResponse`, with every limit you wrote."
+      - |
+        Send an empty question:
+        ```bash
+        curl -s -X POST localhost:8000/ask -H "Content-Type: application/json" -d '{"question":""}'
+        ```
+        The 422 names the field: `loc` is `["body","question"]`, `msg` is `String should have at least 3 characters`.
+      - |
+        Ask for too much:
+        ```bash
+        curl -s -X POST localhost:8000/ask -H "Content-Type: application/json" -d '{"question":"hi there","top_k":100}'
+        ```
+        Now `loc` points at `top_k`: `Input should be less than or equal to 20`.
+      - "Refresh `/docs`. Under **Schemas** you find both models, with every limit you wrote."
     check: "`/docs` shows both models, and a bad body gets a 422 that names the field."
   - id: m3
     title: "Config and secrets"
     why: "You change how the service behaves without touching code, and keep secrets out of git."
     steps:
-      - "Install the settings helper: `pip install pydantic-settings`, then `pip freeze > requirements.txt` again."
       - |
-        Write `app/config.py`. The `extra="ignore"` lets `.env` also hold values meant for other programs, such as the database password in Level 4:
+        Install the settings helper:
+        ```bash
+        pip install pydantic-settings
+        pip freeze > requirements.txt
+        ```
+      - |
+        Write `app/config.py`:
         ```python
         from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -123,17 +186,36 @@ missions:
 
         settings = Settings()
         ```
-      - "Use it in `app/main.py`: `from app.config import settings`, and create the app with `app = FastAPI(title=settings.app_name)`."
+        `extra="ignore"` lets `.env` also hold values for other programs, such as the database password in Level 4.
       - |
-        Create `.env` next to `app/`. Each line sets one field; the names match, only in capitals:
+        Use it in `app/main.py`:
+        ```python
+        from app.config import settings          # at the top
+
+        app = FastAPI(title=settings.app_name)   # replaces app = FastAPI()
+        ```
+      - |
+        Create `.env` next to `app/`. One line per field, same names in capitals:
         ```
         APP_NAME="Otter Café helper"
         LOG_LEVEL=INFO
         LLM_BASE_URL=http://localhost:11434/v1
         ```
-      - "Copy it to `.env.example` with the same keys and harmless values. Later levels add real secrets to `.env`; `.env.example` only ever shows the names."
-      - "Add `.env` to `.gitignore`, then run `git status`. You see `.env.example`, and no `.env`."
-      - "Change `APP_NAME` in `.env`, stop the server with Ctrl+C and start it again (it restarts by itself only for `.py` files). Refresh `/docs`: the title changed, and you did not touch any code."
+      - |
+        Copy it to `.env.example` and put harmless values there:
+        ```bash
+        cp .env .env.example
+        ```
+        Later levels add real secrets to `.env`. The example file only ever shows the names.
+      - |
+        Hide `.env` from git and check:
+        ```bash
+        echo ".env" >> .gitignore
+        git status
+        ```
+        You see `.env.example`, and no `.env`.
+      - do: "Change `APP_NAME` in `.env`, restart the server and refresh `/docs`. New title, and you did not touch any code."
+        fail: "Title did not change? The server restarts by itself only for `.py` files. Stop it with Ctrl+C and run `fastapi dev app/main.py` again."
     check: "Editing `.env` changes the title in `/docs` without a code change, and `git status` never lists `.env`."
   - id: m4
     title: "Leave a trail"
@@ -162,17 +244,36 @@ missions:
             log.info("%s %s %s %.0fms id=%s", request.method, request.url.path, response.status_code, ms, request_id)
             return response
         ```
-        Keep the imports at the top of the file, the `logging` lines right after `settings` is imported, and the middleware after `app = FastAPI(...)`.
-      - "Call the service with headers shown: `curl -i localhost:8000/health`. Find the line `x-request-id: …` and remember the id."
-      - "Look at the server terminal. There is your line, for example `2026-03-03 10:42:07,185 INFO GET /health 200 7ms id=c4b3ef29`, with the same id. Next to it, Uvicorn prints its own short access line; yours is the one with the id."
-      - "Send a bad order to `/ask` and find its line: the status says `422`."
+        Imports go at the top, the `logging` lines right after the `settings` import, the middleware after `app = FastAPI(...)`.
+      - |
+        Call the service with headers shown and find the line `x-request-id: …`:
+        ```bash
+        curl -i localhost:8000/health
+        ```
+      - |
+        Look at the server terminal. Your line carries the same id:
+        ```text
+        2026-03-03 10:42:07,185 INFO GET /health 200 7ms id=c4b3ef29
+        ```
+        Uvicorn prints its own short access line next to it. Yours is the one with the id.
+      - "Send a bad order to `/ask` and find its line. The status says `422`."
     check: "Every curl call adds one line of yours to the log, and the id in the header matches the id in that line."
   - id: m5
     title: "Prove it works"
     why: "You write tests, so the service can prove itself without you clicking around."
     steps:
-      - "Install the test runner: `pip install pytest`, then `pip freeze > requirements.txt`."
-      - "Make the tests a package: `mkdir -p tests && touch tests/__init__.py`. Without this file, `pytest` cannot import `app` and stops with `ModuleNotFoundError: No module named 'app'`."
+      - |
+        Install the test runner:
+        ```bash
+        pip install pytest
+        pip freeze > requirements.txt
+        ```
+      - do: |
+          Make the tests a package:
+          ```bash
+          mkdir -p tests && touch tests/__init__.py
+          ```
+        fail: "`ModuleNotFoundError: No module named 'app'`? This file is missing. Without `tests/__init__.py`, `pytest` cannot import `app`."
       - |
         Write `tests/test_api.py`:
         ```python
@@ -199,13 +300,28 @@ missions:
             response = client.post("/ask", json={"question": ""})
             assert response.status_code == 422
         ```
-      - "Run them from the project folder: `pytest -q`. You should see `3 passed`."
+      - |
+        Run them from the project folder. You should see `3 passed`.
+        ```bash
+        pytest -q
+        ```
       - "Break the code on purpose: in `/health`, return `\"okay\"` instead of `\"ok\"`. Run `pytest -q` again and read which test failed and why. Put it back."
     check: "`pytest -q` shows 3 passed; with the code broken, exactly one test fails."
 breaks:
   - id: b1
     title: "Freeze the waiter"
-    do: "Add this to `app/main.py` (with `import time` at the top), save, call `curl -s localhost:8000/slow` and at once, in another terminal, `curl -s -o /dev/null -w \"%{time_total}s\\n\" localhost:8000/health`:\n```python\n@app.get(\"/slow\")\nasync def slow():\n    time.sleep(5)\n    return {\"done\": True}\n```"
+    do: |
+      Add this to `app/main.py`, with `import time` at the top:
+      ```python
+      @app.get("/slow")
+      async def slow():
+          time.sleep(5)
+          return {"done": True}
+      ```
+      Call `curl -s localhost:8000/slow` and at once, in another terminal:
+      ```bash
+      curl -s -o /dev/null -w "%{time_total}s\n" localhost:8000/health
+      ```
     see: "4.701862s"
     why: "`/health` takes milliseconds, yet it waited almost 5 seconds. `time.sleep` blocks, and inside `async def` it blocks the event loop itself: the only waiter stands still at one table, and every other table waits."
     fix: "Use a call you can wait on: `await asyncio.sleep(5)` (with `import asyncio`). Or make it a plain `def`: FastAPI then runs it in a thread pool, away from the waiter. Then delete `/slow`."
@@ -335,34 +451,27 @@ kindNote: >
 import RequestJourney from '../../../components/widgets/RequestJourney';
 import Diagram from '../../../components/Diagram.astro';
 import Analogy from '../../../components/Analogy.astro';
+import Reveal from '../../../components/ui/Reveal.astro';
 
-You have Python code that answers a question. Right now only you can run
-it, by hand, once. This level turns it into a **service**: a program that
-keeps running, waits for requests from anyone on the network and answers
-each one, politely, for months.
+Your Python code answers a question, but only you can run it, by hand,
+once. This level turns it into a **service**: a program that keeps
+running and answers anyone on the network.
 
 <Analogy />
 
 ## Request and response
 
-Every call to a service is one **request** and one **response**. A request
-has a **method** (what to do: `GET` to read, `POST` to send something), a
-**path** (which endpoint: `/ask`), **headers** (notes about the request)
-and sometimes a **body** — the data, usually JSON. The response comes back
-with a **status code**, headers and its own body.
+**Every call is one request and one response.**
 
 <Diagram name="request-response" />
 
+A request has a **method** (`GET` to read, `POST` to send), a **path**
+(`/ask`), **headers** and sometimes a **body**, usually JSON. The response
+brings a **status code**, headers and its own body.
+
 ## Your first service
 
-Make a separate toolbox for the project and install FastAPI into it:
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install "fastapi[standard]"
-```
-
-Then a whole service is six lines:
+**A whole service is six lines.**
 
 ```python
 from fastapi import FastAPI
@@ -374,13 +483,11 @@ def health():
 ```
 
 Run `fastapi dev main.py` and open `http://localhost:8000/docs`. FastAPI
-wrote that page for you from your code: every endpoint, ready to try. You
-return a Python dict; the client receives JSON.
+wrote that page from your code: every endpoint, ready to try.
 
 ## The waiter checks the order
 
-Strangers will send you anything. Instead of checking every field by
-hand, you describe what a good order looks like with a Pydantic model:
+**Describe a good order once. Bad ones never reach your code.**
 
 ```python
 class AskRequest(BaseModel):
@@ -388,79 +495,71 @@ class AskRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
 ```
 
-A body that does not match never reaches your code. The client gets
-**422** and a `detail` list that says exactly which field is wrong and
-why.
+A body that does not match gets **422** and a `detail` list that names
+the wrong field. Status codes are how you talk back:
 
-Status codes are how you talk back. The ones you will use all the time:
+<ul class="chips">
+  <li class="ok"><b>200</b> OK, here is your answer</li>
+  <li class="ok"><b>201</b> Created something new</li>
+  <li class="you"><b>400</b> The request makes no sense</li>
+  <li class="you"><b>401</b> Who are you? Log in first</li>
+  <li class="you"><b>404</b> That does not exist</li>
+  <li class="you"><b>422</b> I can't read your order</li>
+  <li class="us"><b>500</b> Something broke on our side</li>
+</ul>
 
-| Code | Means |
-|---|---|
-| 200 | OK, here is your answer |
-| 201 | Created something new |
-| 400 | The request makes no sense |
-| 401 | Who are you? Log in first |
-| 404 | That does not exist |
-| 422 | I can't read your order |
-| 500 | Something broke on our side |
-
+<Reveal summary="How do I send a 404 myself?">
 When you know something is missing, say so on purpose:
 `raise HTTPException(status_code=404, detail="Document not found")`.
+</Reveal>
 
 ## One waiter, many tables: `async def` and `def`
 
-FastAPI serves requests with an **event loop**: one waiter who runs
-between many tables. While one order cooks — a call to a database, to
-another API — he serves the others. That only works if he never stands
-still.
+**One waiter serves every table. He must never stand still.**
 
 <Diagram name="event-loop" />
 
-The rule:
+That waiter is the **event loop**. While one order cooks — a database
+call, another API — he serves the others. The rule:
 
 - `async def` only when everything slow inside it uses `await`.
-- Plain `def` for code that blocks — `time.sleep`, most file and database
-  libraries without `async`. FastAPI runs those in a thread pool, away from
-  the waiter.
+- Plain `def` for code that blocks, such as `time.sleep`. FastAPI runs it
+  in a thread pool, away from the waiter.
 
-A blocking call inside `async def` freezes every request at once. You will
-cause exactly that in "Break it on purpose", so you recognise it forever.
+A blocking call inside `async def` freezes every request at once. You
+will cause exactly that in "Break it on purpose".
 
 ## Settings and a paper trail
 
-Addresses, passwords and keys change between your laptop and a server.
-They do not belong in the code. `pydantic-settings` reads them from
-environment variables or a `.env` file into a typed `Settings` class. The
-`.env` file goes into `.gitignore` on day one. A secret that reaches git
-history stays there.
+**Secrets live in `.env`. Every request leaves one log line.**
 
-A service also has to tell you what it did. Use `logging`, not `print`:
-one line per request with the method, the path, the status, how long it
-took, and a **request id**. When someone says "my request failed at
-10:42", that id takes you to the exact line.
+Addresses, passwords and keys differ between your laptop and a server, so
+they do not belong in the code. `pydantic-settings` reads them from a
+`.env` file, and `.env` goes into `.gitignore` on day one.
+
+Use `logging`, not `print`: method, path, status, duration and a
+**request id**. When someone says "my request failed at 10:42", the id
+takes you to the exact line.
 
 ## A shape that can grow
 
-One file is fine for one endpoint. For a real service, give each job its
-own place:
+**Give each job its own file, and let tests prove it works.**
 
 <Diagram name="project-layout" />
 
-And prove it works with tests. `TestClient` calls your app without
-starting a server, and `pytest` runs every test in seconds. A test is a
-promise that stays checked after you forget the details.
+`TestClient` calls your app without starting a server, and `pytest` runs
+every test in seconds.
 
 ## Running for real
 
-`fastapi dev` listens on `127.0.0.1` — family only, as you learned in
-Level 2. On a server you start it like this:
+**On a server, listen on `0.0.0.0`.**
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-`0.0.0.0`, so callers from the network can reach the door. You are now
-building the "App" station:
+`fastapi dev` listens on `127.0.0.1`: family only, as in Level 2. You are
+now building the "App" station:
 
 <RequestJourney client:visible strings={props.ui.requestJourney} />
 
@@ -470,5 +569,3 @@ building the "App" station:
 2. **Status codes are the waiter's face.** Choose them on purpose.
 3. **Never block the waiter.** `async def` with `await`, plain `def` for blocking code.
 4. **Secrets live in `.env`, not in git. Every request leaves one log line.**
-
-The missions build `quest-api`, the service the next five levels grow.

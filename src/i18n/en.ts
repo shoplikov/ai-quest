@@ -122,6 +122,10 @@ export const en = {
     missionNumber: 'Mission {n}',
     missionWhy: 'What this teaches',
     steps: 'Steps',
+    stepFail: 'If it fails',
+    tabs: { label: 'Parts of this level', learn: 'Learn', do: 'Do', check: 'Check' },
+    tabNext: 'Next: {tab}',
+    tabDone: 'done',
     check: 'How to check',
     missionTick: 'I did this mission',
     breaksIntro: 'Safe, local and reversible. Guess why it breaks before you open the answer.',
@@ -815,5 +819,6 @@ export const en = {
     day: { one: 'day', other: 'days' } as PluralForms,
     level: { one: 'level', other: 'levels' } as PluralForms,
     point: { one: 'point', other: 'points' } as PluralForms,
+    step: { one: 'step', other: 'steps' } as PluralForms,
   },
 } as const;

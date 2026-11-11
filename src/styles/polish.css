@@ -202,7 +202,8 @@ a.card:active,
   :root {
     interpolate-size: allow-keywords;
   }
-  .reveal::details-content {
+  .reveal::details-content,
+  .step-fail::details-content {
     block-size: 0;
     overflow: clip;
     opacity: 0;
@@ -211,7 +212,8 @@ a.card:active,
       opacity var(--t-slow) var(--ease),
       content-visibility var(--t-slow) allow-discrete;
   }
-  .reveal[open]::details-content {
+  .reveal[open]::details-content,
+  .step-fail[open]::details-content {
     block-size: auto;
     opacity: 1;
   }
@@ -437,7 +439,7 @@ a.card:active,
 .trap-table td:first-child {
   border-left: 4px solid var(--coral);
 }
-.level > section {
+.level section[data-anchor] {
   margin-bottom: var(--s8);
 }
 .level-nav {
@@ -947,4 +949,14 @@ a.card:active,
   font-style: italic;
   font-weight: 700;
   color: var(--ink-soft);
+}
+
+/* A finished mission keeps its tick in the folded row. */
+details.mission:has(.tick-main input:checked) .mission-kicker {
+  background: var(--teal-strong);
+  border-color: var(--teal-strong);
+  color: var(--on-strong);
+}
+details.mission:has(.tick-main input:checked) .mission-meta {
+  display: none;
 }

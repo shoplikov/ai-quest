@@ -32,7 +32,8 @@ const levelSchema = z.object({
         week: text.optional(),
         title: text,
         why: text,
-        steps: z.array(text).min(1),
+        /** A step is Markdown: one action, its command in a fenced block. `fail` is the "if it fails" fold. */
+        steps: z.array(z.union([text, z.object({ do: text, fail: text })])).min(1),
         check: text,
       }),
     )

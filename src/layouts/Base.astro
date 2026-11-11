@@ -310,7 +310,7 @@ const links = [
           { rootMargin: '0px 0px -6% 0px' },
         );
         const blocks = document.querySelectorAll<HTMLElement>(
-          '.level > section > .card, .level-body > .diagram, .level-body > .widget, .level-body > .card, [data-rise]',
+          '.level section > .card, .level-body > .diagram, .level-body > .widget, .level-body > .card, [data-rise]',
         );
         for (const el of blocks) {
           if (el.getBoundingClientRect().top < innerHeight) {

@@ -41,7 +41,12 @@ export function structure(level: { data: Level; body: string }) {
     weeks: d.weeks,
     landmark: d.landmark,
     badgeEmoji: d.badge.emoji,
-    missions: d.missions.map((m) => ({ id: m.id, steps: m.steps.length })),
+    missions: d.missions.map((m) => ({
+      id: m.id,
+      steps: m.steps.length,
+      // Steps with an "if it fails" fold sit at the same places in both languages.
+      fails: m.steps.flatMap((s, i) => (typeof s === 'string' ? [] : [i])),
+    })),
     breaks: d.breaks.map((b) => b.id),
     // Real output stays in English; a description of behaviour is written in each language.
     breakSee: d.breaks.map((b) => (b.seeKind === 'description' ? { description: true } : b.see)),

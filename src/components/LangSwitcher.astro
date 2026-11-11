@@ -41,7 +41,8 @@ const path = Astro.url.pathname;
     const marks = Array.from(document.querySelectorAll<HTMLElement>('[data-anchor]'));
     let found = '';
     for (const el of marks) {
-      if (el.getBoundingClientRect().top <= 120) found = el.id;
+      // Sections in a closed tab have no box: skip them.
+      if (el.getClientRects().length && el.getBoundingClientRect().top <= 120) found = el.id;
     }
     return found;
   }
