@@ -1,0 +1,40 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['streamingTimeline'];
+}
+const { t } = Astro.props;
+const SEND = 60;
+const FIRST = 170;
+const LAST = 590;
+const chunks = Array.from({ length: 12 }, (_, i) => FIRST + i * 35);
+---
+<Frame id="dg-stream" w={720} h={320} title={t.title} desc={t.desc}>
+  {[SEND, FIRST, LAST].map((x) => <path d={`M${x} 40 V256`} stroke="var(--ink-soft)" stroke-width="1.5" stroke-dasharray="4 5" />)}
+
+  <Label x={SEND} y={30} text={t.without} anchor="start" size={13} weight={800} />
+  <Box x={SEND} y={46} w={LAST - SEND} h={44} fill="var(--card-2)" dashed seed={191} />
+  <Label x={(SEND + LAST) / 2} y={68} text={t.waiting} size={12} weight={700} color="var(--ink-soft)" />
+  <Box x={LAST} y={46} w={70} h={44} fill="var(--coral-soft)" seed={192} />
+  <Label x={LAST + 35} y={68} text={t.allAtOnce} size={11} weight={800} />
+
+  <Label x={SEND} y={124} text={t.with} anchor="start" size={13} weight={800} />
+  {chunks.map((x, i) => <Box x={x} y={140} w={26} h={44} fill="var(--teal-soft)" seed={200 + i} />)}
+
+  <path d={`M${SEND} 206 H${FIRST}`} stroke="var(--teal-ink)" stroke-width="2" />
+  <path d={`M${SEND} 200 V212 M${FIRST} 200 V212`} stroke="var(--teal-ink)" stroke-width="2" />
+  <Label x={(SEND + FIRST) / 2} y={226} text={t.ttft} size={11} weight={800} color="var(--teal-ink)" />
+  <path d={`M${FIRST + 6} 206 H${LAST}`} stroke="var(--teal-ink)" stroke-width="2" />
+  <path d={`M${LAST} 200 V212`} stroke="var(--teal-ink)" stroke-width="2" />
+  <Label x={(FIRST + LAST) / 2} y={226} text={t.rate} size={11} weight={800} color="var(--teal-ink)" />
+
+  <Arrow x1={40} y1={262} x2={690} y2={262} color="var(--ink)" />
+  <Label x={690} y={284} text={t.time} anchor="end" size={12} weight={700} color="var(--ink-soft)" />
+  <Label x={SEND} y={290} text={t.send} size={12} weight={800} />
+  <Label x={FIRST} y={290} text={t.first} size={12} weight={800} />
+  <Label x={LAST} y={290} text={t.last} size={12} weight={800} />
+</Frame>

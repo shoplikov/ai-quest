@@ -1,0 +1,630 @@
+---
+id: 6
+slug: llm
+title: "Обслуживание LLM"
+tagline: "Вызывай языковую модель как инженер, а не как пользователь чата."
+weeks: 1
+landmark: lighthouse
+badge: { name: "Тактик токенов", emoji: "🗼" }
+skill:
+  name: "Интеграция LLM"
+  junior: "Вызываю модель и печатаю ответ."
+  growing: "Работаю со стримингом, лимитами, таймаутами и структурированным выводом."
+  middle: "Мои вызовы LLM видны в логах, ограничены, безопасно повторяются, и я могу объяснить, откуда берётся их задержка."
+itsNormal: >
+  Модель — первая часть твоей карьеры, которая на один и тот же вопрос
+  каждый раз отвечает по-разному. Если от этого не по себе — хорошо: это
+  верный инженерный инстинкт. Этот уровень превращает его в привычки —
+  лимиты, таймауты, валидацию, — и тревожная часть остаётся маленькой.
+analogy:
+  emoji: "👩‍🍳"
+  title: "Гениальный шеф с маленьким столом"
+  text: >
+    Модель — гениальный шеф, который может готовить только то, что
+    помещается на одном маленьком столе. **Контекстное окно** — этот стол:
+    твои инструкции, документы, вопрос и блюдо, которое сейчас готовится,
+    должны поместиться на нём одновременно. **Токены** — кусочки: слово —
+    это один кусочек или несколько. `max_tokens` — насколько большим может
+    быть блюдо. А когда стол заполнен, что-то падает на пол.
+missions:
+  - id: m1
+    title: "Первый вызов"
+    why: "Ты обращаешься к серверу модели из кода и читаешь, сколько он с тебя взял — в токенах."
+    steps:
+      - "Спроси ментора, каким сервером модели пользоваться. Если он есть, тебе дадут адрес, ключ и имя модели: впиши их в `.env` на шаге 4, а шаги про Ollama пропусти."
+      - |
+        Сервера нет? Запусти маленькую модель в своём же боксе. Добавь сервис в `compose.yaml`, а `ollama:` — рядом с `pgdata:` в общий раздел `volumes:`:
+        ```yaml
+          ollama:
+            image: ollama/ollama
+            ports: ["127.0.0.1:11434:11434"]
+            volumes: ["ollama:/root/.ollama"]
+        ```
+        Запусти его и скачай маленькую модель, около 1,3 ГБ: `docker compose up -d ollama`, потом `docker compose exec ollama ollama pull llama3.2:1b`.
+      - "Спроси сервер, какие модели он обслуживает: `curl -s localhost:11434/v1/models`. Поле `id` — это точное имя, которое он принимает. Не примерно, а точно."
+      - |
+        Добавь две настройки в `Settings` в `app/config.py`, под `llm_base_url`:
+        ```python
+            llm_api_key: str = "not-needed"
+            llm_model: str = "llama3.2:1b"
+        ```
+        В `.env` направь API на сервер по имени сервиса (уровень 4) и добавь два других значения; те же ключи впиши в `.env.example`:
+        ```
+        LLM_BASE_URL=http://ollama:11434/v1
+        LLM_API_KEY=not-needed
+        LLM_MODEL=llama3.2:1b
+        ```
+        Ollama ключ не проверяет, но клиент без ключа не работает. Настоящий сервер выдаст настоящий ключ — и вот он в git не попадает никогда.
+      - |
+        Добавь `openai` в `requirements.txt` (и `pip install openai` на ноутбуке, для тестов). Этот клиент умеет говорить с любым OpenAI-совместимым сервером, а не только с OpenAI. Один клиент на всё приложение — `app/llm.py`:
+        ```python
+        from openai import OpenAI
+
+        from app.config import settings
+
+        client = OpenAI(base_url=settings.llm_base_url, api_key=settings.llm_api_key)
+        ```
+      - |
+        Напиши `scripts/first_call.py`:
+        ```python
+        from app.config import settings
+        from app.llm import client
+
+        response = client.chat.completions.create(
+            model=settings.llm_model,
+            messages=[
+                {"role": "system", "content": "Отвечай одним коротким предложением."},
+                {"role": "user", "content": "Что такое порт?"},
+            ],
+            temperature=0.2,
+            max_tokens=200,
+        )
+        choice = response.choices[0]
+        print(choice.message.content)
+        print(choice.finish_reason, response.usage)
+        ```
+      - "Пересобери и вызови: `docker compose up -d --build`, потом `docker compose exec api python -m scripts.first_call`. Прочитай последнюю строку: сначала `finish_reason`, потом `prompt_tokens` (сколько ушло на вход) и `completion_tokens` (сколько пришло в ответе)."
+    check: "Ты можешь сказать, сколько токенов ушло на вход и сколько пришло обратно."
+  - id: m2
+    title: "Настоящие ответы"
+    why: "`/ask` перестаёт притворяться: он спрашивает модель и на каждый вызов оставляет строку в логе."
+    steps:
+      - |
+        Промпты — это код, поэтому они живут в файлах. Напиши `prompts/answer_v1.txt`:
+        ```
+        Ты — помощник кафе Otter Café.
+        Отвечай двумя-тремя короткими предложениями.
+        Если не знаешь ответа, так и скажи. Ничего не выдумывай.
+        ```
+      - |
+        Замени `app/services/answer.py`:
+        ```python
+        import logging
+        import time
+        from pathlib import Path
+
+        from app.config import settings
+        from app.llm import client
+
+        log = logging.getLogger("quest-api")
+        PROMPTS = Path(__file__).parents[2] / "prompts"
+        ANSWER_PROMPT = "answer_v1"
+
+
+        def load_prompt(name: str) -> str:
+            return (PROMPTS / f"{name}.txt").read_text()
+
+
+        def llm_answer(question: str) -> str:
+            start = time.perf_counter()
+            response = client.chat.completions.create(
+                model=settings.llm_model,
+                messages=[
+                    {"role": "system", "content": load_prompt(ANSWER_PROMPT)},
+                    {"role": "user", "content": question},
+                ],
+                temperature=0.2,
+                max_tokens=300,
+            )
+            ms = (time.perf_counter() - start) * 1000
+            choice = response.choices[0]
+            log.info(
+                "llm model=%s prompt=%s in=%d out=%d %.0fms finish=%s",
+                settings.llm_model, ANSWER_PROMPT, response.usage.prompt_tokens,
+                response.usage.completion_tokens, ms, choice.finish_reason,
+            )
+            return choice.message.content
+        ```
+      - "В `app/routers/ask.py` импортируй `llm_answer` вместо `fake_answer` и вызови его в маршруте. Маршрут оставь обычным `def`: этот клиент ждёт без `await`, а обычные `def`-маршруты FastAPI запускает в пуле потоков, так что один медленный ответ не замораживает `/health` (уровень 3)."
+      - |
+        Тест для `/ask` теперь вызывал бы настоящую модель: медленно, и каждый раз по-разному. Подмени модель дублёром в `tests/test_api.py`:
+        ```python
+        def test_ask_valid(monkeypatch):
+            monkeypatch.setattr("app.routers.ask.llm_answer", lambda question: "We open at 8.")
+            response = client.post("/ask", json={"question": "When does the café open?"})
+            assert response.status_code == 200
+            assert response.json()["answer"] == "We open at 8."
+        ```
+        Запусти `pytest`: всё зелёное, и ни одну модель не потревожили.
+      - "Пересобери, спроси `Во сколько открывается кафе?` тем же curl, что в уровне 3, и посмотри `docker compose logs api | grep llm`. Обрати внимание на ответ: модель не знает твоего справочника, поэтому может с серьёзным видом выдумать время открытия. В уровне 7 ты дашь ей справочник."
+    check: "Каждый вызов оставляет в логе одну строку: модель, токены на входе, токены на выходе и длительность."
+  - id: m3
+    title: "Слово за словом"
+    why: "Ответ начинает появляться сразу, а ты измеряешь два числа, из которых складывается его скорость."
+    steps:
+      - |
+        Добавь потоковую версию в `app/services/answer.py` (и `from collections.abc import Iterator` наверху):
+        ```python
+        def llm_stream(question: str) -> Iterator[str]:
+            start = time.perf_counter()
+            first_token_ms = None
+            out_tokens = 0
+            stream = client.chat.completions.create(
+                model=settings.llm_model,
+                messages=[
+                    {"role": "system", "content": load_prompt(ANSWER_PROMPT)},
+                    {"role": "user", "content": question},
+                ],
+                temperature=0.2,
+                max_tokens=300,
+                stream=True,
+                stream_options={"include_usage": True},
+            )
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    if first_token_ms is None:
+                        first_token_ms = (time.perf_counter() - start) * 1000
+                    yield chunk.choices[0].delta.content
+                if chunk.usage:
+                    out_tokens = chunk.usage.completion_tokens
+            total_ms = (time.perf_counter() - start) * 1000
+            log.info(
+                "llm stream model=%s out=%d first_token=%.0fms total=%.0fms",
+                settings.llm_model, out_tokens, first_token_ms or 0, total_ms,
+            )
+        ```
+        `include_usage` просит сервер прислать в конце ещё один кусочек — с подсчётом токенов.
+      - |
+        Добавь маршрут в `app/routers/ask.py` (и импортируй `llm_stream`):
+        ```python
+        from fastapi.responses import StreamingResponse
+
+
+        @router.post("/ask/stream")
+        def ask_stream(body: AskRequest) -> StreamingResponse:
+            return StreamingResponse(llm_stream(body.question), media_type="text/plain")
+        ```
+      - "Пересобери и смотри: `curl -N -X POST localhost:8000/ask/stream -H \"Content-Type: application/json\" -d '{\"question\":\"Расскажи о выдрах в трёх предложениях.\"}'`. `-N` говорит curl не копить ответ, а печатать каждый кусочек сразу, как он пришёл."
+      - "Запусти то же самое с `time` впереди и найди в логах строку `llm stream`. Запиши `first_token` и `total` для трёх разных вопросов."
+    check: "Текст появляется по кусочкам, а в строке лога есть оба числа."
+  - id: m4
+    title: "Придай ответу форму"
+    why: "Модель заполняет анкету, которой твой код может доверять, — а когда не заполняет, код это замечает."
+    steps:
+      - |
+        Опиши анкету в `app/schemas.py` (и `from typing import Literal` наверху):
+        ```python
+        class ExtractRequest(BaseModel):
+            text: str = Field(min_length=3, max_length=2000)
+
+
+        class Complaint(BaseModel):
+            category: Literal["food", "drinks", "service", "cleanliness", "price", "other"]
+            urgency: int = Field(ge=1, le=5)
+            summary: str = Field(max_length=200)
+        ```
+      - |
+        Напиши `prompts/extract_v1.txt`:
+        ```
+        Ты читаешь одну жалобу гостя кафе Otter Café.
+        Верни JSON с полями:
+        - category: одно из food, drinks, service, cleanliness, price, other
+        - urgency: от 1 (маленькое пожелание) до 5 (кто-то может пострадать или заболеть)
+        - summary: одно короткое предложение на языке жалобы
+        ```
+      - |
+        Добавь извлечение в `app/services/answer.py` (и `from pydantic import ValidationError` с `from app.schemas import Complaint` наверху). Схема уходит вместе с запросом, чтобы сервер держал модель в её рамках, — а Pydantic всё равно проверяет:
+        ```python
+        EXTRACT_PROMPT = "extract_v1"
+
+
+        class ExtractionFailed(Exception):
+            pass
+
+
+        def extract_complaint(text: str) -> Complaint:
+            schema = {"name": "complaint", "schema": Complaint.model_json_schema()}
+            for attempt in (1, 2):
+                response = client.chat.completions.create(
+                    model=settings.llm_model,
+                    messages=[
+                        {"role": "system", "content": load_prompt(EXTRACT_PROMPT)},
+                        {"role": "user", "content": text},
+                    ],
+                    temperature=0,
+                    max_tokens=300,
+                    response_format={"type": "json_schema", "json_schema": schema},
+                )
+                raw = response.choices[0].message.content
+                try:
+                    return Complaint.model_validate_json(raw)
+                except ValidationError as error:
+                    log.warning("extract attempt %d failed: %s", attempt, error.errors()[0]["msg"])
+            raise ExtractionFailed("the model did not return a valid complaint")
+        ```
+      - |
+        Добавь маршрут (импортируй `HTTPException`, обе схемы, `extract_complaint` и `ExtractionFailed`). Сломанный ответ модели — не вина того, кто вызывал, поэтому он получает `502`, а не `422`:
+        ```python
+        @router.post("/extract", response_model=Complaint)
+        def extract(body: ExtractRequest) -> Complaint:
+            try:
+                return extract_complaint(body.text)
+            except ExtractionFailed as error:
+                raise HTTPException(status_code=502, detail=str(error))
+        ```
+      - |
+        Напиши `scripts/extract_samples.py` и запусти его в боксе:
+        ```python
+        from app.services.answer import ExtractionFailed, extract_complaint
+
+        SAMPLES = [
+            "В супе был волос, а потом мне стало плохо.",
+            "Пока латте несли до столика, он совсем остыл.",
+            "Официант дважды забыл наш заказ.",
+            "Восемь евро за маленький кусочек торта — это слишком.",
+            "В туалете не было ни мыла, ни бумаги.",
+            "Wi-Fi медленный. Немного раздражает.",
+            "Я просила овсяное молоко, а мне дали коровье. У меня аллергия!",
+            "Музыка играла так громко, что мы не могли разговаривать.",
+            "У двери на полу лежало разбитое стекло.",
+            "Персонал милый, но очередь заняла 25 минут.",
+            "Сэндвич был чёрствый.",
+            "Терминал не работал, и никто не предупредил нас до заказа.",
+            "Столы липкие, повсюду крошки.",
+            "Капучино отдавал горелым.",
+            "Бариста закатил глаза, когда я задала вопрос.",
+            "С меня дважды списали деньги за один кофе.",
+            "Собака запрыгнула на наш столик прямо в зале.",
+            "В торте оказались орехи, хотя на ценнике написано «без орехов».",
+            "Хотела забронировать столик, но никто не взял трубку.",
+            "Всё было отлично, но добавьте, пожалуйста, больше веганских блюд.",
+        ]
+
+
+        def main() -> None:
+            valid = 0
+            for text in SAMPLES:
+                try:
+                    complaint = extract_complaint(text)
+                except ExtractionFailed:
+                    print(f"FAIL  {'-':<12} -  {text[:50]}")
+                    continue
+                valid += 1
+                print(f"ok    {complaint.category:<12} {complaint.urgency}  {text[:50]}")
+            print(f"{valid}/{len(SAMPLES)} valid ({valid / len(SAMPLES):.0%})")
+
+
+        if __name__ == "__main__":
+            main()
+        ```
+        `docker compose exec api python -m scripts.extract_samples`
+      - "Читай таблицу как ревьюер: «прошло валидацию» не значит «правильно». Ищи ответы, которые Pydantic пропустил, но которые всё равно неверны: двойное списание не в категории `price`, разбитое стекло или спрятанные орехи с низкой срочностью. Поменяй в промпте одну вещь, сохрани как `extract_v2.txt`, запусти снова и сравни."
+    check: "Таблица из 20 результатов и процент успеха внизу."
+  - id: m5
+    title: "Будь вежливым гостем"
+    why: "Твой код ждёт разумное время, немного повторяет попытки и никогда не заваливает сервер запросами."
+    steps:
+      - |
+        Научи клиента манерам в `app/llm.py`: ждать не больше 30 секунд и пробовать ещё не больше двух раз.
+        ```python
+        client = OpenAI(base_url=settings.llm_base_url, api_key=settings.llm_api_key, timeout=30, max_retries=2)
+        ```
+        Перед каждой новой попыткой клиент ждёт чуть дольше и повторяет только то, что стоит повторять: таймауты, `429` и `5xx`.
+      - |
+        Напиши `scripts/load_test.py`. Двадцать вопросов, не больше четырёх одновременно — `Semaphore` работает вышибалой на входе:
+        ```python
+        import asyncio
+        import time
+
+        from openai import AsyncOpenAI
+
+        from app.config import settings
+
+        client = AsyncOpenAI(base_url=settings.llm_base_url, api_key=settings.llm_api_key, timeout=30, max_retries=2)
+        limit = asyncio.Semaphore(4)
+        in_flight = 0
+
+
+        async def ask(number: int) -> float:
+            global in_flight
+            async with limit:
+                in_flight += 1
+                print(f"start {number:2}  in flight: {in_flight}")
+                start = time.perf_counter()
+                await client.chat.completions.create(
+                    model=settings.llm_model,
+                    messages=[{"role": "user", "content": f"Расскажи забавный факт номер {number} о выдрах, одним предложением."}],
+                    max_tokens=80,
+                )
+                seconds = time.perf_counter() - start
+                in_flight -= 1
+                print(f"done  {number:2}  {seconds:.1f}s")
+                return seconds
+
+
+        async def main() -> None:
+            start = time.perf_counter()
+            durations = await asyncio.gather(*(ask(n) for n in range(1, 21)))
+            print(f"20 calls in {time.perf_counter() - start:.1f}s, slowest {max(durations):.1f}s")
+
+
+        asyncio.run(main())
+        ```
+      - "Пересобери и запусти: `docker compose exec api python -m scripts.load_test`. Следи за `in flight`: число дорастает до 4 и выше не поднимается. Запиши общее время и самый медленный вызов."
+      - "Поменяй `4` на `1` и запусти снова. Потом на `20`. Какое общее время лучше всего на твоём сервере и что происходит с самым медленным вызовом?"
+    check: "`in flight` ни разу не поднимается выше 4, а общее время и самый медленный вызов записаны."
+breaks:
+  - id: b1
+    title: "Кто-кто?"
+    do: "Попроси модель, которой на сервере нет: в `scripts/first_call.py` замени `model=settings.llm_model` на `model=\"llama-9000\"`, пересобери и запусти."
+    see: "openai.NotFoundError: Error code: 404 - model 'llama-9000' not found"
+    why: "Сервер знает только те модели, которые обслуживает, и только по точным именам. Это формулировка Ollama; vLLM пишет ``The model `llama-9000` does not exist.`` А некоторые серверы с единственной моделью принимают вообще любое имя — так что имя, которое сработало на одном сервере, ничего не доказывает на другом."
+    fix: "Спроси сервер: `curl -s localhost:11434/v1/models` — и скопируй `id` в `LLM_MODEL`. Верни в скрипт `settings.llm_model`."
+  - id: b2
+    title: "Стол слишком мал"
+    do: "Положи перед вопросом целую книгу: `docker compose exec api python -c \"from app.config import settings; from app.llm import client; r = client.with_options(timeout=300).chat.completions.create(model=settings.llm_model, messages=[{'role': 'user', 'content': 'otter ' * 300000 + 'How many otters?'}], max_tokens=50); print(r.usage)\"`. На ноутбуке это может занять минуту-другую."
+    see: "openai.BadRequestError: Error code: 400"
+    why: "Промпт вместе с `max_tokens` должен поместиться в контекстное окно. vLLM отказывает с кодом `400` и пишет, что длина входа превышает максимальную длину контекста модели. Ollama не говорит ничего: посмотри на `prompt_tokens` — там гораздо меньше, чем 300 000 отправленных слов. Он молча выбросил начало твоего промпта. Стол был полон, и что-то упало на пол."
+    fix: "Считай до отправки: держи вход с запасом внутри окна и оставляй место под `max_tokens`. Если ответ вдруг игнорирует твои инструкции, сравни `prompt_tokens` с тем, что ты собиралась отправить."
+  - id: b3
+    title: "Полфразы"
+    do: "Дай модели пять токенов места: `docker compose exec api python -c \"from app.config import settings; from app.llm import client; r = client.chat.completions.create(model=settings.llm_model, messages=[{'role': 'user', 'content': 'Explain what a port is.'}], max_tokens=5); print(r.choices[0].finish_reason, '|', r.choices[0].message.content)\"`"
+    see: "length | In computer networking, a"
+    why: "`max_tokens` — размер блюда. Модель остановилась на полуслове, потому что кончилось место, и `finish_reason` так и говорит: `length`, а не `stop`. «Думающие» модели сначала пишут скрытые рассуждения, и они тоже считаются — с маленьким `max_tokens` их ответ может прийти совсем пустым."
+    fix: "Дай достаточно места и проверяй `finish_reason` в коде: `length` значит, что ответ не закончен, — не показывай его так, будто он готов."
+  - id: b4
+    title: "Нет терпения"
+    do: "Дай модели полсекунды: `docker compose exec api python -c \"from app.config import settings; from app.llm import client; client.with_options(timeout=0.5).chat.completions.create(model=settings.llm_model, messages=[{'role': 'user', 'content': 'Write 200 words about otters.'}], max_tokens=300)\"`"
+    see: "openai.APITimeoutError: Request timed out."
+    why: "Ответ пишется секунды, а не миллисекунды. И заметь: упало оно не через полсекунды, а позже. С `max_retries=2` клиент молча попробовал три раза, прежде чем сдаться."
+    fix: "Разумный таймаут — 30 секунд на ответ — и стриминг, чтобы пользователь видел, как идёт работа, а не крутилку."
+traps:
+  - error: "401 Unauthorized"
+    meaning: "API-ключа нет или он неверный."
+    firstMove: "Проверь, что переменная действительно загрузилась: выведи в боксе `settings.llm_api_key[:4]` — но никогда не весь ключ."
+  - error: "404 model not found"
+    meaning: "Имя модели не совпадает с тем, что обслуживает сервер."
+    firstMove: "`curl -s $LLM_BASE_URL/models` — и скопируй точный `id`."
+  - error: "400 … maximum context length"
+    meaning: "Промпт вместе с `max_tokens` не помещается в контекстное окно."
+    firstMove: "Сократи вход или уменьши `max_tokens`."
+  - error: "429 Too Many Requests"
+    meaning: "Ты отправляешь запросы быстрее, чем сервер разрешает."
+    firstMove: "Ограничь параллельные вызовы (`Semaphore`) и повторяй с растущими паузами."
+  - error: "Connection refused / 503"
+    meaning: "Сервер модели не работает или ещё загружает модель."
+    firstMove: "Проверь его порт и логи — уровень 2 спешит на помощь."
+  - error: "Ответ обрывается на полуслове"
+    meaning: "`finish_reason` равен `length`: ответу не хватило `max_tokens`."
+    firstMove: "Увеличь `max_tokens` и всегда проверяй `finish_reason`."
+  - error: "JSONDecodeError"
+    meaning: "Модель обернула JSON в текст или в блок кода."
+    firstMove: "Включи структурированный вывод сервера (`response_format`) и проверяй через Pydantic."
+  - error: "Вопрос тот же, ответ другой"
+    meaning: "Это сэмплирование: модель выбирает среди вероятных следующих токенов."
+    firstMove: "Снизь температуру; никогда не полагайся на точную формулировку."
+deliverable:
+  repo: "`quest-api` с `/ask`, `/ask/stream` и `/extract`, промптами в файлах и строками о токенах и задержке в логах."
+  sketch: "Один потоковый запрос на шкале времени — отправка, первый токен, последний токен — с твоими измеренными числами."
+  demo: "Покажи живой стриминг ответа и его строку в логе, а потом — как неудачное извлечение ловится и превращается в `502`."
+selfCheck:
+  - "Я могу рассказать, что происходит, когда контекстное окно заполнено."
+  - "Я проверяю `finish_reason`."
+  - "У каждого вызова LLM, который я пишу, есть таймаут и предел повторов."
+  - "Я никогда не доверяю JSON от модели без валидации."
+  - "Я могу назвать задержку своего эндпоинта двумя числами."
+quiz:
+  - q: "Ответ обрывается на полуслове, а в ответе сервера вот это. Почему?"
+    code: "finish_reason: \"length\""
+    options:
+      - "Слишком маленький `max_tokens`"
+      - "Модель упала"
+      - "Оборвалась сеть"
+    answer: 0
+    why: "`length` значит, что ответ упёрся в предел размера. Упавшая модель или оборванная сеть дали бы ошибку, а не аккуратный ответ."
+  - q: "Сервер отвечает `400` с сообщением про длину контекста. Что случилось?"
+    options:
+      - "Промпт вместе с запрошенным ответом не помещаются в окно"
+      - "Неверный API-ключ"
+      - "Сервер не работает"
+    answer: 0
+    why: "Неверный ключ — это `401`; неработающий сервер вообще не отвечает. А этот ответил — и сказал, что стол слишком мал."
+  - q: "Пользователи жалуются: приложение висит 8 секунд, а потом выдаёт всё сразу. Что поможет в первую очередь?"
+    options:
+      - "Стриминг ответа"
+      - "Купить GPU помощнее"
+      - "Поднять температуру"
+    answer: 0
+    why: "Общее время может остаться тем же, но первые слова появятся через секунду, а не через восемь. Ждать, пока что-то происходит, совсем не то же, что смотреть в пустоту."
+  - q: "Модель возвращает `Sure! Here is the JSON: {…}`, и парсер падает. Что делать?"
+    options:
+      - "Структурированный вывод, валидация и одна повторная попытка"
+      - "Добавить в промпт «пожалуйста»"
+      - "Вечно разбирать ответ регулярками"
+    answer: 0
+    why: "Структурированный вывод заставляет сервер держать модель в рамках схемы, валидация ловит то, что проскочило, а одна повторная попытка спасает от невезения. «Пожалуйста» — это вежливо, но не гарантия."
+  - q: "Ты отправляешь 100 запросов разом и получаешь кучу `429`. Что делать?"
+    options:
+      - "Ограничить число одновременных вызовов и повторять с паузами"
+      - "Отправлять ещё быстрее"
+      - "Не обращать внимания на ошибки"
+    answer: 0
+    why: "`429` значит «слишком много, притормози». `Semaphore` держит число одновременных вызовов небольшим, а растущие паузы дают серверу перевести дух."
+links:
+  - title: "Справочник OpenAI API: chat"
+    url: "https://platform.openai.com/docs/api-reference/chat"
+    why: "Все поля запроса и ответа чата — ту самую форму, которую копирует большинство серверов моделей. На английском."
+  - title: "Документация vLLM"
+    url: "https://docs.vllm.ai/"
+    why: "Сервер моделей, который чаще всего встречается в продакшене: как он загружает модели и обслуживает много клиентов. На английском."
+  - title: "Ollama"
+    url: "https://ollama.com/"
+    why: "Маленькие модели на твоём ноутбуке, с OpenAI-совместимым API. На английском."
+  - title: "Обзор промпт-инжиниринга"
+    url: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview"
+    why: "Как писать промпты, которые понятны, проверяемы и легко меняются. На английском."
+cheatsheet:
+  - { cmd: "curl -s $LLM_BASE_URL/models", does: "Какие имена моделей принимает сервер?" }
+  - { cmd: "curl -s $LLM_BASE_URL/chat/completions -H \"Content-Type: application/json\" -d '{\"model\":\"…\",\"messages\":[{\"role\":\"user\",\"content\":\"Hi\"}]}'", does: "Один вызов чата, без Python" }
+  - { cmd: "curl -N …", does: "Печатать поток сразу, как он приходит, ничего не копя" }
+  - { cmd: "nvidia-smi", does: "Видеокарты, их память и кто ими пользуется" }
+  - { cmd: "watch -n 1 nvidia-smi", does: "То же самое, с обновлением каждую секунду" }
+  - { cmd: "temperature", does: "Насколько смело модель выбирает слова: 0 для извлечения, чуть больше для чата" }
+  - { cmd: "max_tokens", does: "Самый большой допустимый ответ; он делит окно с промптом" }
+  - { cmd: "stream", does: "`true`: токены приходят по мере создания" }
+  - { cmd: "timeout", does: "Сколько клиент ждёт, прежде чем сдаться" }
+  - { cmd: "max_retries", does: "Сколько дополнительных попыток после таймаута, `429` или `5xx`" }
+  - { cmd: "finish_reason", does: "`stop` — закончил; `length` — обрезан по `max_tokens`" }
+kindNote: >
+  Поболтать с моделью может кто угодно. А ты теперь умеешь встроить её в
+  сервис, который остаётся вежливым под нагрузкой: ждёт разумное время,
+  немного повторяет попытки, держит ответы в рамках и проверяет их, прежде
+  чем им доверять. Именно этим демо отличается от продукта — и ты
+  построила продукт. Порто теперь засекает время всего подряд маленьким
+  секундомером.
+---
+
+import Diagram from '../../../components/Diagram.astro';
+import Analogy from '../../../components/Analogy.astro';
+
+До сих пор `/ask` притворялся. На этом уровне он спрашивает настоящую
+языковую модель — а ты учишься обращаться с ней как с любым другим
+сервисом в сети: с лимитами, таймаутами, логами и здоровым недоверием к
+тому, что приходит в ответ.
+
+**Где взять модель?** Спроси ментора, каким эндпоинтом пользоваться. Если
+его нет, запусти маленькую модель на ноутбуке через Ollama: он отдаёт
+OpenAI-совместимый API по адресу `http://localhost:11434/v1`. Миссия 1
+показывает оба пути.
+
+<Analogy />
+
+## Как выглядит API
+
+Большинство серверов моделей — vLLM, Ollama и многие другие — говорят на
+том же языке, что и API OpenAI. Поэтому один клиент работает со всеми,
+меняется только адрес:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url=settings.llm_base_url, api_key=settings.llm_api_key)
+response = client.chat.completions.create(
+    model=settings.llm_model,
+    messages=[
+        {"role": "system", "content": "Отвечай одним коротким предложением."},
+        {"role": "user", "content": "Что такое порт?"},
+    ],
+    temperature=0.2,
+    max_tokens=200,
+)
+print(response.choices[0].message.content, response.usage)
+```
+
+Сообщение **system** задаёт правила, сообщение **user** — это вопрос.
+`GET /v1/models` показывает точные имена моделей, которые принимает
+сервер. Копируй их, а не угадывай.
+
+## Токены и контекстное окно
+
+Модели читают и пишут **токенами** — кусочками слов. «Выдра» может быть
+одним токеном или несколькими; длинное редкое слово — четырьмя. Всё
+считается в один общий предел — **контекстное окно**: системный промпт,
+документы, вопрос и ответ, который ещё только предстоит написать. Токены
+промпта плюс `max_tokens` должны поместиться.
+
+<Diagram name="context-window" />
+
+Каждый ответ сообщает, во сколько он обошёлся, в поле `usage`:
+`prompt_tokens` ушло на вход, `completion_tokens` пришло на выходе. И
+каждый ответ объясняет, почему остановился, в `finish_reason`: `stop` —
+модель закончила, `length` — кончился `max_tokens`, и мысль оборвалась.
+
+Что будет, если не поместилось, зависит от сервера. vLLM отказывает с
+кодом `400`. Ollama молча отрезает начало промпта и всё равно отвечает —
+и это хуже, потому что тебе никто ничего не сообщает. Узнать об этом
+можно, только читая `usage`.
+
+## Стриминг
+
+Модель пишет по одному токену за раз. Без стриминга ты ждёшь последний,
+прежде чем увидишь первый. Со стримингом сервер отправляет каждый кусочек,
+как только он готов, в виде **server-sent events**: строк, которые
+начинаются с `data:`.
+
+Скорость описывают два числа: **время до первого токена** — сколько
+пользователь смотрит в пустоту — и **токенов в секунду** после этого. Во
+FastAPI `StreamingResponse` передаёт кусочки дальше, по мере того как они
+приходят.
+
+<Diagram name="streaming-timeline" />
+
+## Всё ломается
+
+Сервер модели — это сервис в сети, и ломается он так же: отвечает по
+таймауту, выдаёт `429 Too Many Requests`, когда на него слишком давят,
+отдаёт `5xx`, пока перезапускается. Давай каждому клиенту `timeout=` и
+`max_retries=`. Перед каждой новой попыткой клиент ждёт чуть дольше — и
+останавливается, когда предел исчерпан. **Никогда не повторяй
+бесконечно**: зависший сервер плюс бесконечные повторы — это пробка,
+которую ты построила сама.
+
+## Структурированный вывод
+
+Когда ответ читает код, прозы мало. Попроси JSON, который соответствует
+схеме, передай схему вместе с запросом (`response_format`), чтобы сервер
+держал модель в её рамках, — и всё равно проверь результат через
+Pydantic. А потом реши, что делать, если проверка не прошла: одна
+повторная попытка, а затем понятная ошибка. Для извлечения ставь
+`temperature=0`: нужна одна и та же анкета, заполненная одинаково, а не
+творчество.
+
+## Промпты — это код
+
+Промпт меняет поведение сервиса так же, как код. Поэтому он живёт в
+файле, в git, с версией в имени: `answer_v1.txt`, `answer_v2.txt`.
+Меняй одну вещь за раз и сравнивай результаты на одних и тех же вопросах.
+«Я поправила промпт, и вроде стало лучше» — это не результат.
+
+## Много запросов разом
+
+Ждать модель — это в основном ждать, та самая работа, которую ты видела
+в цикле событий на уровне 3. С асинхронным клиентом один процесс может
+ждать много ответов одновременно. Но у сервера тоже есть пределы, поэтому
+на входе ставим вышибалу: `asyncio.Semaphore(4)` пускает внутрь не больше
+четырёх вызовов разом.
+
+```python
+limit = asyncio.Semaphore(4)
+
+async def ask(question: str) -> str:
+    async with limit:
+        response = await client.chat.completions.create(...)
+        return response.choices[0].message.content
+```
+
+## Где живёт модель
+
+Сервер моделей вроде vLLM один раз загружает модель в видеокарту и
+обслуживает много клиентов: `vllm serve <model> --port 8000`. Веса модели
+занимают большую часть памяти GPU ещё до первого вопроса; `nvidia-smi`
+показывает, сколько именно. Чаще всего ты будешь клиентом — но теперь ты
+знаешь, что находится по ту сторону порта.
+
+## Что запомнить
+
+1. **Промпт плюс `max_tokens` должны поместиться в окно.** Читай `usage`.
+2. **Проверяй `finish_reason`.** `length` значит «не закончено».
+3. **У каждого вызова есть таймаут и предел повторов.** Никогда не повторяй бесконечно.
+4. **Никогда не доверяй JSON от модели без валидации.**
+5. **Задержка — это два числа:** время до первого токена и токены в секунду.

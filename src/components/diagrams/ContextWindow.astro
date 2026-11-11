@@ -1,0 +1,43 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['contextWindow'];
+}
+const { t } = Astro.props;
+const LIMIT = 660;
+---
+<Frame id="dg-context" w={720} h={330} title={t.title} desc={t.desc}>
+  <path d={`M${LIMIT} 36 V300`} stroke="var(--danger)" stroke-width="3" stroke-dasharray="8 7" />
+  <Label x={LIMIT} y={22} text={t.limit} size={12} weight={800} color="var(--danger-ink)" />
+
+  <Label x={40} y={46} text={t.fits} anchor="start" size={13} weight={800} />
+  <Box x={40} y={62} w={90} h={52} fill="var(--card-2)" seed={181} />
+  <Label x={85} y={88} text={t.system} size={12} weight={700} />
+  <Box x={130} y={62} w={270} h={52} fill="var(--sun-soft)" seed={182} />
+  <Label x={265} y={88} text={t.documents} size={13} weight={700} />
+  <Box x={400} y={62} w={74} h={52} fill="var(--teal-soft)" seed={183} />
+  <Label x={437} y={88} text={t.question} size={12} weight={700} />
+  <Box x={474} y={62} w={130} h={52} fill="var(--coral-soft)" dashed seed={184} />
+  <Label x={539} y={88} text={t.answer} size={12} weight={700} />
+
+  <path d="M40 128 H470" stroke="var(--ink-soft)" stroke-width="2" />
+  <path d="M40 122 V134 M470 122 V134" stroke="var(--ink-soft)" stroke-width="2" />
+  <Label x={255} y={146} text={t.promptTokens} size={12} weight={700} color="var(--ink-soft)" />
+  <path d="M478 128 H604" stroke="var(--ink-soft)" stroke-width="2" />
+  <path d="M478 122 V134 M604 122 V134" stroke="var(--ink-soft)" stroke-width="2" />
+  <Label x={541} y={146} text="max_tokens" size={12} weight={700} mono color="var(--ink-soft)" />
+
+  <Label x={40} y={192} text={t.tooFull} anchor="start" size={13} weight={800} />
+  <Box x={40} y={208} w={90} h={52} fill="var(--card-2)" seed={185} />
+  <Label x={85} y={234} text={t.system} size={12} weight={700} />
+  <Box x={130} y={208} w={456} h={52} fill="var(--sun-soft)" seed={186} />
+  <Label x={358} y={234} text={t.documents} size={13} weight={700} />
+  <Box x={586} y={208} w={74} h={52} fill="var(--teal-soft)" seed={187} />
+  <Label x={623} y={234} text={t.question} size={12} weight={700} />
+  <Box x={660} y={208} w={52} h={52} fill="var(--coral-soft)" stroke="var(--danger)" dashed seed={188} />
+  <Label x={686} y={234} text="?" size={18} weight={800} color="var(--danger-ink)" />
+  <Label x={350} y={290} text={t.overflow} size={12} weight={800} color="var(--danger-ink)" />
+</Frame>
