@@ -6,7 +6,6 @@ import Pill from '../../../components/ui/Pill.astro';
 import TickRow from '../../../components/ui/TickRow.astro';
 import ProgressRing from '../../../components/ui/ProgressRing.astro';
 import Reveal from '../../../components/ui/Reveal.astro';
-import Dialog from '../../../components/ui/Dialog.astro';
 import CodeBlock from '../../../components/ui/CodeBlock.astro';
 import Porto from '../../../components/porto/Porto';
 import ErrorQuiz from '../../../components/widgets/ErrorQuiz';
@@ -105,6 +104,7 @@ const clientData = {
     badgeBody: L.badgeBody,
   },
   lines: portoPool(lang, 'levelDone'),
+  rare: portoPool(lang, 'rareToast'),
 };
 ---
 <Base lang={lang} title={`${fill(L.number, { n: d.id })}: ${d.title}`} description={d.tagline} wide>
@@ -148,6 +148,7 @@ const clientData = {
           <div>
             <h2 id="h-normal">{S.normal}</h2>
             <p set:html={renderInline(d.itsNormal)} />
+            <p class="porto-aside">— {portoPool(lang, 'asides')[d.id - 1]}</p>
           </div>
         </Card>
       </section>
@@ -287,13 +288,27 @@ const clientData = {
     </article>
   </div>
 
-  <Dialog id="badge-dialog" title={L.badgeTitle} class="badge-dialog">
-    <p class="badge-big" aria-hidden="true">{d.badge.emoji}</p>
-    <p class="badge-name">{d.badge.name}</p>
-    <p>{fill(L.badgeBody, { n: d.id, name: d.badge.name })}</p>
-    <p class="badge-line" data-badge-line></p>
-    <Fragment slot="actions"><button class="btn btn-primary" value="ok">{L.badgeClose}</button></Fragment>
-  </Dialog>
+  <dialog class="dialog levelup" id="badge-dialog" aria-labelledby="levelup-title">
+    <form method="dialog" class="levelup-body">
+      <div class="levelup-rays" aria-hidden="true"></div>
+      <p class="levelup-kicker">{fill(dict.fun.levelUpKicker, { n: d.id })}</p>
+      <div class="levelup-badge" aria-hidden="true"><span>{d.badge.emoji}</span></div>
+      <h2 id="levelup-title" class="levelup-name">{d.badge.name}</h2>
+      <p class="levelup-xp">+<span data-levelup-xp>0</span> XP</p>
+      <dl class="levelup-facts">
+        <div>
+          <dt>{dict.fun.levelUpOfficial}</dt>
+          <dd set:html={renderInline(portoPool(lang, 'titles')[d.id - 1] ?? '')} />
+        </div>
+        <div>
+          <dt>{dict.fun.levelUpVerdict}</dt>
+          <dd data-badge-line></dd>
+        </div>
+      </dl>
+      <div class="levelup-porto"><Porto mood="cheer" size={104} /></div>
+      <button class="btn btn-primary levelup-close" value="ok">{L.badgeClose}</button>
+    </form>
+  </dialog>
 
   <script type="application/json" id="level-data" set:html={JSON.stringify(clientData)} />
 </Base>
@@ -326,6 +341,7 @@ const clientData = {
     badge: { name: string; emoji: string };
     t: Record<'xpToast' | 'finishedOn' | 'peek' | 'peekBoss' | 'badgeBody', string>;
     lines: string[];
+    rare: string[];
   };
   const data = JSON.parse(document.getElementById('level-data')!.textContent!) as Data;
   const id = data.id;
@@ -379,6 +395,10 @@ const clientData = {
         return;
       }
       if (input.checked && XP_FOR[kind] > 0) toast(fill(data.t.xpToast, { xp: XP_FOR[kind] }));
+      // One tick in twenty-five gets a pointless extra message.
+      if (input.checked && Math.random() < 1 / 25) {
+        setTimeout(() => toast(data.rare[Math.floor(Math.random() * data.rare.length)]!, 3200), 700);
+      }
     });
   }
 
@@ -390,6 +410,15 @@ const clientData = {
     const line = document.querySelector<HTMLElement>('[data-badge-line]');
     if (line) line.textContent = data.lines[Math.floor(Math.random() * data.lines.length)]!;
     dialog.showModal();
+    // The XP number counts up.
+    const xpEl = dialog.querySelector<HTMLElement>('[data-levelup-xp]')!;
+    const start = performance.now();
+    const step = (now: number) => {
+      const k = Math.min(1, (now - start) / 900);
+      xpEl.textContent = String(Math.round(XP.level * (1 - (1 - k) ** 3)));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   });
   dialog.addEventListener('close', () => {
     kindNote.scrollIntoView({ block: 'center' });

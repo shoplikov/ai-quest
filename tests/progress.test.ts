@@ -250,3 +250,35 @@ describe('stored data', () => {
     expect(p?.hero).toHaveLength(24);
   });
 });
+
+import { addSecret, bumpStat, decodeShare as dec, emptyProgress as empty, encodeShare as enc, validateProgress as validate } from '../src/lib/progress';
+
+describe('secrets', () => {
+  it('old saves without secrets still load', () => {
+    const old = JSON.parse(JSON.stringify(empty(new Date('2026-01-01'))));
+    expect(validate(old)).not.toBeNull();
+    expect(validate(old)!.secrets).toBeUndefined();
+  });
+  it('adds a secret once and drops unknown ids', () => {
+    let p = addSecret(empty(), 'old-school');
+    expect(addSecret(p, 'old-school')).toBe(p);
+    const dirty = { ...p, secrets: ['old-school', 'nope'] };
+    expect(validate(dirty)!.secrets).toEqual(['old-school']);
+  });
+  it('a counter unlocks its secret at the goal', () => {
+    let p = empty();
+    for (let i = 0; i < 9; i++) p = bumpStat(p, 'pokes');
+    expect(p.secrets).toBeUndefined();
+    p = bumpStat(p, 'pokes');
+    expect(p.secrets).toEqual(['otter-botherer']);
+  });
+  it('secrets survive a share link', () => {
+    const p = bumpStat(addSecret(empty(), 'night-owl'), 'excuses');
+    const back = dec(enc(p))!;
+    expect(back.secrets).toEqual(['night-owl']);
+    expect(back.stats).toEqual({ excuses: 1 });
+  });
+  it('rejects a broken stats field', () => {
+    expect(validate({ ...empty(), stats: 5 })).toBeNull();
+  });
+});

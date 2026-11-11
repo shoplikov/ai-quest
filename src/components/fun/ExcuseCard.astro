@@ -1,0 +1,67 @@
+---
+// Emergency excuse generator. Pure decoration; counts toward a secret.
+import Card from '../ui/Card.astro';
+import Porto from '../porto/Porto';
+import { getDict, type Lang } from '../../i18n';
+import { portoPool } from '../../lib/porto';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const F = getDict(lang).fun;
+const data = { excuses: portoPool(lang, 'excuses'), fortunes: portoPool(lang, 'fortunes'), copied: F.excuseCopied };
+---
+<Card variant="soft" class="excuse-card" data-excuse-card>
+  <div class="excuse-head">
+    <Porto mood="thinking" size={72} />
+    <div>
+      <h2 class="excuse-title">{F.excuseTitle}</h2>
+      <p class="excuse-intro">{F.excuseIntro}</p>
+    </div>
+  </div>
+  <p class="excuse-out" data-excuse-out aria-live="polite">{F.excuseEmpty}</p>
+  <div class="excuse-actions">
+    <button type="button" class="btn btn-primary" data-excuse="excuses">{F.excuseButton}</button>
+    <button type="button" class="btn" data-excuse="fortunes">{F.fortuneButton}</button>
+    <button type="button" class="btn btn-ghost" data-excuse-copy hidden>{F.excuseCopy}</button>
+  </div>
+  <script type="application/json" data-excuse-data set:html={JSON.stringify(data)} />
+</Card>
+
+<script>
+  import { toast } from '../../lib/toast';
+
+  for (const card of document.querySelectorAll<HTMLElement>('[data-excuse-card]')) {
+    const data = JSON.parse(card.querySelector('[data-excuse-data]')!.textContent!) as {
+      excuses: string[];
+      fortunes: string[];
+      copied: string;
+    };
+    const out = card.querySelector<HTMLElement>('[data-excuse-out]')!;
+    const copy = card.querySelector<HTMLButtonElement>('[data-excuse-copy]')!;
+    let last = '';
+    for (const btn of card.querySelectorAll<HTMLButtonElement>('[data-excuse]')) {
+      btn.addEventListener('click', () => {
+        const pool = data[btn.dataset.excuse as 'excuses' | 'fortunes'];
+        let line = last;
+        while (line === last) line = pool[Math.floor(Math.random() * pool.length)]!;
+        last = line;
+        out.textContent = line.replaceAll('`', '');
+        out.classList.remove('is-new');
+        void out.offsetWidth;
+        out.classList.add('is-new');
+        copy.hidden = false;
+        document.dispatchEvent(new CustomEvent('quest:excuse'));
+      });
+    }
+    copy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(out.textContent ?? '');
+        toast(data.copied);
+      } catch {
+        /* no clipboard: the text is on screen anyway */
+      }
+    });
+  }
+</script>

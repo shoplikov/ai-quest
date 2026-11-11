@@ -33,6 +33,30 @@ export type Progress = {
   skills: Record<string, SkillRating>;
   days: string[];
   theme?: Theme;
+  /** Secret achievements found so far (ids from SECRET_IDS). */
+  secrets?: SecretId[];
+  /** Small counters behind the secrets. */
+  stats?: Partial<Record<StatKey, number>>;
+};
+
+export const SECRET_IDS = [
+  'otter-botherer',
+  'night-owl',
+  'scientist',
+  'old-school',
+  'indecisive',
+  'lost-tourist',
+  'paper-person',
+  'excuse-artist',
+] as const;
+export type SecretId = (typeof SECRET_IDS)[number];
+export const STAT_KEYS = ['pokes', 'quizMisses', 'excuses'] as const;
+export type StatKey = (typeof STAT_KEYS)[number];
+/** How many times a counter must be reached for its secret. */
+export const SECRET_GOALS: Record<StatKey, { secret: SecretId; goal: number }> = {
+  pokes: { secret: 'otter-botherer', goal: 10 },
+  quizMisses: { secret: 'scientist', goal: 5 },
+  excuses: { secret: 'excuse-artist', goal: 10 },
 };
 
 // ---------- creation ----------
@@ -101,6 +125,14 @@ export function validateProgress(x: unknown): Progress | null {
   }
   if (!x.days.every(isDay)) return null;
   if (x.theme !== undefined && x.theme !== 'light' && x.theme !== 'dark') return null;
+  if (x.secrets !== undefined && !isStrArr(x.secrets)) return null;
+  if (x.stats !== undefined && !isObj(x.stats)) return null;
+  const secrets = SECRET_IDS.filter((id) => ((x.secrets as string[] | undefined) ?? []).includes(id));
+  const stats: Partial<Record<StatKey, number>> = {};
+  for (const key of STAT_KEYS) {
+    const n = (x.stats as Record<string, unknown> | undefined)?.[key];
+    if (Number.isInteger(n) && (n as number) > 0) stats[key] = Math.min(n as number, 9999);
+  }
 
   const levels: Record<string, LevelProgress> = {};
   for (const [k, v] of Object.entries(x.levels as Record<string, LevelProgress>)) {
@@ -123,6 +155,8 @@ export function validateProgress(x: unknown): Progress | null {
     skills: { ...(x.skills as Record<string, SkillRating>) },
     days: [...new Set(x.days as string[])].sort(),
     ...(x.theme ? { theme: x.theme as Theme } : {}),
+    ...(secrets.length ? { secrets } : {}),
+    ...(Object.keys(stats).length ? { stats } : {}),
   };
 }
 
@@ -343,6 +377,20 @@ export function setBossItem(p: Progress, item: string, on: boolean, today: strin
 export function finishBoss(p: Progress, now: Date): Progress {
   if (p.boss.doneAt) return p;
   return markDay({ ...p, boss: { ...p.boss, doneAt: now.toISOString() } }, dayKey(now));
+}
+
+/** Adds a secret achievement. Returns the same object if it is already there. */
+export function addSecret(p: Progress, id: SecretId): Progress {
+  if (p.secrets?.includes(id)) return p;
+  return { ...p, secrets: [...(p.secrets ?? []), id] };
+}
+
+/** Adds one to a counter and unlocks its secret when the goal is reached. */
+export function bumpStat(p: Progress, key: StatKey): Progress {
+  const n = (p.stats?.[key] ?? 0) + 1;
+  const next: Progress = { ...p, stats: { ...p.stats, [key]: n } };
+  const { secret, goal } = SECRET_GOALS[key];
+  return n >= goal ? addSecret(next, secret) : next;
 }
 
 export function setSkill(p: Progress, levelId: string | number, rating: SkillRating): Progress {

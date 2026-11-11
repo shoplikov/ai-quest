@@ -1,4 +1,6 @@
 ---
+import Secrets from '../../components/fun/Secrets.astro';
+import ExcuseCard from '../../components/fun/ExcuseCard.astro';
 import Base from '../../layouts/Base.astro';
 import Card from '../../components/ui/Card.astro';
 import Button from '../../components/ui/Button.astro';
@@ -122,6 +124,8 @@ const clientData = {
       <p class="badges-none" data-badges-none>{dict.home.badgesNone}</p>
     </Card>
 
+    <Secrets lang={lang} />
+
     <h2 class="visually-hidden">{dict.home.mapTitle}</h2>
     <QuestMap lang={lang} levels={levels} bossExists={bossExists} />
 
@@ -132,6 +136,8 @@ const clientData = {
       </div>
       <Button href={localePath(lang, '/level/1')} data-next-link>{dict.home.nextGo}</Button>
     </Card>
+
+    <ExcuseCard lang={lang} />
 
     <div class="share-row" data-share-row>
       <button type="button" class="btn btn-ghost" data-share>{dict.home.share}</button>

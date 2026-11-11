@@ -1,5 +1,6 @@
 ---
 // Guide for the mentor (docs/spec/extras.md → Mentor guide).
+import ExcuseCard from '../../components/fun/ExcuseCard.astro';
 import Base from '../../layouts/Base.astro';
 import Card from '../../components/ui/Card.astro';
 import Porto from '../../components/porto/Porto';
@@ -47,5 +48,6 @@ const M = getPages(lang).mentor;
         )}
       </section>
     ))}
+    <ExcuseCard lang={lang} />
   </article>
 </Base>

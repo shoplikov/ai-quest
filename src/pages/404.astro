@@ -7,15 +7,17 @@ import Porto from '../components/porto/Porto';
 import { pages as en } from '../data/pages.en';
 import { pages as ru } from '../data/pages.ru';
 import { en as dictEn } from '../i18n/en';
+import { ru as dictRu } from '../i18n/ru';
 import '@fontsource-variable/nunito';
 import '../styles/tokens.css';
 import '../styles/base.css';
 import '../styles/components.css';
 import '../styles/pages.css';
+import '../styles/polish.css';
 
 const blocks = [
-  { lang: 'en', t: en.notFound },
-  { lang: 'ru', t: ru.notFound },
+  { lang: 'en', t: en.notFound, f: dictEn.fun },
+  { lang: 'ru', t: ru.notFound, f: dictRu.fun },
 ];
 ---
 <!doctype html>
@@ -29,16 +31,26 @@ const blocks = [
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
-    <main class="container not-found">
-      <Porto mood="cozy" size={150} />
+    <main class="container not-found crash">
       {blocks.map((b) => (
-        <section lang={b.lang} data-lang-block={b.lang}>
+        <section lang={b.lang} data-lang-block={b.lang} class="crash-screen">
+          <p class="crash-face" aria-hidden="true">:(</p>
           <h1>{b.t.title}</h1>
+          <p class="crash-code">{b.f.crashCode}</p>
+          <ul class="crash-lines">
+            {b.f.crashLines.map((line, i) => <li style={`--i:${i}`}>{line}</li>)}
+          </ul>
           <p class="not-found-line">{b.t.line}</p>
-          <p><a class="btn btn-primary" href={`/${b.lang}/`}>{b.t.back}</a></p>
+          <p><a class="btn btn-primary" href={`/${b.lang}/`}>{b.f.crashReboot}</a></p>
         </section>
       ))}
+      <div class="crash-porto"><Porto mood="cozy" size={120} /></div>
     </main>
+    <script>
+      import { addSecret } from '../lib/progress';
+      import { hasStarted, isViewMode, updateProgress } from '../lib/store';
+      if (hasStarted() && !isViewMode()) updateProgress((p) => addSecret(p, 'lost-tourist'));
+    </script>
     <script is:inline>
       (function () {
         var lang = null;

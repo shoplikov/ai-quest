@@ -215,6 +215,17 @@ export const portoLines = {
     'Certified Person Who Read the Logs',
     'Suspiciously Employable Engineer, First Class',
   ],
+  // One aside per level (1–8), shown under the level header.
+  asides: [
+    "The terminal is a text adventure where the dragon is a typo.",
+    "65,535 doors and your app picked the one that is taken. Classic.",
+    "An API is a waiter. A 500 is the waiter crying in the kitchen.",
+    "A container is a lunchbox. Nobody remembers what is in last week's.",
+    "A database remembers everything. Especially what you wish it would forget.",
+    "The model is very confident. That is not the same as correct.",
+    "RAG: giving the model a book so it stops inventing the book.",
+    "Production is where code goes to meet real people. Bring logs.",
+  ],
   // Console greeting for people who open DevTools.
   console: [
     'Oh. You opened DevTools. You are one of us. — Porto',

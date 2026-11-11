@@ -48,6 +48,7 @@ export default function ErrorQuiz({ level: levelId, quiz, strings: t, lines }: P
     const next = choose(state, option);
     setState(next);
     setLine(pick(option === q.answer ? lines.hit : lines.miss));
+    if (option !== q.answer) document.dispatchEvent(new CustomEvent('quest:quiz-miss'));
   }
 
   useLayoutEffect(() => {

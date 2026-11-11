@@ -3,6 +3,8 @@ import { languages, switchLangPath, getDict, localePath, type Lang } from '../i1
 import LangSwitcher from '../components/LangSwitcher.astro';
 import ThemeScript from '../components/ThemeScript.astro';
 import ThemeToggle from '../components/ThemeToggle.astro';
+import Porto from '../components/porto/Porto';
+import { portoPool } from '../lib/porto';
 import '@fontsource-variable/nunito';
 import '@fontsource-variable/jetbrains-mono';
 import '../styles/tokens.css';
@@ -24,6 +26,23 @@ const { lang, title, description, active, wide = false } = Astro.props;
 const dict = getDict(lang);
 const fullTitle = title ? `${title} · ${dict.site.name}` : dict.site.name;
 const path = Astro.url.pathname;
+const funData = {
+  lines: {
+    poke: portoPool(lang, 'poke'),
+    idle: portoPool(lang, 'idle'),
+    fastScroll: portoPool(lang, 'fastScroll'),
+    night: portoPool(lang, 'night'),
+    console: portoPool(lang, 'console'),
+  },
+  secrets: dict.fun.secrets,
+  t: {
+    secretToast: dict.fun.secretToast,
+    hush: dict.fun.hush,
+    unhush: dict.fun.unhush,
+    hushed: dict.fun.hushed,
+    unhushed: dict.fun.unhushed,
+  },
+};
 const links = [
   { key: 'map', href: localePath(lang, '/'), label: dict.nav.map },
   { key: 'skills', href: localePath(lang, '/skills'), label: dict.nav.skills },
@@ -42,6 +61,13 @@ const links = [
     <meta name="theme-color" content="#FFF8EE" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#161A2B" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={dict.site.name} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description ?? dict.site.subtitle} />
+    <meta property="og:locale" content={lang === 'ru' ? 'ru_RU' : 'en_US'} />
     {languages.map((l) => <link rel="alternate" hreflang={l} href={switchLangPath(path, l)} />)}
     <link rel="alternate" hreflang="x-default" href="/" />
     <slot name="head" />
@@ -128,6 +154,7 @@ const links = [
         <p class="footer-line">{dict.footer.line}</p>
         <div class="footer-links">
           <a href={localePath(lang, '/mentor')}>{dict.footer.mentor}</a>
+          <button type="button" class="link-btn" data-hush>{dict.fun.hush}</button>
           <button type="button" class="link-btn" data-reset-open>{dict.footer.reset}</button>
         </div>
       </div>
@@ -144,6 +171,14 @@ const links = [
       </form>
     </dialog>
 
+    <div class="buddy" data-buddy>
+      <p class="buddy-bubble" data-buddy-bubble role="status" hidden></p>
+      <button type="button" class="buddy-btn" data-buddy-btn aria-label={dict.fun.buddyLabel}>
+        <Porto mood="hello" size={68} />
+      </button>
+    </div>
+    <script type="application/json" id="fun-data" set:html={JSON.stringify(funData)} />
+
     <div class="toast-area" role="status" aria-live="polite" data-reset-done={dict.reset.done} data-view-exited={dict.view.exited}></div>
 
     <script>
@@ -159,6 +194,9 @@ const links = [
       } from '../lib/store';
       import { toast } from '../lib/toast';
       import { fill } from '../i18n';
+      import { initFun, type FunData } from '../lib/fun';
+
+      initFun(JSON.parse(document.getElementById('fun-data')!.textContent!) as FunData);
 
       const $ = <T extends Element>(sel: string) => document.querySelector<T>(sel);
 
