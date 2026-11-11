@@ -108,6 +108,7 @@ const clientData = {
 };
 ---
 <Base lang={lang} title={`${fill(L.number, { n: d.id })}: ${d.title}`} description={d.tagline} wide>
+  <div class="read-bar" aria-hidden="true"></div>
   <div class="level-layout" data-level-page data-level={d.id}>
     <nav class="toc" aria-label={L.toc}>
       <p class="toc-title">{L.toc}</p>

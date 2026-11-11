@@ -56,11 +56,19 @@
   --measure: 70ch;
 
   /* Shape */
+  --r-xs: 6px;
+  --r-sm: 8px;
   --r-card: 18px;
   --r-ctl: 12px;
   --r-pill: 999px;
   --border: 2px solid var(--line);
   --sticker: 0 4px 0 var(--line);
+  /* Soft depth, used together with the sticker shadow */
+  --shadow-soft: 0 14px 28px -20px rgba(42, 36, 64, 0.35);
+  --shadow-pop: 0 22px 44px -22px rgba(42, 36, 64, 0.5);
+  --scrim: rgba(22, 26, 43, 0.55);
+  --ink-fixed: #2a2440; /* dark ink on sun-coloured surfaces, both themes */
+  --lilac-soft: rgba(142, 124, 240, 0.16);
 
   /* Space scale: 4, 8, 12, 16, 24, 32, 48, 72 */
   --s1: 4px;
@@ -83,6 +91,10 @@
   --t-mid: 250ms;
   --t-slow: 300ms;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Breakpoints (CSS cannot read variables in media queries; these are the
+   * three widths to use): phone 520px, tablet 860px, desk 1040px. */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -115,6 +127,9 @@
     --coral-soft: rgba(255, 138, 126, 0.16);
     --sun-soft: rgba(255, 212, 102, 0.16);
     --focus: #ffd466;
+    --shadow-soft: 0 14px 28px -18px rgba(0, 0, 0, 0.6);
+    --shadow-pop: 0 22px 44px -20px rgba(0, 0, 0, 0.75);
+    --lilac-soft: rgba(169, 155, 255, 0.16);
   }
 }
 
@@ -147,4 +162,7 @@
   --coral-soft: rgba(255, 138, 126, 0.16);
   --sun-soft: rgba(255, 212, 102, 0.16);
   --focus: #ffd466;
+  --shadow-soft: 0 14px 28px -18px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 22px 44px -20px rgba(0, 0, 0, 0.75);
+  --lilac-soft: rgba(169, 155, 255, 0.16);
 }

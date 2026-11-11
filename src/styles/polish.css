@@ -1,0 +1,483 @@
+/* Polish layer: depth, smooth state changes, page transitions.
+ * Loaded after components.css. Everything here is progressive: browsers
+ * that lack a feature keep the plain behaviour. Motion is switched off by
+ * the reduced-motion rule in base.css. */
+
+/* ---------- Page transitions (no router, plain CSS) ---------- */
+@view-transition {
+  navigation: auto;
+}
+.site-header {
+  view-transition-name: site-header;
+}
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: vt-out 140ms var(--ease) both;
+  }
+  ::view-transition-new(root) {
+    animation: vt-in 260ms var(--ease) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* ---------- Paper ---------- */
+body {
+  background-image: radial-gradient(color-mix(in srgb, var(--line) 70%, transparent) 1.2px, transparent 1.3px);
+  background-size: 26px 26px;
+  background-attachment: fixed;
+}
+@media print {
+  body {
+    background-image: none;
+  }
+}
+
+/* ---------- Header ---------- */
+.site-header {
+  transition: box-shadow var(--t-mid) var(--ease);
+}
+html[data-scrolled] .site-header {
+  box-shadow: var(--shadow-soft);
+}
+.brand-mark {
+  transition: transform var(--t-slow) var(--ease-spring);
+}
+.brand:hover .brand-mark {
+  transform: rotate(-10deg) scale(1.08);
+}
+.nav-links a,
+.pill,
+.toc a,
+.link-btn,
+.copy-btn,
+.menu-btn {
+  transition:
+    background-color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
+}
+.nav-links a:active,
+.menu-btn:active {
+  transform: scale(0.96);
+}
+a.pill:hover {
+  transform: translateY(-1px);
+}
+.pill-xp.is-bump {
+  animation: xp-bump 520ms var(--ease-spring);
+}
+@keyframes xp-bump {
+  30% {
+    transform: scale(1.18) rotate(-3deg);
+  }
+}
+
+@media (max-width: 860px) {
+  .nav-links {
+    display: flex;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    transform-origin: top right;
+    pointer-events: none;
+    box-shadow: var(--sticker), var(--shadow-pop);
+    transition:
+      opacity var(--t-mid) var(--ease),
+      transform var(--t-mid) var(--ease),
+      visibility 0s linear var(--t-mid);
+  }
+  .nav-links.is-open {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    transition-delay: 0s;
+  }
+}
+
+/* ---------- Buttons ---------- */
+.btn:hover:not(:disabled):not([aria-disabled='true']) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--btn-shadow);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--btn-shadow);
+}
+.btn-ghost:hover:not(:disabled) {
+  box-shadow: none;
+  transform: none;
+  border-color: var(--ink-soft);
+}
+
+/* ---------- Cards ---------- */
+.card,
+.bubble,
+.dialog {
+  box-shadow: var(--sticker), var(--shadow-soft);
+}
+.card {
+  transition:
+    transform var(--t-mid) var(--ease),
+    box-shadow var(--t-mid) var(--ease),
+    border-color var(--t-mid) var(--ease);
+}
+a.card,
+.card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+a.card:hover,
+.card-link:hover {
+  transform: translateY(-3px);
+  border-color: var(--lilac);
+  box-shadow: 0 7px 0 var(--line), var(--shadow-pop);
+}
+a.card:active,
+.card-link:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 var(--line);
+}
+
+/* ---------- Tick rows ---------- */
+.tick:hover:not(:has(input:disabled)) {
+  background: var(--card-2);
+}
+.tick:hover:has(input:checked) {
+  background: var(--teal-soft);
+}
+.tick:hover:not(:has(input:disabled)) .tick-box {
+  border-color: var(--teal-strong);
+}
+.tick input:checked + .tick-box {
+  animation: tick-pop 380ms var(--ease-spring);
+}
+@keyframes tick-pop {
+  40% {
+    transform: scale(1.25) rotate(-6deg);
+  }
+}
+
+/* ---------- Reveal ---------- */
+.reveal {
+  transition:
+    border-color var(--t-mid) var(--ease),
+    background-color var(--t-mid) var(--ease);
+}
+.reveal > summary {
+  border-radius: var(--r-ctl);
+  transition: background-color var(--t-fast) var(--ease);
+}
+.reveal > summary:hover {
+  background: var(--card-2);
+}
+.reveal[open] {
+  border-style: solid;
+  background: color-mix(in srgb, var(--card-2) 45%, transparent);
+}
+@supports (interpolate-size: allow-keywords) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+  .reveal::details-content {
+    block-size: 0;
+    overflow: clip;
+    opacity: 0;
+    transition:
+      block-size var(--t-slow) var(--ease),
+      opacity var(--t-slow) var(--ease),
+      content-visibility var(--t-slow) allow-discrete;
+  }
+  .reveal[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+  }
+}
+
+/* ---------- Dialog ---------- */
+.dialog {
+  opacity: 0;
+  transform: translateY(14px) scale(0.95);
+  transition:
+    opacity var(--t-mid) var(--ease),
+    transform var(--t-slow) var(--ease-spring),
+    overlay var(--t-mid) allow-discrete,
+    display var(--t-mid) allow-discrete;
+}
+.dialog[open] {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  .dialog[open] {
+    opacity: 0;
+    transform: translateY(14px) scale(0.95);
+  }
+}
+.dialog::backdrop {
+  background: var(--scrim);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition:
+    opacity var(--t-mid) var(--ease),
+    overlay var(--t-mid) allow-discrete,
+    display var(--t-mid) allow-discrete;
+}
+.dialog[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  .dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* ---------- Toast ---------- */
+.toast {
+  box-shadow: var(--shadow-pop);
+  transform: translateY(14px) scale(0.9);
+  transition:
+    opacity var(--t-mid) var(--ease),
+    transform var(--t-slow) var(--ease-spring);
+}
+
+/* ---------- Section headings: a highlighter stroke ---------- */
+.section-title,
+.level-body h2 {
+  width: fit-content;
+  max-width: 100%;
+  padding: 0 0.18em;
+  margin-left: -0.18em;
+  background: linear-gradient(transparent 62%, var(--hl, var(--sun-soft)) 62%, var(--hl, var(--sun-soft)) 94%, transparent 94%);
+  border-radius: var(--r-xs);
+}
+#missions {
+  --hl: var(--teal-soft);
+}
+#breaks,
+#traps {
+  --hl: var(--coral-soft);
+}
+#quiz,
+#deliverable {
+  --hl: var(--lilac-soft);
+}
+
+/* ---------- Reading progress (level pages) ---------- */
+.read-bar {
+  display: none;
+}
+@supports (animation-timeline: scroll()) {
+  .read-bar {
+    display: block;
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 4px;
+    z-index: 70;
+    background: linear-gradient(90deg, var(--teal), var(--sun), var(--coral));
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    animation: read-grow linear both;
+    animation-timeline: scroll(root);
+    pointer-events: none;
+  }
+  @keyframes read-grow {
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
+
+/* ---------- Scroll reveal ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .level > section > .card,
+    .level-body > .diagram,
+    .level-body > .widget,
+    .level-body > .card,
+    [data-rise] {
+      animation: rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 220px;
+    }
+    @keyframes rise {
+      from {
+        opacity: 0.2;
+        transform: translateY(22px) scale(0.985);
+      }
+    }
+  }
+}
+@media print {
+  .read-bar {
+    display: none !important;
+  }
+  .level > section > .card,
+  .level-body > *,
+  [data-rise] {
+    animation: none !important;
+  }
+}
+
+/* ---------- Kind note arrival ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .kind-note:not([hidden]) {
+    animation: note-in 600ms var(--ease-spring) both;
+  }
+}
+@keyframes note-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) rotate(-1.5deg) scale(0.96);
+  }
+}
+
+/* ---------- Small things ---------- */
+:not(pre) > code {
+  border-radius: var(--r-xs);
+}
+.copy-btn {
+  border-radius: var(--r-sm);
+}
+.copy-btn:active {
+  transform: scale(0.94);
+}
+.tick-box {
+  border-radius: var(--r-sm);
+}
+.toc a[aria-current='true'] {
+  transform: translateX(3px);
+}
+@media (max-width: 1040px) {
+  .toc a[aria-current='true'] {
+    transform: none;
+  }
+}
+::selection {
+  color: var(--ink-fixed);
+}
+.view-banner,
+.view-banner .btn-ghost {
+  color: var(--ink-fixed);
+}
+.view-banner .btn-ghost {
+  border-color: var(--ink-fixed);
+}
+
+/* ---------- Level page details ---------- */
+.mission,
+.break {
+  position: relative;
+}
+.mission-kicker {
+  display: inline-block;
+  padding: 1px 10px;
+  margin-bottom: var(--s2);
+  border: 2px solid var(--teal);
+  border-radius: var(--r-sm);
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+  transform: rotate(-1.5deg);
+}
+.mission:has(.tick-main input:checked),
+.break:has(.tick-main input:checked) {
+  border-color: var(--teal);
+  box-shadow: 0 4px 0 var(--teal), var(--shadow-soft);
+}
+.mission:has(.tick-main input:checked)::after,
+.break:has(.tick-main input:checked)::after {
+  content: '✓';
+  position: absolute;
+  top: -14px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--teal-strong);
+  color: var(--on-strong);
+  font-weight: 800;
+  border: 3px solid var(--card);
+  animation: tick-pop 420ms var(--ease-spring);
+}
+.break {
+  border-left: 8px solid var(--coral);
+}
+.trap-table tbody tr {
+  transition: background-color var(--t-fast) var(--ease);
+}
+.trap-table tbody tr:hover {
+  background: var(--card-2);
+}
+.trap-table td:first-child {
+  border-left: 4px solid var(--coral);
+}
+.level > section {
+  margin-bottom: var(--s8);
+}
+.level-nav {
+  border-top: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s3);
+}
+.level-nav > a {
+  display: flex;
+  align-items: center;
+  min-height: 64px;
+  padding: var(--s3) var(--s4);
+  border: var(--border);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--sticker);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    transform var(--t-mid) var(--ease),
+    box-shadow var(--t-mid) var(--ease),
+    border-color var(--t-mid) var(--ease);
+}
+.level-nav > a:hover {
+  transform: translateY(-3px);
+  border-color: var(--lilac);
+  box-shadow: 0 7px 0 var(--line), var(--shadow-pop);
+}
+.level-nav > a:last-child {
+  justify-content: flex-end;
+  text-align: right;
+}
+.level-nav > span:empty {
+  display: none;
+}
+.finish {
+  padding: var(--s5);
+  border: 2px dashed var(--teal);
+  border-radius: var(--r-card);
+  background: var(--teal-soft);
+}
+.level-header h1 {
+  font-size: clamp(2.1rem, 1.4rem + 3vw, 3rem);
+  letter-spacing: -0.01em;
+}
