@@ -1,0 +1,33 @@
+---
+import Frame from './Frame.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['p95'];
+}
+const { t } = Astro.props;
+// Twenty requests, fastest to slowest, in seconds. Average 1.9 s.
+const SECONDS = [0.8, 0.8, 0.9, 0.9, 0.9, 1, 1, 1, 1, 1, 1, 1, 1, 1.1, 1.1, 1.1, 1.2, 1.2, 10, 10];
+const PX = 21;
+const BASE = 250;
+const X0 = 50;
+const STEP = 32;
+const avg = SECONDS.reduce((a, b) => a + b, 0) / SECONDS.length;
+const avgY = BASE - avg * PX;
+---
+<Frame id="dg-p95" w={720} h={320} title={t.title} desc={t.desc}>
+  {SECONDS.map((s, i) => (
+    <rect x={X0 + i * STEP} y={BASE - s * PX} width={24} height={s * PX} rx={4} fill={s > 5 ? 'var(--coral-soft)' : 'var(--teal-soft)'} stroke="var(--ink)" class="dg-line" />
+  ))}
+  <path d={`M40 ${BASE} H700`} stroke="var(--ink)" stroke-width="2" stroke-linecap="round" />
+
+  <path d={`M40 ${avgY} H700`} stroke="var(--lilac-ink)" stroke-width="2" stroke-dasharray="6 6" />
+  <Label x={50} y={avgY - 16} text={t.average} anchor="start" size={13} weight={800} color="var(--lilac-ink)" />
+
+  <Label x={606} y={62} text={t.p95} anchor="end" size={14} weight={800} />
+  <Label x={606} y={86} text={t.unlucky} anchor="end" size={12} weight={700} color="var(--ink-soft)" />
+
+  <Label x={X0 + 9 * STEP} y={272} text={t.fast} size={12} weight={700} color="var(--teal-ink)" />
+  <Label x={X0 + 19 * STEP - 4} y={272} text={t.slow} size={12} weight={700} />
+  <Label x={370} y={300} text={t.axis} size={12} weight={700} color="var(--ink-soft)" />
+</Frame>

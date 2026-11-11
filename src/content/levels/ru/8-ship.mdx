@@ -1,0 +1,534 @@
+---
+id: 8
+slug: ship
+title: "В продакшен!"
+tagline: "Готовить дома — не то же, что держать кафе. Пора открывать двери."
+weeks: 1
+landmark: rocket
+badge: { name: "Своя в продакшене", emoji: "🚀" }
+skill:
+  name: "Продакшен"
+  junior: "Отдаю код тому, кто его деплоит."
+  growing: "Деплою скриптом и умею читать логи, когда что-то ломается."
+  middle: "У меня свой сервис в продакшене: я его деплою, слежу за ним, откатываю и записываю, как это делается."
+itsNormal: >
+  Продакшен пугает, потому что на той стороне — настоящие люди. Этот
+  страх никуда не уходит — он превращается в чек-листы. Каждый спокойный
+  инженер, которого ты знаешь, спокоен благодаря чек-листу, и к концу
+  этого уровня ты напишешь свой.
+analogy:
+  emoji: "☕"
+  title: "Открыть кафе"
+  text: >
+    Дома ты готовишь один раз и для себя. Кафе нужны часы работы
+    (**аптайм**), способ узнать, включена ли духовка (**проверки
+    здоровья**), дневник всех заказов (**логи**), счёт, сколько сегодня
+    гостей (**метрики**), план на случай, если кончилось молоко
+    (**ранбук**), и способ быстро вернуть вчерашнее меню (**откат**).
+    Готовка та же. Всё вокруг неё — новое.
+missions:
+  - id: m1
+    title: "Падай сразу, будь готова"
+    why: "Сервис отказывается запускаться с половиной настроек и честно говорит, может ли он сейчас работать."
+    steps:
+      - |
+        У некоторых настроек нет разумного значения по умолчанию: неверная догадка хуже, чем отказ запуститься. В `app/config.py` убери значения по умолчанию у тех настроек, без которых сервис работать не может:
+        ```python
+            database_url: str
+            redis_url: str
+            llm_base_url: str
+            llm_model: str
+        ```
+        Поле без значения по умолчанию — обязательное. В твоём `.env` все четыре уже есть, так что пока ничего не меняется.
+      - "Посмотри, как он падает сразу. В `.env` поставь `#` перед строкой `LLM_MODEL`, потом `docker compose up -d` и `docker compose logs api | tail -5`. Бокс остановился тут же, а последние строки называют, чего не хватает: `llm_model` — `Field required`. В этом вся идея: понятная ошибка на старте вместо странной на сотом запросе. Убери `#` и запусти снова."
+      - |
+        `/ready` должен проверять всё, что нужно сервису для работы, — и базу данных, и модель. В `app/main.py` добавь наверху `from openai import OpenAIError` и `from app.llm import client` и дополни `ready`:
+        ```python
+        @app.get("/ready")
+        def ready():
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+            except OperationalError as error:
+                log.warning("database not ready: %s", error.orig)
+                raise HTTPException(status_code=503, detail="database not reachable")
+            try:
+                client.with_options(timeout=2, max_retries=0).models.list()
+            except OpenAIError as error:
+                log.warning("model not ready: %s", error)
+                raise HTTPException(status_code=503, detail="model not reachable")
+            return {"status": "ready"}
+        ```
+        Короткий таймаут и ноль повторов здесь важны: проверка готовности должна отвечать быстро — в том числе когда ответ «нет».
+      - "Кафе открывается после отключения света, и хозяйке никто не звонит. В `compose.yaml` добавь каждому сервису `restart: unless-stopped` — на том же уровне, что `image:` или `build:`. Теперь Docker снова запускает бокс, если тот упал или машина перезагрузилась, — но не трогает его, если ты остановила его сама."
+      - "Пересобери и проверь: `docker compose up -d --build`, потом `curl -s -w \" %{http_code}\\n\" localhost:8000/ready` — 200. Останови базу: `docker compose stop db`. Спроси ещё раз: 503, а `docker compose logs api | tail -2` говорит, кого не хватает. Запусти её: `docker compose start db`."
+    check: "Без одной настройки сервис останавливается на старте и называет её; с остановленной базой `/ready` отвечает 503."
+  - id: m2
+    title: "Дневник, который стоит читать"
+    why: "По каждой строке лога теперь можно искать, и в каждой есть id запроса: один `grep` рассказывает всю историю одного запроса."
+    steps:
+      - |
+        Напиши `app/logs.py`. Он печатает каждую строку лога как один JSON-объект и помнит id запроса, который сейчас обрабатывается:
+        ```python
+        import json
+        import logging
+        import time
+        from contextlib import contextmanager
+        from contextvars import ContextVar
+
+        request_id: ContextVar[str] = ContextVar("request_id", default="-")
+        log = logging.getLogger("quest-api")
+
+
+        class JsonFormatter(logging.Formatter):
+            def format(self, record: logging.LogRecord) -> str:
+                line = {
+                    "time": self.formatTime(record),
+                    "level": record.levelname,
+                    "request_id": request_id.get(),
+                    "message": record.getMessage(),
+                }
+                line.update(getattr(record, "data", {}))
+                if record.exc_info:
+                    line["error"] = self.formatException(record.exc_info)
+                return json.dumps(line, ensure_ascii=False)
+
+
+        def setup_logging(level: str) -> None:
+            handler = logging.StreamHandler()
+            handler.setFormatter(JsonFormatter())
+            logging.basicConfig(level=level, handlers=[handler], force=True)
+
+
+        @contextmanager
+        def timed(stage: str):
+            """Log how long one stage of a request took."""
+            start = time.perf_counter()
+            try:
+                yield
+            finally:
+                ms = round((time.perf_counter() - start) * 1000)
+                log.info("stage", extra={"data": {"stage": stage, "ms": ms}})
+        ```
+        `ContextVar` — переменная, у которой для каждого запроса своё значение: два запроса, которые обрабатываются одновременно, видят каждый свой id.
+      - |
+        В `app/main.py` замени строку `logging.basicConfig(...)` на `setup_logging(settings.log_level)` (импортируй её и `request_id` из `app.logs`), и пусть middleware записывает id до того, как запрос пойдёт дальше:
+        ```python
+        @app.middleware("http")
+        async def log_requests(request: Request, call_next):
+            rid = uuid.uuid4().hex[:8]
+            request_id.set(rid)
+            start = time.perf_counter()
+            response = await call_next(request)
+            ms = round((time.perf_counter() - start) * 1000)
+            response.headers["X-Request-ID"] = rid
+            log.info(
+                "request",
+                extra={"data": {"method": request.method, "path": request.url.path, "status": response.status_code, "ms": ms}},
+            )
+            return response
+        ```
+        Всё, что лежит в `data`, становится отдельным полем в JSON-строке. Твои старые вызовы `log.info("…")` продолжают работать: их текст попадает в `message`, а id запроса они получают в подарок.
+      - |
+        Замерь этапы. В `app/services/retrieval.py` (с `from app.logs import timed`):
+        ```python
+        def retrieve(session, question: str) -> list[Found]:
+            with timed("retrieve"):
+                candidates = hybrid_search(session, question, CANDIDATES)
+            with timed("rerank"):
+                return rerank(question, candidates)
+        ```
+        А в `rag_answer` в `app/services/answer.py` так же оберни вызов модели: `with timed("generate"):` вокруг строки, где вызывается `answer_from`. Строка `llm`, которую ты написала на уровне 6, уже несёт количество токенов.
+      - "Две строки для `Dockerfile`. Сразу под `FROM` добавь `ENV PYTHONUNBUFFERED=1`: тогда Python отдаёт Docker каждую строку сразу, а не копит их. И допиши `\"--no-access-log\"` в конец списка `CMD`: собственная строка Uvicorn о запросе — обычный текст, и говорит она меньше твоей."
+      - |
+        Пересобери и задай вопрос, показав заголовки: `curl -i -X POST localhost:8000/ask -H "Content-Type: application/json" -d '{"question":"Можно вернуть деньги через три недели?"}'`. Скопируй значение `x-request-id` и прочитай дневник этого запроса: `docker compose logs --no-log-prefix api | grep <этот id>`. Должно получиться примерно так:
+        ```
+        {"time": "…", "level": "INFO", "request_id": "335c7b4d", "message": "stage", "stage": "retrieve", "ms": 48}
+        {"time": "…", "level": "INFO", "request_id": "335c7b4d", "message": "stage", "stage": "rerank", "ms": 910}
+        {"time": "…", "level": "INFO", "request_id": "335c7b4d", "message": "llm model=… in=412 out=38 …"}
+        {"time": "…", "level": "INFO", "request_id": "335c7b4d", "message": "stage", "stage": "generate", "ms": 2140}
+        {"time": "…", "level": "INFO", "request_id": "335c7b4d", "message": "request", "method": "POST", "path": "/ask", "status": 200, "ms": 3105}
+        ```
+        Какой этап занял больше всего времени? Туда ты и посмотришь первым делом, когда кто-нибудь скажет «оно тормозит».
+    check: "Один `grep` по id запроса показывает все этапы этого запроса и время каждого."
+  - id: m3
+    title: "Считай то, что важно"
+    why: "Ты перестаёшь говорить «вроде быстро» и начинаешь называть три числа."
+    steps:
+      - "Добавь `prometheus-fastapi-instrumentator` в `requirements.txt` (и поставь его через `pip install` на ноутбуке, чтобы тесты по-прежнему могли импортировать приложение)."
+      - |
+        Две строки в `app/main.py` — и у сервиса появляется страница `/metrics`:
+        ```python
+        from prometheus_fastapi_instrumentator import Instrumentator
+
+        Instrumentator().instrument(app).expose(app)
+        ```
+        Вторую поставь сразу после `app = FastAPI(...)`.
+      - "Пересобери, вызови несколько раз `/health` и `/ask`, а потом посмотри: `curl -s localhost:8000/metrics | grep http_requests_total`. По строке на каждый путь и вид кода ответа, в каждой — счётчик. Система мониторинга вроде Prometheus читала бы эту страницу каждые несколько секунд и рисовала графики; сегодня ты читаешь её сама."
+      - |
+        Теперь нагрузка. Напиши `scripts/load.py` — 50 вопросов, по пять одновременно:
+        ```python
+        import statistics
+        import sys
+        import time
+        from concurrent.futures import ThreadPoolExecutor
+
+        import httpx
+
+        URL = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
+        QUESTIONS = [
+            "Во сколько открывается кафе?",
+            "Можно вернуть деньги через три недели?",
+            "Кому идёт заказ KZ-4471?",
+            "Овсяное молоко стоит дороже?",
+            "У вас есть парковка для гостей?",
+        ]
+
+
+        def ask(i: int) -> tuple[float, bool]:
+            start = time.perf_counter()
+            try:
+                response = httpx.post(f"{URL}/ask", json={"question": QUESTIONS[i % len(QUESTIONS)]}, timeout=120)
+                ok = response.status_code == 200
+            except httpx.HTTPError:
+                ok = False
+            return time.perf_counter() - start, ok
+
+
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            results = list(pool.map(ask, range(50)))
+
+        times = sorted(seconds for seconds, _ in results)
+        errors = sum(not ok for _, ok in results)
+        p50 = statistics.median(times)
+        p95 = statistics.quantiles(times, n=20)[-1]
+        print(f"p50 {p50:.1f}s  p95 {p95:.1f}s  errors {errors}/{len(results)}")
+        ```
+      - "Запусти его на ноутбуке: `python scripts/load.py`. С маленькой моделью на CPU это займёт несколько минут — самое время для чая. Пока он работает, смотри в другом терминале `docker stats`: какой бокс трудится больше всех?"
+      - "Запиши три числа в README, в раздел «Насколько это быстро?», с датой и машиной. Потом посмотри на строки `stage` одного медленного запроса и допиши одно предложение: на какой этап уходит время."
+    check: "Ты можешь назвать свои p50, p95 и долю ошибок — и самый медленный этап."
+  - id: m4
+    title: "Робот-ревьюер"
+    why: "Робот проверяет каждый push одинаково — в том числе в дни, когда ты устала."
+    steps:
+      - "Сначала познакомься с линтером. `pip install ruff`, потом `ruff check app tests scripts eval`. Обычно он находит импорты, которыми уже никто не пользуется. Исправляй то, что он показывает, — простое за тебя сделает `ruff check --fix`, — пока он не напечатает `All checks passed!`"
+      - "Прежде чем код покинет ноутбук, проверь, что в нём лежит: `git status` не должен показывать `.env`, а `git log -p | grep -i -E \"password|api_key\"` — только безобидные строки из `.env.example`. (Почему смотреть надо в историю, а не только в файлы, покажет третья поломка в «Сломай специально».)"
+      - "Создай на GitHub пустой приватный репозиторий `quest-api` — без README и без лицензии — и выполни две команды, которые GitHub показывает под «push an existing repository». Если твоя команда хранит код в другом месте, спроси ментора: в любой такой системе та же идея, только файл называется иначе."
+      - |
+        Напиши `.github/workflows/ci.yml`:
+        ```yaml
+        name: ci
+        on: [push]
+        jobs:
+          check:
+            runs-on: ubuntu-latest
+            env:
+              DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
+              REDIS_URL: redis://localhost:6379/0
+              LLM_BASE_URL: http://localhost:11434/v1
+              LLM_MODEL: test-model
+            steps:
+              - uses: actions/checkout@v4
+              - uses: actions/setup-python@v5
+                with:
+                  python-version: "3.12"
+                  cache: pip
+              - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+              - run: pip install -r requirements.txt ruff pytest
+              - run: ruff check app tests scripts eval
+              - run: pytest -q
+              - run: docker build -t quest-api .
+        ```
+        Блок `env:` — привет от Миссии 1: у робота нет `.env`, а настройки у тебя теперь обязательные. Тесты не ходят ни в настоящую базу, ни в модель, так что этим значениям достаточно существовать.
+      - "Сделай коммит и push и открой вкладку «Actions» своего репозитория. Посмотри, как идут шаги. Зелёная галочка рядом с коммитом значит: линтер, тесты и сборка образа прошли на чистой машине, и это не твоя машина."
+      - "А теперь сделай красный — нарочно. В `/health` верни `\"okay\"` вместо `\"ok\"` — трюк из уровня 3, — сделай коммит и push. Открой упавший запуск и прочитай, какой шаг упал и что он напечатал. Потом отмени это новым коммитом: `git revert HEAD --no-edit` и push. Снова зелёный."
+    check: "Зелёная галочка на хорошем коммите, красный крестик на сломанном — и ты нашла упавший тест в логе запуска."
+  - id: m5
+    title: "Запуск и отмена запуска"
+    why: "Ты кладёшь версию на сервер, поверх неё — сломанную, и возвращаешь хорошую. Нарочно — до того, как это понадобится по-настоящему."
+    steps:
+      - |
+        У каждого образа будет имя, по которому можно найти код. В конец `Dockerfile`, прямо над `CMD`, добавь:
+        ```dockerfile
+        ARG APP_VERSION=dev
+        ENV APP_VERSION=$APP_VERSION
+        ```
+        В `Settings` добавь `app_version: str = "dev"`, и пусть `/health` её называет: `return {"status": "ok", "version": settings.app_version}`. В `tests/test_api.py` замени последнюю строку теста про health на `assert response.json()["status"] == "ok"`.
+      - "В `compose.yaml` дай сервису `api` строку `image: quest-api:${QUEST_TAG:-dev}` рядом с `build: .`. Теперь тег приходит снаружи: нет `QUEST_TAG` — значит, `dev`, как на твоём ноутбуке."
+      - |
+        Напиши `scripts/deploy.sh` и разреши его запускать: `chmod +x scripts/*.sh` (уровень 1):
+        ```bash
+        #!/usr/bin/env bash
+        # Usage: scripts/deploy.sh <server>
+        set -euo pipefail
+        SERVER="$1"
+
+        git diff --quiet HEAD || { echo "Commit first: the tag must describe the code."; exit 1; }
+        TAG="$(git rev-parse --short HEAD)"
+
+        docker build --build-arg APP_VERSION="$TAG" -t "quest-api:$TAG" .
+        docker save "quest-api:$TAG" | gzip | ssh "$SERVER" 'gunzip | docker load'
+        scp compose.yaml "$SERVER:quest-api/compose.yaml"
+        ssh "$SERVER" "cd quest-api && QUEST_TAG=$TAG docker compose up -d --no-build && echo '$TAG' >> deploys.log"
+        echo "Deployed $TAG. Check it: ssh $SERVER curl -s localhost:8000/health"
+        ```
+        Тег — короткий хеш коммита. `docker save | ssh … docker load` несёт образ по SSH-коридору из уровня 1: серверу нужен Docker — и больше ничего.
+      - |
+        И `scripts/rollback.sh`:
+        ```bash
+        #!/usr/bin/env bash
+        # Usage: scripts/rollback.sh <server> <tag>
+        set -euo pipefail
+        SERVER="$1"
+        TAG="$2"
+
+        ssh "$SERVER" "cd quest-api && QUEST_TAG=$TAG docker compose up -d --no-build && echo 'rollback to $TAG' >> deploys.log"
+        echo "Rolled back to $TAG. Check it: ssh $SERVER curl -s localhost:8000/health"
+        ```
+        Откат ничего не собирает и ничего не отправляет. Старый образ всё ещё лежит на сервере — ты только запускаешь его снова. Поэтому откат быстрый.
+      - "Один раз подготовь сервер. Попроси у ментора машину с Docker и везде, где видишь `<server>`, подставляй её имя из своего `~/.ssh/config`. Потом: `ssh <server> mkdir -p quest-api` и `scp .env <server>:quest-api/.env`. Открой этот файл на сервере и задай там свой пароль базы — в обеих строках, где он есть: продакшен никогда не делит пароли с ноутбуком. (Если у ноутбука и сервера процессоры разного типа, бокс остановится с `exec format error`; добавь `--platform linux/amd64` в строку с `docker build`.)"
+      - "Запусти версию 1: закоммить всё, потом `scripts/deploy.sh <server>`. В первый раз новая база пустая, поэтому создай таблицы и заполни полку: `ssh <server> \"cd quest-api && docker compose exec -T api alembic upgrade head && docker compose exec -T api python -m app.ingest handbook\"`. Если у тебя бокс `ollama`, скачай модель и там, как на уровне 6. После этого `ssh <server> curl -s localhost:8000/health` показывает хеш твоего коммита, а вопрос к `/ask` получает ответ со ссылками на источники."
+      - "Запусти плохую версию 2. В `app/services/answer.py` запиши в `RAG_PROMPT` имя, для которого нет файла, например `\"rag_v99\"`. Коммит, деплой. Теперь смотри внимательно: `/health` говорит `ok` с новым хешем, `/ready` отвечает 200 — а каждый `/ask` возвращает 500. Проверки здоровья видят не всё. Поэтому после каждого деплоя ты ещё и задаёшь один настоящий вопрос."
+      - "Отмени запуск — с секундомером. `ssh <server> cat quest-api/deploys.log` показывает теги; возьми предпоследний: `time scripts/rollback.sh <server> <tag>`. Задай вопрос ещё раз: работает. И только теперь читай логи плохой версии, найди причину и отмени коммит: `git revert HEAD --no-edit`."
+      - "Напиши `RUNBOOK.md` — одну страницу, шесть заголовков: **Деплой** (команда и тот один вопрос, который ты задаёшь после) · **Откат** (команда, где лежат теги, сколько времени он у тебя занял) · **Сервис здоров?** (`/health`, `/ready`, `docker compose ps`) · **Где логи?** (команды и как проследить один запрос) · **Если сломалось** (твой собственный чек-лист) · **Кого спросить**. Пиши для человека, который никогда не видел твой сервис и читает это ночью."
+    check: "Откат занял меньше двух минут, а в `RUNBOOK.md` написано, как его повторить."
+breaks:
+  - id: b1
+    title: "Выдерни базу из розетки"
+    do: "На ноутбуке, когда всё запущено: `docker compose stop db`, потом `curl -s -w \" %{http_code}\\n\" localhost:8000/ready`"
+    see: "{\"detail\":\"database not reachable\"} 503"
+    why: "Процесс жив — `/health` по-прежнему говорит `ok`, — но делать свою работу он не может, и `/ready` честно об этом сообщает. В логе — одна понятная строка с причиной."
+    fix: "`docker compose start db`, подожди несколько секунд и снова спроси `/ready`: 200. API ты не трогала. Он проверяет соединения перед тем, как ими пользоваться, поэтому вылечился сам."
+  - id: b2
+    title: "Плохой релиз"
+    do: "В `app/main.py` добавь `raise RuntimeError(\"broken on purpose\")` сразу под импортами. Сделай коммит, запусти `scripts/deploy.sh <server>`, потом `ssh <server> docker ps`"
+    see: "Restarting (1) 4 seconds ago"
+    why: "Приложение падает на старте, бокс останавливается, а `restart: unless-stopped` запускает его снова — и так без конца. Перезапуск помогает от невезения. От плохого кода он не помогает."
+    fix: "Сначала откат: `scripts/rollback.sh <server> <предыдущий тег>`. Когда `/health` снова отвечает, читай, что случилось: `ssh <server> \"cd quest-api && docker compose logs --tail 20 api\"` всё ещё хранит трейсбек. Потом `git revert HEAD --no-edit`. Сначала почини, потом выясняй почему."
+  - id: b3
+    title: "Git ничего не забывает"
+    do: "В новой папке вне проекта: `git init`, потом `echo \"API_KEY=not-a-real-key\" > secrets.env`, `git add . && git commit -m \"add config\"`, потом `git rm -q secrets.env && git commit -m \"remove the secret\"`. Файла больше нет — `ls` ничего не показывает. А теперь выполни `git log -p | grep not-a-real-key`"
+    see: |
+      -API_KEY=not-a-real-key
+      +API_KEY=not-a-real-key
+    why: "Git хранит каждую версию каждого файла — в этом вся его работа. Удаление файла добавляет в историю новую страницу, а старую не вырывает. Секрет может прочитать любой, кто может читать репозиторий."
+    fix: "В жизни: отзови секрет и выпусти новый. Работает только это, потому что ты не знаешь, кто уже скопировал старый. Удалить — мало."
+  - id: b4
+    title: "Молчаливые логи"
+    do: "В `Dockerfile` поставь `#` перед `ENV PYTHONUNBUFFERED=1`. В `app/routers/ask.py` добавь `print(\"print: a question arrived\")` первой строкой в `ask`. Потом `docker compose up -d --build`, задай один вопрос и выполни `docker compose logs api | grep print`"
+    see: "Ничего. Все твои JSON-строки про запрос на месте, а строки от `print` нет. Она появится гораздо позже — или только когда бокс остановится."
+    seeKind: description
+    why: "Когда на терминал никто не смотрит, Python копит напечатанный текст в буфере и отдаёт его порциями. Во время инцидента ты читала бы логи, которым уже несколько минут. Строки `logging` идут другой дорогой и приходят сразу."
+    fix: "Убери `#` и `print` и пересобери. В сервисе дневник — это `logging`; `print` — для скриптов."
+traps:
+  - error: "У меня работает, а на сервере — нет"
+    meaning: "Эти два места отличаются чем-то, чего нет в коде."
+    firstMove: "Сравни переменные окружения, тег образа и данные."
+  - error: "Контейнер вечно в состоянии Restarting"
+    meaning: "Приложение падает на старте, а политика перезапуска пробует снова и снова."
+    firstMove: "Сначала откат; потом читай `docker logs`."
+  - error: "Exited (137)"
+    meaning: "Бокс убили — почти всегда за то, что он занял слишком много памяти."
+    firstMove: "`docker stats`; задай лимит памяти или уменьши нагрузку."
+  - error: "No space left on device"
+    meaning: "Старые образы и логи заняли весь диск сервера."
+    firstMove: "`docker system df`, потом `docker image prune`; настрой ротацию логов."
+  - error: "«А какая версия сейчас работает?»"
+    meaning: "Использовался только тег `latest`, и теперь никто не может сказать."
+    firstMove: "Ставь образам тег с хешем коммита и показывай его в `/health`."
+  - error: "502 Bad Gateway сразу после деплоя"
+    meaning: "Reverse proxy обратился к приложению раньше, чем оно было готово."
+    firstMove: "Дождись проверки здоровья, прежде чем пускать запросы в новый бокс."
+  - error: "docker logs ничего не показывает"
+    meaning: "Вывод копится в буфере, или приложение пишет в файл внутри бокса."
+    firstMove: "`PYTHONUNBUFFERED=1` и логи в stdout."
+deliverable:
+  repo: "`quest-api` с CI, `scripts/deploy.sh` и `scripts/rollback.sh`, `/metrics`, логами в JSON и `RUNBOOK.md`."
+  sketch: "Путь от `git push` до работающего бокса на сервере — и путь отката назад."
+  demo: "Задеплой вживую. Покажи `/health` с версией, логи одного запроса и свои три числа. Потом сломай и откати, объясняя каждый шаг по ходу."
+selfCheck:
+  - "Я могу задеплоить свой сервис без помощи."
+  - "Я делала откат по-настоящему."
+  - "Я могу найти в логах всю историю одного запроса."
+  - "Я знаю свою задержку p95."
+  - "Другой человек сможет управлять моим сервисом по ранбуку."
+quiz:
+  - q: "Сразу после деплоя `docker ps` показывает вот это. Что ты делаешь первым делом?"
+    code: "Restarting (1) 3 seconds ago"
+    options:
+      - "Откатываюсь на предыдущий тег, потом читаю логи"
+      - "Жду час — вдруг само пройдёт"
+      - "Удаляю сервер и начинаю заново"
+    answer: 0
+    why: "Новая версия падает на старте, и от очередного перезапуска её код не изменится. Верни версию, которая работала; логи никуда не денутся, пока ты возвращаешь пользователям хорошее настроение."
+  - q: "Средняя задержка выглядит хорошо, но некоторые пользователи ждут по 20 секунд. Куда смотреть?"
+    options:
+      - "На p95, а не на среднее"
+      - "Никуда — этим пользователям не повезло"
+      - "Добавить куда-нибудь кэш и надеяться"
+    answer: 0
+    why: "В среднем много быстрых запросов прячут несколько очень медленных. p95 — это ожидание самого невезучего из двадцати, и люди запоминают именно его."
+  - q: "Секрет попал в git, и следующим коммитом его удалили. Что теперь?"
+    options:
+      - "Отозвать секрет — в истории он остался"
+      - "Ничего: его же удалили"
+      - "Переименовать репозиторий"
+    answer: 0
+    why: "`git log -p` показывает каждую версию каждого файла. Безопасен только тот секрет, который больше не работает."
+  - q: "`/health` отвечает 200, но каждый `/ask` падает. О чём это говорит?"
+    options:
+      - "Жив — не значит готов: `/ready` должен проверять базу и модель"
+      - "Проверка здоровья сломалась"
+      - "Надо перезапустить два раза"
+    answer: 0
+    why: "`/health` говорит только, что процесс запущен. Может ли он делать свою работу — другой вопрос, и у него свой эндпоинт. А после деплоя последняя проверка — один настоящий вопрос к `/ask`."
+  - q: "Никто в команде не знает, какой код сейчас работает в продакшене. Как исправить это насовсем?"
+    options:
+      - "Ставить каждому образу тег с хешем коммита и показывать его в `/health`"
+      - "Всегда использовать `latest`"
+      - "Спросить в чате"
+    answer: 0
+    why: "`latest` значит всего лишь «последнее, что кто-то собрал». Хеш коммита указывает на конкретный код, а `/health` покажет его любому, кто спросит."
+links:
+  - title: "The Twelve-Factor App"
+    url: "https://12factor.net/ru/"
+    why: "Двенадцать коротких правил для сервисов, которыми легко управлять. Половину ты уже соблюдаешь — проверь какую."
+  - title: "GitHub Actions: быстрый старт"
+    url: "https://docs.github.com/ru/actions/writing-workflows/quickstart"
+    why: "Робот-ревьюер — из первых рук, от тех, кто его построил."
+  - title: "Google SRE Book: Monitoring Distributed Systems"
+    url: "https://sre.google/sre-book/monitoring-distributed-systems/"
+    why: "Откуда взялась идея нескольких «золотых сигналов». Одна глава — стоит вечера. На английском."
+  - title: "Prometheus: getting started"
+    url: "https://prometheus.io/docs/prometheus/latest/getting_started/"
+    why: "Система, которая читает твою страницу `/metrics` и превращает её в графики и оповещения. На английском."
+cheatsheet:
+  - { cmd: "docker compose ps", does: "Какие боксы запущены и здоровы ли они?" }
+  - { cmd: "docker compose logs -f --tail 100 api", does: "Последние 100 строк лога и дальше в прямом эфире" }
+  - { cmd: "docker compose logs api | grep <id>", does: "Вся история одного запроса" }
+  - { cmd: "docker stats", does: "CPU и память каждого бокса, вживую" }
+  - { cmd: "docker system df", does: "Сколько диска занимают образы, боксы и тома?" }
+  - { cmd: "git rev-parse --short HEAD", does: "Короткий хеш текущего коммита — твой тег образа" }
+  - { cmd: "docker build -t quest-api:$(git rev-parse --short HEAD) .", does: "Собрать образ, названный по своему коммиту" }
+  - { cmd: "docker save img | gzip | ssh host 'gunzip | docker load'", does: "Отправить образ на сервер по SSH" }
+  - { cmd: "curl -s host/ready", does: "Может ли сервис работать прямо сейчас?" }
+  - { cmd: "ruff check .", does: "Линтер: находит ошибки, не запуская код" }
+  - { cmd: "pytest -q", does: "Запустить все тесты, короткий вывод" }
+  - { cmd: "SOS", does: "Если сломалось: выдохни → у пользователей не работает? → откат или перезапуск → убедись, что работает → и только потом разбирайся и запиши, что было" }
+kindNote: >
+  Ты открыла кафе. Ты задеплоила настоящий сервис, посмотрела, как он
+  работает, сломала его нарочно и вернула обратно — и записала, как это
+  делается, чтобы следующий человек тоже смог. Тебе больше не нужен
+  кто-то, кто «выкатит это в продакшен» за тебя. Теперь этот кто-то — ты.
+  Порто повесил на дверь маленькую табличку: «Открыто».
+---
+
+import Diagram from '../../../components/Diagram.astro';
+import Analogy from '../../../components/Analogy.astro';
+import RequestJourney from '../../../components/widgets/RequestJourney';
+
+Твой сервис отвечает на вопросы по справочнику — со ссылками на
+источники и с числами, которые доказывают, что отвечает он хорошо. Пока
+у него был один гость: ты. На этом уровне двери открываются — и ты
+учишься привычкам, с которыми можно спокойно спать, пока они открыты.
+
+<Analogy />
+
+## Один код, разные места
+
+Сервис на твоём ноутбуке и сервис на сервере — это один и тот же код.
+Всё, чем они отличаются, — адреса, пароли, имена моделей — живёт в
+**переменных окружения**. Если обязательной переменной нет, сервис
+должен отказаться запускаться и сказать, какой именно: понятная ошибка
+на старте лучше странной в три часа ночи.
+
+Секретам в git не место. А git ничего не забывает: секрет, который ты
+закоммитила и потом удалила, остаётся в истории — для всех, кто выполнит
+`git log -p`.
+
+## Жив или готов?
+
+Два вопроса — два эндпоинта. `/health` отвечает на вопрос «процесс
+жив?». `/ready` — на вопрос «могу ли я делать свою работу?»: доступны ли
+база данных и модель. Сервис может быть живым и бесполезным одновременно.
+
+<Diagram name="health-vs-ready" />
+
+Compose этими ответами пользуется: проверка здоровья (`healthcheck`)
+говорит ему, как дела у бокса, а `restart: unless-stopped` снова
+запускает бокс после падения или перезагрузки.
+
+## Логи, по которым можно искать
+
+Лог — это дневник, а от дневника есть толк, только если в нём можно
+найти нужную страницу. Пиши по одной JSON-строке на событие и клади в
+каждую **id запроса**: тогда один `grep` покажет весь путь одного
+запроса через сервис. И поставь `PYTHONUNBUFFERED=1`, чтобы строки
+появлялись сразу, а не порциями.
+
+## Четыре числа
+
+**Метрик** нужно на удивление мало: **частота запросов** (насколько
+людно), **доля ошибок** (насколько сломано), **задержка** (насколько
+медленно) — а для сервисов с LLM ещё и **токены на запрос** (насколько
+дорого). Обычный инструмент здесь — Prometheus; с
+`prometheus-fastapi-instrumentator` твой сервис показывает свои числа на
+странице `/metrics`.
+
+Для задержки никогда не верь среднему. Смотри на **p50** — обычный
+запрос — и на **p95** — ожидание самого невезучего из двадцати.
+
+<Diagram name="p95" />
+
+## Робот-ревьюер
+
+**CI** (continuous integration, непрерывная интеграция) на каждый push
+запускает одни и те же проверки: линтер (`ruff check`), тесты (`pytest`)
+и сборку образа. Он не устаёт и никуда не торопится. Красный крестик
+значит одно: это не деплоить.
+
+## Деплой и откат
+
+В деплое три шага: собрать образ, отправить его, запустить. Давай
+каждому образу тег с версией — хеш коммита, а не один только
+`latest`, — и ты всегда будешь знать, какой код сейчас работает.
+
+**Откат** — это запуск предыдущего тега. Вчерашнее меню: уже напечатано,
+через минуту на столах. Потренируй его до того, как он понадобится.
+
+<Diagram name="deploy-rollback" />
+
+## Когда всё сломалось
+
+А оно сломается. Сначала **сделай так, чтобы снова работало**, — откат
+или перезапуск. И только потом выясняй почему. После напиши короткую
+заметку без поиска виноватых: что случилось, кого это задело, в чём была
+причина, что мы меняем. Заметка спрашивает, что пропустило ошибку, — и
+никогда не спрашивает, кто её сделал.
+
+## Ранбук
+
+Одна страница, которая отвечает на вопросы: как деплоить, как
+откатывать, где логи, что значит каждое оповещение, кому звонить. Пиши
+её для уставшего человека посреди ночи. Однажды этим человеком будешь ты.
+
+## Настоящий пример
+
+Этот сайт задеплоен именно так. В его репозитории есть
+`scripts/deploy.sh`, папка `.github/workflows/` и
+`docs/SETUP-GITHUB-AWS.md` — после этого уровня ты сможешь прочитать все
+три.
+
+Вот ещё раз путь запроса из уровня 2. В части «Где может сломаться?» попробуй
+каждое место. Теперь для каждого из них в твоём сервисе есть строка в
+логе и проверка здоровья.
+
+<RequestJourney client:visible strings={props.ui.requestJourney} />
+
+## Что запомнить
+
+1. **Жив — не значит готов.** `/health` и `/ready` отвечают на разные вопросы.
+2. **Один запрос, один id, один `grep`.**
+3. **Смотри на p95.** Среднее прячет тех, кто ждёт.
+4. **Ставь каждому образу тег с его коммитом.** Тогда откат — одна команда.
+5. **Сначала почини, потом выясняй почему.**

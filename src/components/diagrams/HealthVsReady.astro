@@ -1,0 +1,33 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['healthVsReady'];
+}
+const { t } = Astro.props;
+---
+<Frame id="dg-health" w={720} h={300} title={t.title} desc={t.desc}>
+  <Box x={20} y={24} w={300} h={110} fill="var(--teal-soft)" seed={400} />
+  <Label x={170} y={52} text="/health" size={15} weight={800} mono />
+  <Label x={170} y={82} text={t.healthQ} size={14} weight={800} />
+  <Label x={170} y={110} text={t.healthA} size={12} weight={700} color="var(--ink-soft)" />
+
+  <Box x={400} y={24} w={300} h={110} fill="var(--sun-soft)" seed={401} />
+  <Label x={550} y={52} text="/ready" size={15} weight={800} mono />
+  <Label x={550} y={82} text={t.readyQ} size={14} weight={800} />
+  <Label x={550} y={110} text={t.readyA} size={12} weight={700} color="var(--ink-soft)" />
+
+  <Arrow x1={480} y1={138} x2={466} y2={206} color="var(--ink)" />
+  <Arrow x1={620} y1={138} x2={634} y2={206} color="var(--ink)" />
+  <Box x={400} y={210} w={132} h={60} fill="var(--card-2)" seed={402} />
+  <Label x={466} y={240} text={t.db} size={13} weight={800} />
+  <Box x={568} y={210} w={132} h={60} fill="var(--card-2)" seed={403} />
+  <Label x={634} y={240} text={t.model} size={13} weight={800} />
+
+  <Box x={20} y={196} w={300} h={74} fill="var(--coral-soft)" dashed seed={404} />
+  <Label x={170} y={220} text={t.both} size={13} weight={800} />
+  <Label x={170} y={248} text="/health 200 · /ready 503" size={12} weight={700} mono />
+</Frame>

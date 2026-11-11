@@ -1,0 +1,39 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['deployRollback'];
+}
+const { t } = Astro.props;
+---
+<Frame id="dg-deploy" w={720} h={330} title={t.title} desc={t.desc}>
+  <Box x={20} y={56} w={140} h={70} fill="var(--card-2)" seed={430} />
+  <Label x={90} y={80} text={t.commit} size={13} weight={800} />
+  <Label x={90} y={104} text="a1b2c3" size={12} weight={700} mono />
+  <Arrow x1={164} y1={91} x2={206} y2={91} color="var(--ink)" />
+  <Label x={185} y={72} text={t.build} size={11} weight={800} color="var(--ink-soft)" />
+
+  <Box x={210} y={56} w={180} h={70} fill="var(--sun-soft)" seed={431} />
+  <Label x={300} y={80} text={t.image} size={13} weight={800} />
+  <Label x={300} y={104} text="quest-api:a1b2c3" size={12} weight={700} mono />
+  <Arrow x1={394} y1={91} x2={486} y2={91} color="var(--ink)" />
+  <Label x={428} y={72} text={t.ship} size={11} weight={800} color="var(--ink-soft)" />
+
+  <Box x={460} y={14} w={244} h={300} fill="none" dashed seed={432} />
+  <Label x={582} y={36} text={t.server} size={13} weight={800} color="var(--ink-soft)" />
+  <Box x={490} y={56} w={190} h={70} fill="var(--teal-soft)" seed={433} />
+  <Label x={585} y={80} text="quest-api:a1b2c3" size={12} weight={700} mono />
+  <Label x={585} y={104} text={t.running} size={12} weight={800} color="var(--teal-ink)" />
+  <Box x={490} y={220} w={190} h={70} fill="var(--card-2)" seed={434} />
+  <Label x={585} y={244} text="quest-api:9f8e7d" size={12} weight={700} mono />
+  <Label x={585} y={268} text={t.previous} size={12} weight={800} color="var(--ink-soft)" />
+  <Arrow x1={520} y1={130} x2={520} y2={216} color="var(--coral)" dashed />
+  <Label x={606} y={173} text={t.rollback} size={12} weight={800} />
+
+  <Label x={20} y={206} text={t.deployLine} anchor="start" size={13} weight={800} />
+  <Label x={20} y={238} text={t.rollbackLine} anchor="start" size={13} weight={800} />
+  <Label x={20} y={268} text={t.nothing} anchor="start" size={12} weight={700} color="var(--ink-soft)" />
+</Frame>

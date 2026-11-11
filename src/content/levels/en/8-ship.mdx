@@ -1,0 +1,531 @@
+---
+id: 8
+slug: ship
+title: "Ship it"
+tagline: "Cooking at home is not running a café. Time to open the doors."
+weeks: 1
+landmark: rocket
+badge: { name: "Production Pal", emoji: "🚀" }
+skill:
+  name: "Production"
+  junior: "I hand my code to someone who deploys it."
+  growing: "I deploy with a script and can read logs when it breaks."
+  middle: "I own a service in production: I deploy, watch, roll back, and write down how."
+itsNormal: >
+  Production is scary because real people are on the other side. That
+  fear does not go away — it turns into checklists. Every calm engineer
+  you know is calm because of a checklist, and by the end of this level
+  you will have written your own.
+analogy:
+  emoji: "☕"
+  title: "Opening a café"
+  text: >
+    At home you cook once, for yourself. A café needs opening hours
+    (**uptime**), a way to know the oven is on (**health checks**), a
+    diary of every order (**logs**), a count of how busy it is
+    (**metrics**), a plan for when the milk runs out (a **runbook**), and
+    a way to bring back yesterday's menu fast (**rollback**). The cooking
+    is the same. Everything around it is new.
+missions:
+  - id: m1
+    title: "Fail fast, stay ready"
+    why: "The service refuses to start half-configured, and it can tell you honestly whether it is able to work."
+    steps:
+      - |
+        Some settings have no sensible default: a wrong guess is worse than no start. In `app/config.py`, take the defaults away from the ones your service cannot work without:
+        ```python
+            database_url: str
+            redis_url: str
+            llm_base_url: str
+            llm_model: str
+        ```
+        A field without a default is required. Your `.env` already has all four, so nothing changes — yet.
+      - "See it fail fast. In `.env`, put a `#` in front of the `LLM_MODEL` line, then `docker compose up -d` and `docker compose logs api | tail -5`. The box stopped at once, and the last lines name the missing setting: `llm_model` — `Field required`. That is the whole idea: a clear error at the start, instead of a strange one on the hundredth request. Remove the `#` and start it again."
+      - |
+        `/ready` should check everything the service needs for its job — the database and the model. In `app/main.py`, add `from openai import OpenAIError` and `from app.llm import client` at the top, and extend `ready`:
+        ```python
+        @app.get("/ready")
+        def ready():
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+            except OperationalError as error:
+                log.warning("database not ready: %s", error.orig)
+                raise HTTPException(status_code=503, detail="database not reachable")
+            try:
+                client.with_options(timeout=2, max_retries=0).models.list()
+            except OpenAIError as error:
+                log.warning("model not ready: %s", error)
+                raise HTTPException(status_code=503, detail="model not reachable")
+            return {"status": "ready"}
+        ```
+        The short timeout and zero retries matter: a readiness check has to answer quickly, also when the answer is "no".
+      - "A café reopens after a power cut without anyone phoning the owner. In `compose.yaml`, add `restart: unless-stopped` to every service, on the same level as `image:` or `build:`. Docker now starts a box again when it crashes and when the machine reboots — but not when you stopped it yourself."
+      - "Rebuild and test: `docker compose up -d --build`, then `curl -s -w \" %{http_code}\\n\" localhost:8000/ready` — 200. Stop the database: `docker compose stop db`. Ask again: 503, and `docker compose logs api | tail -2` says which one is missing. Start it: `docker compose start db`."
+    check: "With a setting missing, the service stops at the start and names it; with the database stopped, `/ready` answers 503."
+  - id: m2
+    title: "A diary worth reading"
+    why: "Every log line becomes searchable and carries the request id, so one `grep` tells one request's whole story."
+    steps:
+      - |
+        Write `app/logs.py`. It prints every log line as one JSON object, and remembers the id of the request being handled:
+        ```python
+        import json
+        import logging
+        import time
+        from contextlib import contextmanager
+        from contextvars import ContextVar
+
+        request_id: ContextVar[str] = ContextVar("request_id", default="-")
+        log = logging.getLogger("quest-api")
+
+
+        class JsonFormatter(logging.Formatter):
+            def format(self, record: logging.LogRecord) -> str:
+                line = {
+                    "time": self.formatTime(record),
+                    "level": record.levelname,
+                    "request_id": request_id.get(),
+                    "message": record.getMessage(),
+                }
+                line.update(getattr(record, "data", {}))
+                if record.exc_info:
+                    line["error"] = self.formatException(record.exc_info)
+                return json.dumps(line, ensure_ascii=False)
+
+
+        def setup_logging(level: str) -> None:
+            handler = logging.StreamHandler()
+            handler.setFormatter(JsonFormatter())
+            logging.basicConfig(level=level, handlers=[handler], force=True)
+
+
+        @contextmanager
+        def timed(stage: str):
+            """Log how long one stage of a request took."""
+            start = time.perf_counter()
+            try:
+                yield
+            finally:
+                ms = round((time.perf_counter() - start) * 1000)
+                log.info("stage", extra={"data": {"stage": stage, "ms": ms}})
+        ```
+        A `ContextVar` is a variable with one value per request: two requests handled at the same time each see their own id.
+      - |
+        In `app/main.py`, replace the `logging.basicConfig(...)` line with `setup_logging(settings.log_level)` (import it, and `request_id`, from `app.logs`), and let the middleware set the id before the request runs:
+        ```python
+        @app.middleware("http")
+        async def log_requests(request: Request, call_next):
+            rid = uuid.uuid4().hex[:8]
+            request_id.set(rid)
+            start = time.perf_counter()
+            response = await call_next(request)
+            ms = round((time.perf_counter() - start) * 1000)
+            response.headers["X-Request-ID"] = rid
+            log.info(
+                "request",
+                extra={"data": {"method": request.method, "path": request.url.path, "status": response.status_code, "ms": ms}},
+            )
+            return response
+        ```
+        Everything in `data` becomes its own field in the JSON line. Your older `log.info("…")` calls keep working: their text lands in `message`, and they get the request id for free.
+      - |
+        Time the stages. In `app/services/retrieval.py` (with `from app.logs import timed`):
+        ```python
+        def retrieve(session, question: str) -> list[Found]:
+            with timed("retrieve"):
+                candidates = hybrid_search(session, question, CANDIDATES)
+            with timed("rerank"):
+                return rerank(question, candidates)
+        ```
+        And in `rag_answer` in `app/services/answer.py`, wrap the model call the same way: `with timed("generate"):` around the line that calls `answer_from`. The `llm` line you wrote in Level 6 already carries the token counts.
+      - "Two lines for the `Dockerfile`. Right under `FROM`, add `ENV PYTHONUNBUFFERED=1`, so Python hands every line to Docker at once instead of collecting them. And add `\"--no-access-log\"` to the end of the `CMD` list: Uvicorn's own access line is plain text and says less than yours."
+      - |
+        Rebuild, and ask a question with the headers shown: `curl -i -X POST localhost:8000/ask -H "Content-Type: application/json" -d '{"question":"Can I get my money back after three weeks?"}'`. Copy the value of `x-request-id`, then read that request's diary: `docker compose logs --no-log-prefix api | grep <the id>`. You should see something like:
+        ```
+        {"time": "…", "level": "INFO", "request_id": "335c7b4d", "message": "stage", "stage": "retrieve", "ms": 48}
+        {"time": "…", "level": "INFO", "request_id": "335c7b4d", "message": "stage", "stage": "rerank", "ms": 910}
+        {"time": "…", "level": "INFO", "request_id": "335c7b4d", "message": "llm model=… in=412 out=38 …"}
+        {"time": "…", "level": "INFO", "request_id": "335c7b4d", "message": "stage", "stage": "generate", "ms": 2140}
+        {"time": "…", "level": "INFO", "request_id": "335c7b4d", "message": "request", "method": "POST", "path": "/ask", "status": 200, "ms": 3105}
+        ```
+        Which stage took the longest? That is where you would look first if someone said "it is slow".
+    check: "One `grep` with a request id shows every stage of that request, with its time."
+  - id: m3
+    title: "Count what matters"
+    why: "You stop saying \"it feels fast\" and start saying three numbers."
+    steps:
+      - "Add `prometheus-fastapi-instrumentator` to `requirements.txt` (and `pip install` it on your laptop, so the tests can still import the app)."
+      - |
+        Two lines in `app/main.py` give the service a `/metrics` page:
+        ```python
+        from prometheus_fastapi_instrumentator import Instrumentator
+
+        Instrumentator().instrument(app).expose(app)
+        ```
+        Put the second one right after `app = FastAPI(...)`.
+      - "Rebuild, call `/health` and `/ask` a few times, then look: `curl -s localhost:8000/metrics | grep http_requests_total`. One line per path and kind of status, each with a counter. A monitoring system such as Prometheus would read this page every few seconds and draw the graphs; today you read it yourself."
+      - |
+        Now load. Write `scripts/load.py` — 50 questions, five at a time:
+        ```python
+        import statistics
+        import sys
+        import time
+        from concurrent.futures import ThreadPoolExecutor
+
+        import httpx
+
+        URL = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
+        QUESTIONS = [
+            "When does the café open?",
+            "Can I get my money back after three weeks?",
+            "Who gets order KZ-4471?",
+            "Does oat milk cost extra?",
+            "Do you have parking for guests?",
+        ]
+
+
+        def ask(i: int) -> tuple[float, bool]:
+            start = time.perf_counter()
+            try:
+                response = httpx.post(f"{URL}/ask", json={"question": QUESTIONS[i % len(QUESTIONS)]}, timeout=120)
+                ok = response.status_code == 200
+            except httpx.HTTPError:
+                ok = False
+            return time.perf_counter() - start, ok
+
+
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            results = list(pool.map(ask, range(50)))
+
+        times = sorted(seconds for seconds, _ in results)
+        errors = sum(not ok for _, ok in results)
+        p50 = statistics.median(times)
+        p95 = statistics.quantiles(times, n=20)[-1]
+        print(f"p50 {p50:.1f}s  p95 {p95:.1f}s  errors {errors}/{len(results)}")
+        ```
+      - "Run it on your laptop: `python scripts/load.py`. With a small model on a CPU this takes a few minutes — a good moment for tea. While it runs, watch `docker stats` in another terminal: which box is working hardest?"
+      - "Write the three numbers into your README under \"How fast is it?\", with the date and the machine. Then look at the `stage` lines of one slow request and add one sentence: which stage the time goes to."
+    check: "You can state your p50, your p95 and your error rate — and which stage is the slowest."
+  - id: m4
+    title: "The robot reviewer"
+    why: "A robot checks every push the same way, also on the days you are tired."
+    steps:
+      - "Meet the linter first. `pip install ruff`, then `ruff check app tests scripts eval`. It usually finds imports nobody uses any more. Fix what it shows — `ruff check --fix` does the simple ones for you — until it prints `All checks passed!`"
+      - "Before the code leaves your laptop, check what is in it: `git status` must not list `.env`, and `git log -p | grep -i -E \"password|api_key\"` should show only harmless lines from `.env.example`. (Break 3 shows why you look at the history and not only at the files.)"
+      - "Create an empty private repository named `quest-api` on GitHub — no README, no licence — and run the two commands GitHub shows under \"push an existing repository\". If your team keeps code somewhere else, ask your mentor: every such system has the same idea under another file name."
+      - |
+        Write `.github/workflows/ci.yml`:
+        ```yaml
+        name: ci
+        on: [push]
+        jobs:
+          check:
+            runs-on: ubuntu-latest
+            env:
+              DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
+              REDIS_URL: redis://localhost:6379/0
+              LLM_BASE_URL: http://localhost:11434/v1
+              LLM_MODEL: test-model
+            steps:
+              - uses: actions/checkout@v4
+              - uses: actions/setup-python@v5
+                with:
+                  python-version: "3.12"
+                  cache: pip
+              - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+              - run: pip install -r requirements.txt ruff pytest
+              - run: ruff check app tests scripts eval
+              - run: pytest -q
+              - run: docker build -t quest-api .
+        ```
+        The `env:` block is Mission 1 coming back: the robot has no `.env`, and your settings are now required. The tests never call a real database or model, so these values only have to exist.
+      - "Commit, push, and open the \"Actions\" tab of your repository. Watch the steps run. A green check next to the commit means: lint, tests and the image build all passed on a clean machine that is not yours."
+      - "Now make it red on purpose. In `/health`, return `\"okay\"` instead of `\"ok\"` — the trick from Level 3 — commit and push. Open the failed run and read which step failed and what it printed. Then undo it with a new commit: `git revert HEAD --no-edit`, and push. Green again."
+    check: "A green check on a good commit, a red cross on the broken one — and you found the failing test in the run's log."
+  - id: m5
+    title: "Launch and un-launch"
+    why: "You put a version on a server, put a broken one on top, and bring the good one back — on purpose, before you ever have to."
+    steps:
+      - |
+        Every image gets a name you can trace back to the code. At the end of the `Dockerfile`, right above `CMD`, add:
+        ```dockerfile
+        ARG APP_VERSION=dev
+        ENV APP_VERSION=$APP_VERSION
+        ```
+        Add `app_version: str = "dev"` to `Settings`, and let `/health` say it: `return {"status": "ok", "version": settings.app_version}`. In `tests/test_api.py`, change the health test's last line to `assert response.json()["status"] == "ok"`.
+      - "In `compose.yaml`, give the `api` service a line `image: quest-api:${QUEST_TAG:-dev}` next to `build: .`. The tag now comes from outside: no `QUEST_TAG`, and it is `dev`, as on your laptop."
+      - |
+        Write `scripts/deploy.sh` and make it runnable with `chmod +x scripts/*.sh` (Level 1):
+        ```bash
+        #!/usr/bin/env bash
+        # Usage: scripts/deploy.sh <server>
+        set -euo pipefail
+        SERVER="$1"
+
+        git diff --quiet HEAD || { echo "Commit first: the tag must describe the code."; exit 1; }
+        TAG="$(git rev-parse --short HEAD)"
+
+        docker build --build-arg APP_VERSION="$TAG" -t "quest-api:$TAG" .
+        docker save "quest-api:$TAG" | gzip | ssh "$SERVER" 'gunzip | docker load'
+        scp compose.yaml "$SERVER:quest-api/compose.yaml"
+        ssh "$SERVER" "cd quest-api && QUEST_TAG=$TAG docker compose up -d --no-build && echo '$TAG' >> deploys.log"
+        echo "Deployed $TAG. Check it: ssh $SERVER curl -s localhost:8000/health"
+        ```
+        The tag is the short commit hash. `docker save | ssh … docker load` carries the image through the SSH corridor from Level 1: the server needs Docker, and nothing else.
+      - |
+        And `scripts/rollback.sh`:
+        ```bash
+        #!/usr/bin/env bash
+        # Usage: scripts/rollback.sh <server> <tag>
+        set -euo pipefail
+        SERVER="$1"
+        TAG="$2"
+
+        ssh "$SERVER" "cd quest-api && QUEST_TAG=$TAG docker compose up -d --no-build && echo 'rollback to $TAG' >> deploys.log"
+        echo "Rolled back to $TAG. Check it: ssh $SERVER curl -s localhost:8000/health"
+        ```
+        A rollback builds nothing and sends nothing. The old image is still on the server; you only start it again. That is why it is fast.
+      - "Prepare the server once. Ask your mentor for a machine with Docker, and use its name from your `~/.ssh/config` wherever you see `<server>`. Then: `ssh <server> mkdir -p quest-api` and `scp .env <server>:quest-api/.env`. Open that file on the server and give it its own database password, in both lines that hold it: production never shares passwords with a laptop. (If your laptop and the server have different kinds of processor, the box will stop with `exec format error`; add `--platform linux/amd64` to the `docker build` line.)"
+      - "Launch version 1: commit everything, then `scripts/deploy.sh <server>`. The first time, the new database is empty, so create the tables and fill the shelf: `ssh <server> \"cd quest-api && docker compose exec -T api alembic upgrade head && docker compose exec -T api python -m app.ingest handbook\"`. If you use the `ollama` box, download the model there too, as in Level 6. Then `ssh <server> curl -s localhost:8000/health` shows your commit hash, and a question to `/ask` gets a cited answer."
+      - "Launch a bad version 2. In `app/services/answer.py`, set `RAG_PROMPT` to a name that has no file, such as `\"rag_v99\"`. Commit, deploy. Now look closely: `/health` is `ok` with the new hash, `/ready` is 200 — and every `/ask` is a 500. Health checks cannot see everything. That is why you also ask one real question after every deploy."
+      - "Un-launch it, with a stopwatch. `ssh <server> cat quest-api/deploys.log` shows the tags; take the one before the last: `time scripts/rollback.sh <server> <tag>`. Ask the question again: it works. Only now read the logs of the bad version, find the cause, and undo the commit with `git revert HEAD --no-edit`."
+      - "Write `RUNBOOK.md`, one page, six headings: **Deploy** (the command, and the one question you ask afterwards) · **Roll back** (the command, where the tags are, how long it took you) · **Is it healthy?** (`/health`, `/ready`, `docker compose ps`) · **Where are the logs?** (the commands, and how to follow one request) · **When it breaks** (your own checklist) · **Who to ask**. Write it for someone who has never seen your service and is reading it at night."
+    check: "Your rollback took under two minutes, and `RUNBOOK.md` says how to do it again."
+breaks:
+  - id: b1
+    title: "Pull the plug on the database"
+    do: "On your laptop, with everything running: `docker compose stop db`, then `curl -s -w \" %{http_code}\\n\" localhost:8000/ready`"
+    see: "{\"detail\":\"database not reachable\"} 503"
+    why: "The process is alive — `/health` still says `ok` — but it cannot do its job, and `/ready` says so honestly. The log has one clear line with the reason."
+    fix: "`docker compose start db`, wait a few seconds and ask `/ready` again: 200. You did not touch the API. It checks its connections before using them, so it healed by itself."
+  - id: b2
+    title: "The bad release"
+    do: "In `app/main.py`, add `raise RuntimeError(\"broken on purpose\")` right under the imports. Commit, run `scripts/deploy.sh <server>`, then `ssh <server> docker ps`"
+    see: "Restarting (1) 4 seconds ago"
+    why: "The app crashes while starting, the box stops, and `restart: unless-stopped` starts it again — forever. Restarting helps with bad luck. It does not help with bad code."
+    fix: "Roll back first: `scripts/rollback.sh <server> <previous tag>`. When `/health` answers again, read why: `ssh <server> \"cd quest-api && docker compose logs --tail 20 api\"` still holds the traceback. Then `git revert HEAD --no-edit`. First make it work, then find out why."
+  - id: b3
+    title: "Git never forgets"
+    do: "In a new folder outside your project: `git init`, then `echo \"API_KEY=not-a-real-key\" > secrets.env`, `git add . && git commit -m \"add config\"`, then `git rm -q secrets.env && git commit -m \"remove the secret\"`. The file is gone — `ls` shows nothing. Now run `git log -p | grep not-a-real-key`"
+    see: |
+      -API_KEY=not-a-real-key
+      +API_KEY=not-a-real-key
+    why: "Git keeps every version of every file — that is its whole job. Deleting a file adds a new page to the history; it does not tear out the old one. Anyone who can read the repository can read the secret."
+    fix: "In real life: revoke the secret and make a new one. That is the only fix that works, because you cannot know who already copied the old one. Deleting is not enough."
+  - id: b4
+    title: "Silent logs"
+    do: "In the `Dockerfile`, put a `#` in front of `ENV PYTHONUNBUFFERED=1`. In `app/routers/ask.py`, add `print(\"print: a question arrived\")` as the first line of `ask`. Then `docker compose up -d --build`, ask one question, and run `docker compose logs api | grep print`"
+    see: "Nothing. Your JSON lines for the request are all there, but the `print` line is missing. It turns up much later — or only when the box stops."
+    seeKind: description
+    why: "When nobody is watching a terminal, Python collects printed text in a buffer and passes it on in lumps. During an incident you would be reading logs that are minutes old. The `logging` lines go another way and arrive at once."
+    fix: "Remove the `#` and the `print`, and rebuild. In a service, `logging` is the diary; `print` is for scripts."
+traps:
+  - error: "Works locally, fails on the server"
+    meaning: "The two places differ in something outside the code."
+    firstMove: "Compare the environment variables, the image tag and the data."
+  - error: "The container shows Restarting, forever"
+    meaning: "The app crashes at startup, and the restart policy keeps trying."
+    firstMove: "Roll back first; then read `docker logs`."
+  - error: "Exited (137)"
+    meaning: "The box was killed, almost always for using too much memory."
+    firstMove: "`docker stats`; set a memory limit, or reduce the load."
+  - error: "No space left on device"
+    meaning: "Old images and logs filled the server's disk."
+    firstMove: "`docker system df`, then `docker image prune`; set up log rotation."
+  - error: "\"Which version is running?\""
+    meaning: "Only the tag `latest` was used, so nobody can tell."
+    firstMove: "Tag images with the commit hash and show it in `/health`."
+  - error: "502 Bad Gateway right after a deploy"
+    meaning: "The reverse proxy called the app before it was ready."
+    firstMove: "Wait for the healthcheck before sending traffic to the new box."
+  - error: "docker logs shows nothing"
+    meaning: "The output is buffered, or the app writes to a file inside the box."
+    firstMove: "`PYTHONUNBUFFERED=1`, and log to stdout."
+deliverable:
+  repo: "`quest-api` with CI, `scripts/deploy.sh` and `scripts/rollback.sh`, `/metrics`, JSON logs, and `RUNBOOK.md`."
+  sketch: "The path from `git push` to a running box on the server — and the rollback path back."
+  demo: "Deploy live. Show `/health` with its version, the logs of one request and your three numbers. Then break it and roll back, explaining each step as you do it."
+selfCheck:
+  - "I can deploy my service without help."
+  - "I have rolled back for real."
+  - "I can find one request's full story in the logs."
+  - "I know my p95 latency."
+  - "Someone else could run my service from the runbook."
+quiz:
+  - q: "Right after a deploy, `docker ps` shows this. What do you do first?"
+    code: "Restarting (1) 3 seconds ago"
+    options:
+      - "Roll back to the previous tag, then read the logs"
+      - "Wait an hour — it may sort itself out"
+      - "Delete the server and start again"
+    answer: 0
+    why: "The new version crashes at startup, and restarting it again will not change its code. Bring back the version that worked; the logs will still be there when users are happy again."
+  - q: "The average latency looks fine, but some users wait 20 seconds. Where do you look?"
+    options:
+      - "At p95, not at the average"
+      - "Nowhere — those users are unlucky"
+      - "Add a cache somewhere and hope"
+    answer: 0
+    why: "An average lets many fast requests hide a few very slow ones. p95 is the wait of the unluckiest one in twenty — and people remember that wait."
+  - q: "A secret was pushed to git and deleted in the next commit. What now?"
+    options:
+      - "Revoke the secret — the history still has it"
+      - "Nothing: it is deleted"
+      - "Rename the repository"
+    answer: 0
+    why: "`git log -p` shows every version of every file. The only safe secret is one that no longer works."
+  - q: "`/health` answers 200, but every `/ask` fails. What does that tell you?"
+    options:
+      - "Alive is not the same as ready: `/ready` should check the database and the model"
+      - "The health check is broken"
+      - "Restart it twice"
+    answer: 0
+    why: "`/health` only says that the process runs. Whether it can do its job is a different question, with its own endpoint — and after a deploy, one real question to `/ask` is the final check."
+  - q: "Nobody on the team knows which code is running in production. How do you fix that for good?"
+    options:
+      - "Tag every image with the commit hash and show it in `/health`"
+      - "Always use `latest`"
+      - "Ask in the chat"
+    answer: 0
+    why: "`latest` only means \"the last one somebody built\". A commit hash points at exact code, and `/health` can show it to anyone who asks."
+links:
+  - title: "The Twelve-Factor App"
+    url: "https://12factor.net/"
+    why: "Twelve short rules for services that are easy to run. You already follow half of them — find out which."
+  - title: "GitHub Actions quickstart"
+    url: "https://docs.github.com/en/actions/writing-workflows/quickstart"
+    why: "The robot reviewer, explained by the people who built it."
+  - title: "Google SRE Book: Monitoring Distributed Systems"
+    url: "https://sre.google/sre-book/monitoring-distributed-systems/"
+    why: "Where the idea of a few golden signals comes from. One chapter, worth an evening."
+  - title: "Prometheus: getting started"
+    url: "https://prometheus.io/docs/prometheus/latest/getting_started/"
+    why: "The system that reads your `/metrics` page and turns it into graphs and alerts."
+cheatsheet:
+  - { cmd: "docker compose ps", does: "Which boxes run, and are they healthy?" }
+  - { cmd: "docker compose logs -f --tail 100 api", does: "The last 100 log lines, then follow live" }
+  - { cmd: "docker compose logs api | grep <id>", does: "The whole story of one request" }
+  - { cmd: "docker stats", does: "CPU and memory of every box, live" }
+  - { cmd: "docker system df", does: "How much disk do images, boxes and volumes take?" }
+  - { cmd: "git rev-parse --short HEAD", does: "The short hash of the current commit — your image tag" }
+  - { cmd: "docker build -t quest-api:$(git rev-parse --short HEAD) .", does: "Build an image named after its commit" }
+  - { cmd: "docker save img | gzip | ssh host 'gunzip | docker load'", does: "Send an image to a server through SSH" }
+  - { cmd: "curl -s host/ready", does: "Can the service do its job right now?" }
+  - { cmd: "ruff check .", does: "Lint: find mistakes without running the code" }
+  - { cmd: "pytest -q", does: "Run all tests, short output" }
+  - { cmd: "SOS", does: "When it breaks: breathe → is it down for users? → roll back or restart → confirm it works → only then investigate, and write it down" }
+kindNote: >
+  You opened the café. You deployed a real service, watched it work, broke
+  it on purpose and brought it back — and wrote down how, so that the next
+  person can do it too. You do not need anyone to "take it to production"
+  for you any more. You are that someone now. Porto has hung a small sign
+  on the door: "Open".
+---
+
+import Diagram from '../../../components/Diagram.astro';
+import Analogy from '../../../components/Analogy.astro';
+import RequestJourney from '../../../components/widgets/RequestJourney';
+
+Your service answers questions from a handbook, with citations and with
+numbers that prove it is good. So far it has had one guest: you. This
+level opens the doors — and teaches the habits that let you sleep while
+they are open.
+
+<Analogy />
+
+## Same code, different places
+
+The service on your laptop and the one on the server run the same code.
+Everything that differs — addresses, passwords, model names — lives in
+**environment variables**. If a required one is missing, the service
+should refuse to start and say which: a clear error at the start beats a
+strange one at three in the morning.
+
+Secrets never go into git. And git never forgets: a secret you commit
+and then delete is still in the history, for everyone who runs
+`git log -p`.
+
+## Alive, or ready?
+
+Two questions, two endpoints. `/health` answers "is the process alive?"
+`/ready` answers "can I do my job?" — are the database and the model
+reachable? A service can be alive and useless at the same time.
+
+<Diagram name="health-vs-ready" />
+
+Compose uses these answers: a `healthcheck` tells it how a box is doing,
+and `restart: unless-stopped` starts a box again after a crash or a
+reboot.
+
+## Logs you can search
+
+A log is a diary, and a diary is only useful if you can find the page.
+Write one JSON line per event, and put a **request id** into every line,
+so that one `grep` shows one request's whole way through the service.
+And set `PYTHONUNBUFFERED=1`, so the lines appear at once and not in
+lumps.
+
+## The four numbers
+
+You need surprisingly few **metrics**: the **request rate** (how busy),
+the **error rate** (how broken), the **latency** (how slow) — and, for
+LLM services, **tokens per request** (how expensive). Prometheus is the
+usual tool; with `prometheus-fastapi-instrumentator` your service shows
+its numbers at `/metrics`.
+
+For latency, never trust the average. Look at **p50**, the typical
+request, and **p95**, the wait of the unluckiest one in twenty.
+
+<Diagram name="p95" />
+
+## The robot reviewer
+
+**CI** — continuous integration — runs the same checks on every push:
+the linter (`ruff check`), the tests (`pytest`) and the image build. It
+is never tired and never in a hurry. A red check means one thing: do not
+deploy this.
+
+## Deploy and rollback
+
+A deploy has three steps: build an image, ship it, start it. Give every
+image a version tag — the git commit hash, not only `latest` — so you
+always know which code is running.
+
+A **rollback** is starting the previous tag. It is yesterday's menu:
+already printed, ready in a minute. Practise it before you need it.
+
+<Diagram name="deploy-rollback" />
+
+## When it breaks
+
+It will. First **make it work again** — roll back or restart. Only then
+find out why. Afterwards, write a short, blameless note: what happened,
+who was affected, what the cause was, what we change. The note asks what
+let the mistake through, never who made it.
+
+## The runbook
+
+One page that answers: how do I deploy, how do I roll back, where are
+the logs, what does each alert mean, who do I call? Write it for a tired
+person at night. One day that person will be you.
+
+## A real example
+
+This website is deployed exactly this way. Its repository has
+`scripts/deploy.sh`, a `.github/workflows/` folder and
+`docs/SETUP-GITHUB-AWS.md` — after this level, you can read all three.
+
+Here is the journey from Level 2 once more. Under "Where would it
+break?", try each place. Each of these now has a log line and a
+health check in your service.
+
+<RequestJourney client:visible strings={props.ui.requestJourney} />
+
+## What to remember
+
+1. **Alive is not ready.** `/health` and `/ready` answer different questions.
+2. **One request, one id, one `grep`.**
+3. **Look at p95.** The average hides the people who wait.
+4. **Tag every image with its commit.** Then a rollback is one command.
+5. **First make it work, then find out why.**

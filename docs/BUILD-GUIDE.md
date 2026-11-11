@@ -122,7 +122,7 @@ build its widget if it has one.
 - [x] **4.6 Level 7 — RAG.** Diagrams: `rag-two-pipelines`, `hybrid-fusion`,
       `eval-loop`. Widgets: chunking visualiser, RAG pipeline walkthrough
       (logic + tests first). Write the Otter Café handbook sample text.
-- [ ] **4.7 Level 8 — Ship it.** Diagrams: `health-vs-ready`, `p95`, `deploy-rollback`.
+- [x] **4.7 Level 8 — Ship it.** Diagrams: `health-vs-ready`, `p95`, `deploy-rollback`.
 
 *Check for every level:* `npm run check` and the parity test pass; the
 Russian page was read top to bottom as Russian, not as a translation; the page reads well top
