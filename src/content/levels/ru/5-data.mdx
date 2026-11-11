@@ -5,7 +5,7 @@ title: "Слой данных"
 tagline: "Дай сервису память: Postgres, векторы и кэш."
 weeks: 1
 landmark: library
-badge: { name: "Хранительница строк", emoji: "📚" }
+badge: { name: "Страж строк", emoji: "📚" }
 skill:
   name: "Данные"
   junior: "Читаю CSV-файлы и пользуюсь чужой базой данных."
@@ -128,7 +128,7 @@ missions:
             return {"status": "ready"}
         ```
       - "Запусти Alembic: `alembic init migrations`. В `migrations/env.py` добавь `from app.config import settings` и `from app.models import Base` под остальными импортами, добавь `config.set_main_option(\"sqlalchemy.url\", settings.database_url)` сразу после `config = context.config` и замени `target_metadata = None` на `target_metadata = Base.metadata`."
-      - "Alembic работает на ноутбуке, где база — не `db`, а дверь, которую ты открыла: `export DATABASE_URL=postgresql+psycopg://postgres:change-me@localhost:5432/postgres`. Переменная окружения важнее `.env` — и действует только в этом терминале."
+      - "Alembic работает на ноутбуке, где база — не `db`, а открытая тобой дверь: `export DATABASE_URL=postgresql+psycopg://postgres:change-me@localhost:5432/postgres`. Переменная окружения важнее `.env` — и действует только в этом терминале."
       - "Пусть Alembic сравнит модели с пустой базой: `alembic revision --autogenerate -m \"create documents and chunks\"`. Открой новый файл в `migrations/versions/` и поправь две вещи, о которых он знать не может: добавь `import pgvector.sqlalchemy` под `import sqlalchemy as sa` и сделай первой строкой `upgrade()` вызов `op.execute(\"CREATE EXTENSION IF NOT EXISTS vector\")`."
       - "Примени: `alembic upgrade head`, потом `alembic current`. В `psql` команда `\\dt` покажет `documents`, `chunks` и `alembic_version`, а `\\d chunks` — `vector(384)` и индекс."
       - "Докажи, что всё строится с нуля: `docker compose down -v`, потом `docker compose up -d --build`, дождись healthy и снова `alembic upgrade head`."
@@ -306,7 +306,7 @@ breaks:
     fix: "Заведи каталог: `CREATE INDEX ON documents (source);` и снова тот же `EXPLAIN ANALYZE`. Теперь там `Index Scan using documents_source_idx`, а время падает в сотню раз и больше. Прибери за собой: `DELETE FROM documents WHERE source LIKE 'source-%';` и `DROP INDEX documents_source_idx;`."
   - id: b4
     title: "Забытая миграция"
-    do: "Добавь в `Document` в `app/models.py` колонку: `language: Mapped[str] = mapped_column(String(10), server_default=\"en\")`. В терминале, где ты экспортировала `DATABASE_URL`, прочитай документы: `python -c \"from sqlalchemy import select; from app.db import SessionLocal; from app.models import Document; print(SessionLocal().scalars(select(Document)).all())\"`"
+    do: "Добавь в `Document` в `app/models.py` колонку: `language: Mapped[str] = mapped_column(String(10), server_default=\"en\")`. В терминале, где экспортирован `DATABASE_URL`, прочитай документы: `python -c \"from sqlalchemy import select; from app.db import SessionLocal; from app.models import Document; print(SessionLocal().scalars(select(Document)).all())\"`"
     see: "sqlalchemy.exc.ProgrammingError: (psycopg.errors.UndefinedColumn) column documents.language does not exist"
     why: "Модель говорит, что колонка есть, а база о ней никогда не слышала. Код и схема разошлись."
     fix: "Запиши изменение миграцией: `alembic revision --autogenerate -m \"add language to documents\"`, потом `alembic upgrade head`. Запусти ту же команду снова — работает."
@@ -318,7 +318,7 @@ traps:
     meaning: "Пароль не совпадает с тем, с которым база создавалась."
     firstMove: "Проверь `.env`; учебную базу можно пересоздать вместе с томом."
   - error: "relation \"chunks\" does not exist"
-    meaning: "Миграция не применена — или ты подключена к другой базе."
+    meaning: "Миграция не применена — или подключение идёт к другой базе."
     firstMove: "`alembic current` и `\\dt` в `psql`"
   - error: "type \"vector\" does not exist"
     meaning: "Расширение pgvector в этой базе так и не создали."
@@ -344,7 +344,7 @@ selfCheck:
   - "Я никогда не меняю схему руками в общей базе."
   - "Я читаю `EXPLAIN ANALYZE` достаточно хорошо, чтобы заметить пропущенный индекс."
   - "Я знаю размерность своих эмбеддингов и что сломается, если она изменится."
-  - "Я хотя бы раз восстановила бэкап."
+  - "Восстановление из бэкапа проверено хотя бы раз."
 quiz:
   - q: "Сервис запускается, а каждый поиск падает вот с этим. Какая причина вероятнее всего?"
     code: "relation \"chunks\" does not exist"
@@ -361,7 +361,7 @@ quiz:
       - "Перезапустить базу"
     answer: 0
     why: "`Seq Scan` — это чтение каждой строки. Индекс — каталог, который ведёт Postgres прямо к нужной полке."
-  - q: "Ты перешла на модель эмбеддингов с 1024 измерениями вместо 384. Что должно произойти?"
+  - q: "Ты переходишь на модель эмбеддингов с 1024 измерениями вместо 384. Что должно произойти?"
     options:
       - "Поменять колонку и заново посчитать эмбеддинги всех документов"
       - "Ничего"
@@ -415,9 +415,9 @@ cheatsheet:
   - { cmd: "TTL k", does: "Сколько секунд осталось у k (в redis-cli)" }
 kindNote: >
   Теперь твой сервис помнит: документы на полках, векторы, расставленные по
-  смыслу, и быстрые стикеры для повторяющихся вопросов. А ещё ты сделала
-  то, о чём многие команды только говорят, — восстановила бэкап и увидела,
-  как возвращаются данные. Именно это спокойное, негромкое умение и
+  смыслу, и быстрые стикеры для повторяющихся вопросов. А ещё на твоём счету
+  то, о чём многие команды только говорят, — восстановленный бэкап и
+  данные, которые вернулись на твоих глазах. Именно это спокойное, негромкое умение и
   заставляет людей доверять инженеру свои данные. Порто начал хранить чеки.
 ---
 
@@ -495,8 +495,8 @@ head`). Каждая база — на твоём ноутбуке, у колл�
 <Diagram name="migrations-timeline" />
 
 Вторая половина безопасности данных — бэкап. `pg_dump -Fc` записывает базу
-в один файл, `pg_restore` возвращает её обратно. **Бэкап, который ты ни разу
-не восстанавливала, — это надежда, а не бэкап.** В Миссии 5 ты его
+в один файл, `pg_restore` возвращает её обратно. **Бэкап, который ни разу
+не восстанавливали, — это надежда, а не бэкап.** В Миссии 5 ты его
 восстановишь.
 
 ## Индексы: каталог библиотеки

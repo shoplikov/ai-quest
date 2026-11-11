@@ -181,7 +181,7 @@ time large at the bottom, and a verdict line:
 - `COPY . .` above `RUN pip install` + app.py change → 46s: "One changed
   line of code reinstalled every package. Copy requirements first."
 
-Starting order is the bad one (`COPY . .` before pip) so she fixes it.
+Starting order is the bad one (`COPY . .` before pip) so the learner fixes it.
 
 ---
 

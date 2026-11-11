@@ -5,7 +5,7 @@ title: "Docker и Compose"
 tagline: "Упакуй приложение со всем, что ему нужно, — и оно везде заработает одинаково."
 weeks: 1
 landmark: harbour
-badge: { name: "Укротительница контейнеров", emoji: "📦" }
+badge: { name: "Гроза контейнеров", emoji: "📦" }
 skill:
   name: "Контейнеры"
   junior: "Запускаю `docker compose up` и надеюсь."
@@ -194,7 +194,7 @@ traps:
     meaning: "Образ собран для процессора другого типа."
     firstMove: "Собери под процессор сервера: `docker build --platform linux/amd64 …`"
   - error: "Моих изменений нет в контейнере"
-    meaning: "Контейнер работает на старом образе. Ты не пересобрала."
+    meaning: "Контейнер работает на старом образе. Образ не пересобран."
     firstMove: "`docker compose up -d --build`"
 deliverable:
   repo: "В `quest-api` теперь есть `Dockerfile`, `.dockerignore` и `compose.yaml`, а в README написано, как запустить всё одной командой."
@@ -317,7 +317,7 @@ CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
 (установка пакетов), идёт выше быстрой строки, которая меняется
 постоянно (твой код). Это и есть кэш сборки.
 
-Попробуй сама. Строки стоят в плохом порядке:
+Попробуй своими руками. Строки стоят в плохом порядке:
 
 <DockerfileStacker client:visible strings={props.ui.dockerfileStacker} />
 

@@ -16,7 +16,7 @@
 
 ## What it is
 
-A static learning website for one learner and one mentor. It covers the things a junior AI engineer usually finds hard: the terminal, ports, backend, Docker, databases, LLM serving, production RAG and shipping. Every level explains the idea, lets her play with it, gives missions to build, things to break on purpose, a quiz and a deliverable.
+A static learning website for one learner and one mentor. It covers the things a junior AI engineer usually finds hard: the terminal, ports, backend, Docker, databases, LLM serving, production RAG and shipping. Every level explains the idea, lets the learner play with it, gives missions to build, things to break on purpose, a quiz and a deliverable.
 
 There is no backend and no account. Progress is saved in the browser, and a share link shows the map to the mentor read-only. The whole site is in English and Russian.
 
@@ -24,7 +24,7 @@ There is no backend and no account. Progress is saved in the browser, and a shar
 flowchart LR
     A["Foundations<br/>1 Terminal<br/>2 Ports"] --> B2["Build<br/>3 Backend<br/>4 Docker<br/>5 Data"]
     B2 --> C["AI<br/>6 LLM serving<br/>7 RAG"] --> D["Production<br/>8 Ship it"]
-    D ==> B["Final boss:<br/>her own RAG service"]
+    D ==> B["Final boss:<br/>their own RAG service"]
     classDef level fill:#1FA89A,stroke:#0E7A6E,color:#fff
     classDef boss fill:#FF6B5E,stroke:#B53A3A,color:#fff
     class A,B2,C,D level

@@ -3,11 +3,11 @@
 ## Purpose
 
 One learner, one mentor. The learner is a junior AI engineer who finds
-ports, Docker, backend and production work hard. After about 12 weeks she
-should be able to take a feature from idea to production alone, debug her
+ports, Docker, backend and production work hard. After about 12 weeks they
+should be able to take a feature from idea to production alone, debug their
 own problems, and know when to ask.
 
-She likes visuals, humour and kind encouragement. The site must feel like a
+The learner likes visuals, humour and kind encouragement. The site must feel like a
 gift someone made with care, not a corporate training portal.
 
 ## Non-goals
@@ -18,9 +18,9 @@ gift someone made with care, not a corporate training portal.
 
 ## What would make it a failure
 
-- It makes her feel behind or judged.
+- It makes the learner feel behind or judged.
 - The technical content is wrong or vague ("learn Docker").
-- It looks impressive but she cannot tell what to do today.
+- It looks impressive but the learner cannot tell what to do today.
 
 ## Stack
 
@@ -87,13 +87,13 @@ table of contents (top chips on phones):
 4. **Play with it**: the widget(s) embedded in the MDX body.
 5. **Missions**: cards with steps, a "How to check" line and a tick box.
 6. **Break it on purpose**: cards with Do / You'll see / Why / Fix. The Why
-   and Fix parts are hidden behind "Show me why" so she can guess first.
+   and Fix parts are hidden behind "Show me why" so the learner can guess first.
    Tick box "I broke it and fixed it".
 7. **Classic traps**: table of error → what it really means → first move.
 8. **Quiz**: "What does this error mean?" (see widgets spec).
 9. **Deliverable**: three tick boxes — repo, one-page sketch, 10-minute demo.
 10. **You're middle-level here when…**: self-check tick boxes.
-11. **Go deeper**: links with one line each on why it's worth her time.
+11. **Go deeper**: links with one line each on why it's worth the learner's time.
 12. **Finish level** button. Enabled when all missions and all three
     deliverable boxes are ticked. On click: confetti, badge awarded, kind
     note revealed in a card, button to the next level. Once done, the kind
@@ -105,7 +105,7 @@ table of contents (top chips on phones):
 The final project brief from `levels.md`: story, requirements checklist
 (tick boxes), architecture diagram, demo-day rubric table, "Finish the
 quest" button (enabled when all requirement boxes are ticked). On finish:
-big confetti, a certificate card with her hero name and the date, and a
+big confetti, a certificate card with the learner's hero name and the date, and a
 "Print certificate" button (print CSS, one page).
 
 ### `/skills`
@@ -113,8 +113,8 @@ big confetti, a certificate card with her hero name and the date, and a
 Skills matrix from `levels.md`. Eight skill areas (one per level). For each
 area: three columns Junior / Growing / Middle with a short description, and
 a 0–3 self-rating control (0 = not yet, 3 = middle). A radar chart (inline
-SVG, 8 axes) shows her self-rating as a filled shape and the "middle"
-target as an outline. Text under it: ratings are for her, not a grade.
+SVG, 8 axes) shows the learner's self-rating as a filled shape and the "middle"
+target as an outline. Text under it: ratings are for the learner, not a grade.
 
 ### `/glossary`
 

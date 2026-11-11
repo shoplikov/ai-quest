@@ -4,16 +4,16 @@
 
 Write like a kind senior colleague who remembers being confused.
 
-- Speak to her directly: "you". Short sentences. Plain words.
+- Speak to the learner directly: "you". Short sentences. Plain words.
 - Explain the idea before the command. Then give the command. Then say
-  what she should see.
+  what they should see.
 - One analogy per idea, taken from daily life. Keep the same analogy
   through the level (ports are always doors; a container is always a
   lunchbox).
 - Funny is welcome when it is about the technology: "The error says
   'connection refused'. Rude, but honest."
 - Never: "simply", "just", "obviously", "easy", "as everyone knows".
-- Never joke about the learner, her level, or mistakes she might make.
+- Never joke about the learner, their level, or mistakes they might make.
 - Normalise struggle with facts, not flattery: "Every engineer has lost an
   hour to a wrong port. Most have lost a day."
 - Be exact. Real commands, real error text, real flags. If you are not
@@ -56,7 +56,7 @@ missions:                  # 3–6
     title: "…"
     why: "one sentence — what this teaches"
     steps: ["markdown string", "…"]   # may contain `inline code` and fenced blocks
-    check: "How she knows she did it"
+    check: "How the learner knows they did it"
 breaks:                    # 3–4
   - id: b1
     title: "…"
@@ -107,7 +107,7 @@ Length of body: 600–1,000 words. The missions teach the rest.
 
 - Each mission is 20–60 minutes of hands-on work.
 - Steps are things to type and observe, not things to read.
-- The check is something she can see on her own screen.
+- The check is something the learner can see on their own screen.
 - Missions build on each other inside a level and reuse earlier levels'
   repos where possible (the FastAPI app from Level 3 is put in Docker in
   Level 4, gets a database in Level 5, and so on up to the boss).
@@ -119,8 +119,9 @@ lose data. Each break ends with the system working again.
 
 ### Kind notes
 
-Specific to what she just achieved. No generic "you're amazing". Say what
-she can now do that she could not do before, and why that matters.
+Specific to what the learner just achieved. No generic "you're amazing".
+Say what they can now do that they could not do before, and why that
+matters.
 Example (Level 2): see the two `2-ports.mdx` files.
 
 ## Links

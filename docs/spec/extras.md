@@ -139,9 +139,9 @@ Write this page for the mentor, in the same kind voice.
 **Your job in one line.** You are not the teacher; the map is. You are
 the person who makes it safe to be stuck and worth it to finish.
 
-**Before she starts**
-- Give her: a Linux machine she may break, SSH access to one remote
-  machine, and an LLM endpoint (or tell her to use Ollama).
+**Before the learner starts**
+- Give them: a Linux machine they may break, SSH access to one remote
+  machine, and an LLM endpoint (or tell them to use Ollama).
 - Agree on time: about 6–8 hours a week, some of it inside work hours.
 - Say out loud that getting stuck is the plan, not a problem.
 
@@ -150,10 +150,10 @@ the person who makes it safe to be stuck and worth it to finish.
 | Minutes | What |
 |---------|------|
 | 0–5 | How was the week? One thing that felt good, one that felt bad. |
-| 5–15 | She demos. You watch and stay quiet. |
+| 5–15 | The learner demos. You watch and stay quiet. |
 | 15–22 | You ask "why" three times. ("Why 0.0.0.0?" "What if the db is down?") |
-| 22–27 | Review one piece of her work together: a file, a diagram, a log. |
-| 27–30 | Agree the one goal for next week. She writes it down. |
+| 22–27 | Review one piece of their work together: a file, a diagram, a log. |
+| 27–30 | Agree the one goal for next week. The learner writes it down. |
 
 **How to review**
 - Start with what is right, specifically. "Your `/ready` checks the real
@@ -162,35 +162,35 @@ the person who makes it safe to be stuck and worth it to finish.
 - Ask before telling: "What would happen if…?" beats "You should…".
 - Praise the process ("you checked `ss` first") more than the result.
 
-**The 30-minute rule (tell her this on day one)**
+**The 30-minute rule (tell the learner this on day one)**
 Stuck? Try for 30 minutes. Write down what you tried and what you saw.
 Then ask — with those notes. Asking with notes is a senior habit, not a
 weakness.
 
-**When she asks for help**
+**When the learner asks for help**
 Do not take the keyboard. Ask, in order: What did you expect? What
 happened instead? What is the exact error? Which hop is it? Usually the
 answer arrives during the second question.
 
-**Signs she is becoming middle-level**
-- She tells you the cause, not only the symptom.
-- Her questions contain what she already ruled out.
-- She says "I measured it" instead of "I think".
-- She writes things down without being asked.
-- Other people start asking her.
+**Signs the learner is becoming middle-level**
+- They tell you the cause, not only the symptom.
+- Their questions contain what they already ruled out.
+- They say "I measured it" instead of "I think".
+- They write things down without being asked.
+- Other people start asking them.
 
 **Pace**
 - The weeks are a guide. Level 7 often takes four weeks; that is fine.
 - If a level drags past double its time, cut the last mission, do the
   deliverable, move on. Momentum matters more than completeness.
-- If she is flying, add: "explain this level to another junior".
+- If the learner is flying, add: "explain this level to another junior".
 
 **After the boss**
-Give her a real, small production task with her name on it. The map was
+Give the learner a real, small production task with their name on it. The map was
 practice; ownership is the graduation.
 
-**Seeing her progress.** She can press "Share my progress" on the map and
-send you the link. It opens her map read-only in your browser. Nothing is
+**Seeing the learner's progress.** The learner can press "Share my progress"
+on the map and send you the link. It opens their map read-only in your browser. Nothing is
 stored on any server.
 
 ---

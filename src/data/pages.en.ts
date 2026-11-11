@@ -95,9 +95,9 @@ export const pages: Pages = {
     lead: 'You are not the teacher; the map is. You are the person who makes it safe to be stuck and worth it to finish.',
     sections: [
       {
-        title: 'Before she starts',
+        title: 'Before the learner starts',
         list: [
-          'Give her: a Linux machine she may break, SSH access to one remote machine, and an LLM endpoint (or tell her to use Ollama).',
+          'Give them: a Linux machine they may break, SSH access to one remote machine, and an LLM endpoint (or tell them to use Ollama).',
           'Agree on time: about 6–8 hours a week, some of it inside work hours.',
           'Say out loud that getting stuck is the plan, not a problem.',
         ],
@@ -108,10 +108,10 @@ export const pages: Pages = {
           head: ['Minutes', 'What'],
           rows: [
             ['0–5', 'How was the week? One thing that felt good, one that felt bad.'],
-            ['5–15', 'She demos. You watch and stay quiet.'],
+            ['5–15', 'The learner demos. You watch and stay quiet.'],
             ['15–22', 'You ask "why" three times. ("Why `0.0.0.0`?" "What if the database is down?")'],
-            ['22–27', 'Review one piece of her work together: a file, a diagram, a log.'],
-            ['27–30', 'Agree the one goal for next week. She writes it down.'],
+            ['22–27', 'Review one piece of their work together: a file, a diagram, a log.'],
+            ['27–30', 'Agree the one goal for next week. The learner writes it down.'],
           ],
         },
       },
@@ -127,25 +127,25 @@ export const pages: Pages = {
       {
         title: 'The 30-minute rule',
         paragraphs: [
-          'Tell her this on day one: Stuck? Try for 30 minutes. Write down what you tried and what you saw. Then ask — with those notes.',
+          'Tell the learner this on day one: Stuck? Try for 30 minutes. Write down what you tried and what you saw. Then ask — with those notes.',
           'Asking with notes is a senior habit, not a weakness.',
         ],
       },
       {
-        title: 'When she asks for help',
+        title: 'When the learner asks for help',
         paragraphs: [
           'Do not take the keyboard. Ask, in this order: What did you expect? What happened instead? What is the exact error? Which hop is it?',
           'Usually the answer arrives during the second question.',
         ],
       },
       {
-        title: 'Signs she is becoming middle-level',
+        title: 'Signs the learner is becoming middle-level',
         list: [
-          'She tells you the cause, not only the symptom.',
-          'Her questions contain what she already ruled out.',
-          'She says "I measured it" instead of "I think".',
-          'She writes things down without being asked.',
-          'Other people start asking her.',
+          'They tell you the cause, not only the symptom.',
+          'Their questions contain what they already ruled out.',
+          'They say "I measured it" instead of "I think".',
+          'They write things down without being asked.',
+          'Other people start asking them.',
         ],
       },
       {
@@ -153,17 +153,17 @@ export const pages: Pages = {
         list: [
           'The weeks are a guide. Level 7 often takes four weeks; that is fine.',
           'If a level drags past double its time, cut the last mission, do the deliverable, move on. Momentum matters more than completeness.',
-          'If she is flying, add: "explain this level to another junior".',
+          'If the learner is flying, add: "explain this level to another junior".',
         ],
       },
       {
         title: 'After the boss',
-        paragraphs: ['Give her a real, small production task with her name on it. The map was practice; ownership is the graduation.'],
+        paragraphs: ['Give the learner a real, small production task with their name on it. The map was practice; ownership is the graduation.'],
       },
       {
-        title: 'Seeing her progress',
+        title: 'Seeing the learner\'s progress',
         paragraphs: [
-          'She can press "Share my progress" on the map and send you the link. It opens her map read-only in your browser. Nothing is stored on any server.',
+          'The learner can press "Share my progress" on the map and send you the link. It opens their map read-only in your browser. Nothing is stored on any server.',
         ],
       },
     ],

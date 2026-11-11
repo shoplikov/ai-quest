@@ -25,9 +25,9 @@ handbook**. Each level adds a layer:
 | 7 | Real RAG: ingest, hybrid retrieval, rerank, citations, evals |
 | 8 | Logs, metrics, CI, deploy, runbook |
 
-The boss project is the same shape, on documents she chooses herself.
+The boss project is the same shape, on documents the learner chooses.
 
-**Model access.** She needs an OpenAI-compatible chat endpoint and an
+**Model access.** The learner needs an OpenAI-compatible chat endpoint and an
 embedding model. Say this at the start of Level 6: "Ask your mentor which
 endpoint to use. If there is none, run a small model on your laptop with
 Ollama, which serves an OpenAI-compatible API at
@@ -147,9 +147,9 @@ beginners — https://ubuntu.com/tutorials/command-line-for-beginners
 `ps aux | grep name`, `kill <pid>`, `df -h`, `du -sh * | sort -h`,
 `free -h`, `tmux new -s name` / `tmux attach -t name`, `journalctl -u svc -f`.
 
-**kindNote** idea: the black window is now a place she can walk around in
-with the lights on. Every later level happens in this house; she will
-never again be the person who is afraid to SSH into a server.
+**kindNote** idea: the black window is now a place the learner can walk
+around in with the lights on. Every later level happens in this house; they
+will never again be the person who is afraid to SSH into a server.
 
 ---
 
@@ -287,8 +287,8 @@ The Twelve-Factor App (config chapter) — https://12factor.net/config
 `curl -s -X POST localhost:8000/ask -H "Content-Type: application/json" -d '{"question":"hi there"}'`,
 `pytest -q`, `pytest -k name -x`.
 
-**kindNote** idea: she turned Python into a service with a menu, manners
-and a paper trail. From now on her work is something other people can
+**kindNote** idea: the learner turned Python into a service with a menu, manners
+and a paper trail. From now on their work is something other people can
 build on — that is the real meaning of "backend".
 
 ---
@@ -361,11 +361,11 @@ build on — that is the real meaning of "backend".
 - m2 "Look inside": open a shell in the running container with
   `docker exec -it <name> sh`; find the app files with `ls`; run
   `hostname` and `env | sort`; run the same two commands on the host and
-  compare. check: she can say three things
+  compare. check: the learner can say three things
   that differ inside the box (hostname, files, environment).
 - m3 "Fast rebuilds": time a rebuild after changing one line of code,
   with the bad order and the good order (`time docker build …`).
-  check: the good order rebuilds in seconds; she can say why.
+  check: the good order rebuilds in seconds; the learner can say why.
 - m4 "Two boxes": compose with `api` and `db` as above; an endpoint
   `/ready` that opens a connection to the database and returns 200 or 503.
   check: `docker compose ps` shows both healthy; `/ready` is 200; stop the
@@ -373,7 +373,7 @@ build on — that is the real meaning of "backend".
 - m5 "Data that survives": create a table and a row with
   `docker compose exec db psql -U postgres`, run `docker compose down`
   then `up -d` — the row is still there. Then (carefully, on this toy
-  project only) `down -v` and see it gone. check: she can explain where
+  project only) `down -v` and see it gone. check: the learner can explain where
   the data lived.
 
 **Breaks**
@@ -428,8 +428,8 @@ Docker roadmap (visual) — https://roadmap.sh/docker
 `docker compose ps`, `docker compose down`, `docker stats`,
 `docker system df`, `docker image prune`.
 
-**kindNote** idea: "works on my machine" is no longer her sentence. She
-can hand anyone a box that runs the same everywhere — and she knows which
+**kindNote** idea: "works on my machine" is no longer the learner's sentence.
+They can hand anyone a box that runs the same everywhere — and they know which
 localhost is which, which many people never fully learn.
 
 ---
@@ -560,7 +560,7 @@ Use The Index, Luke — https://use-the-index-luke.com/
 `pg_dump -Fc db > f.dump`, `pg_restore -d db f.dump`,
 `docker compose exec redis redis-cli`, `SET k v EX 60`, `TTL k`.
 
-**kindNote** idea: her service now remembers. She has also done the
+**kindNote** idea: the learner's service now remembers. They have also done the
 thing many teams only talk about — restored a backup. That is the calm,
 unglamorous kind of skill that makes people trust an engineer with data.
 
@@ -626,7 +626,7 @@ No widget besides the quiz.
 **Missions**
 - m1 "First call": add settings `llm_base_url`, `llm_api_key`,
   `llm_model`; list models with curl `…/v1/models`; make one call; print
-  answer and `usage`. check: she can say how many tokens went in and out.
+  answer and `usage`. check: the learner can say how many tokens went in and out.
 - m2 "Real answers": `/ask` now calls the model (no documents yet) with a
   system prompt from `prompts/answer_v1.txt`. Log model, prompt tokens,
   output tokens, duration. check: one log line per call with all four.
@@ -690,7 +690,7 @@ streams), `nvidia-smi`, `watch -n 1 nvidia-smi`, and a 6-row table of
 parameters: `temperature`, `max_tokens`, `stream`, `timeout`,
 `max_retries`, `finish_reason`.
 
-**kindNote** idea: lots of people can chat with a model. She can now put
+**kindNote** idea: lots of people can chat with a model. The learner can now put
 one inside a service that stays polite under pressure — bounded, timed,
 validated. That is the difference between a demo and a product.
 
@@ -851,7 +851,7 @@ chunks for the failing question → 4 check hit rate → 5 only then touch
 the prompt → 6 only then think about the model. Plus the two formulas
 (hit rate@k, MRR, RRF) in words.
 
-**kindNote** idea: she can now do what most RAG demos cannot — say how
+**kindNote** idea: the learner can now do what most RAG demos cannot — say how
 good the system is, with numbers, and which part to fix next. That is
 rare, and it is exactly the skill teams look for when they call someone
 "middle" or above.
@@ -918,7 +918,7 @@ check in your service."
   story with `docker compose logs api | grep <request-id>`.
   check: one grep shows the full path of one request.
 - m3 "Count what matters": `/metrics`; a script that sends 50 requests;
-  report p50, p95 and error rate. check: she can state the three numbers.
+  report p50, p95 and error rate. check: the learner can state the three numbers.
 - m4 "The robot reviewer": GitHub Actions workflow — ruff, pytest, docker
   build — on every push. check: a green check on a good commit; a red
   one on a commit with a failing test.
@@ -980,6 +980,7 @@ Prometheus: getting started — https://prometheus.io/docs/prometheus/latest/get
 "incident checklist": breathe → is it down for users? → roll back or
 restart → confirm it works → then investigate and write it down.
 
-**kindNote** idea: she opened the café. She has deployed, watched, broken
-and rolled back a real service, and written down how. She does not need
-someone to "take it to production" for her any more — she is that someone.
+**kindNote** idea: the learner opened the café. They have deployed, watched,
+broken and rolled back a real service, and written down how. They do not
+need someone to "take it to production" for them any more — they are that
+someone.
