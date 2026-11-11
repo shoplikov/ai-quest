@@ -39,6 +39,10 @@
 .cs-commands td:first-child {
   width: 46%;
 }
+.cs-notes td:first-child {
+  width: 34%;
+  font-weight: 700;
+}
 .cs-print-footer {
   display: none;
 }
@@ -165,6 +169,10 @@
   .cs-commands th:first-child,
   .cs-commands td:first-child {
     width: 48% !important;
+  }
+  .cs-notes th:first-child,
+  .cs-notes td:first-child {
+    width: 34% !important;
   }
   .cs-traps th:nth-child(1),
   .cs-traps td:nth-child(1) {

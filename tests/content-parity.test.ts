@@ -16,10 +16,11 @@ type Level = {
   landmark: string;
   badge: { emoji: string };
   missions: { id: string; steps: unknown[] }[];
-  breaks: { id: string; see: string }[];
+  breaks: { id: string; see: string; seeKind?: string }[];
   traps: unknown[];
   selfCheck: unknown[];
   links: unknown[];
+  cheatsheetKind?: string;
   cheatsheet: { cmd: string }[];
   quiz: { options: unknown[]; answer: number; code?: string }[];
 };
@@ -42,11 +43,14 @@ export function structure(level: { data: Level; body: string }) {
     badgeEmoji: d.badge.emoji,
     missions: d.missions.map((m) => ({ id: m.id, steps: m.steps.length })),
     breaks: d.breaks.map((b) => b.id),
-    breakSee: d.breaks.map((b) => b.see),
+    // Real output stays in English; a description of behaviour is written in each language.
+    breakSee: d.breaks.map((b) => (b.seeKind === 'description' ? { description: true } : b.see)),
     traps: d.traps.length,
     selfCheck: d.selfCheck.length,
     links: d.links.length,
-    cheatsheetCmds: d.cheatsheet.map((c) => c.cmd),
+    cheatsheetKind: d.cheatsheetKind ?? 'commands',
+    // Commands are never translated; notes rows are plain words and are.
+    cheatsheetCmds: d.cheatsheetKind === 'notes' ? d.cheatsheet.length : d.cheatsheet.map((c) => c.cmd),
     quiz: d.quiz.map((q) => ({ options: q.options.length, answer: q.answer, code: q.code ?? null })),
     widgets: [...level.body.matchAll(/<([A-Z]\w*)\b[^>]*\bclient:/g)].map((x) => x[1]),
     diagrams: [...level.body.matchAll(/<Diagram\s+name="([^"]+)"/g)].map((x) => x[1]),

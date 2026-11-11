@@ -28,6 +28,8 @@ const levelSchema = z.object({
     .array(
       z.object({
         id: z.string().regex(/^m\d+$/),
+        /** Optional sub-header shown above this mission (long levels group missions by week). */
+        week: text.optional(),
         title: text,
         why: text,
         steps: z.array(text).min(1),
@@ -43,6 +45,8 @@ const levelSchema = z.object({
         title: text,
         do: text,
         see: text,
+        /** `output`: real program output, shown as code and kept in English. `description`: what happens, in words. */
+        seeKind: z.enum(['output', 'description']).default('output'),
         why: text,
         fix: text,
       }),
@@ -66,6 +70,8 @@ const levelSchema = z.object({
     )
     .length(5),
   links: z.array(z.object({ title: text, url: z.url(), why: text })).min(3).max(5),
+  /** `commands`: rows are shell commands. `notes`: rows are steps or terms in plain words. */
+  cheatsheetKind: z.enum(['commands', 'notes']).default('commands'),
   cheatsheet: z.array(z.object({ cmd: text, does: text })).min(8).max(14),
   kindNote: text,
 });

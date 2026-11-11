@@ -52,6 +52,7 @@ itsNormal: "2–3 sentences"
 analogy: { emoji: "🚪", title: "…", text: "…" }
 missions:                  # 3–6
   - id: m1
+    week: "optional sub-header shown above this mission, e.g. Week 1 — …"
     title: "…"
     why: "one sentence — what this teaches"
     steps: ["markdown string", "…"]   # may contain `inline code` and fenced blocks
@@ -61,6 +62,7 @@ breaks:                    # 3–4
     title: "…"
     do: "markdown"
     see: "exact error text"
+    seeKind: output        # optional: output (default, shown as code) or description (behaviour in words)
     why: "markdown"
     fix: "markdown"
 traps:                     # 4–8
@@ -80,6 +82,7 @@ quiz:                      # exactly 5
     why: "…"
 links:                     # 3–5
   - { title: "…", url: "https://…", why: "one line" }
+cheatsheetKind: commands   # optional: commands (default) or notes (steps/terms in plain words)
 cheatsheet:                # 8–14 rows
   - { cmd: "ss -tlnp", does: "Show which ports are open and who owns them" }
 kindNote: "3–5 sentences, shown when the level is finished"

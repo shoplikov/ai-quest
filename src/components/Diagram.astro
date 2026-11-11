@@ -21,6 +21,9 @@ import MeaningMap from './diagrams/MeaningMap.astro';
 import CacheAside from './diagrams/CacheAside.astro';
 import ContextWindow from './diagrams/ContextWindow.astro';
 import StreamingTimeline from './diagrams/StreamingTimeline.astro';
+import RagTwoPipelines from './diagrams/RagTwoPipelines.astro';
+import HybridFusion from './diagrams/HybridFusion.astro';
+import EvalLoop from './diagrams/EvalLoop.astro';
 
 interface Props {
   name: string;
@@ -28,7 +31,7 @@ interface Props {
 const { name } = Astro.props;
 const lang = isLang(Astro.params.lang) ? Astro.params.lang : isLang(Astro.currentLocale) ? Astro.currentLocale : 'en';
 const t = getDict(lang).diagrams;
-const known = ['building-with-doors', 'localhost-vs-all', 'reverse-proxy', 'ssh-tunnel', 'file-tree', 'pipe', 'permissions', 'request-response', 'event-loop', 'project-layout', 'image-vs-container', 'volume', 'compose-network', 'join', 'migrations-timeline', 'meaning-map', 'cache-aside', 'context-window', 'streaming-timeline'];
+const known = ['building-with-doors', 'localhost-vs-all', 'reverse-proxy', 'ssh-tunnel', 'file-tree', 'pipe', 'permissions', 'request-response', 'event-loop', 'project-layout', 'image-vs-container', 'volume', 'compose-network', 'join', 'migrations-timeline', 'meaning-map', 'cache-aside', 'context-window', 'streaming-timeline', 'rag-two-pipelines', 'hybrid-fusion', 'eval-loop'];
 if (!known.includes(name)) throw new Error(`Unknown diagram: ${name}`);
 ---
 {name === 'building-with-doors' && <BuildingWithDoors t={t.buildingWithDoors} />}
@@ -50,3 +53,6 @@ if (!known.includes(name)) throw new Error(`Unknown diagram: ${name}`);
 {name === 'cache-aside' && <CacheAside t={t.cacheAside} />}
 {name === 'context-window' && <ContextWindow t={t.contextWindow} />}
 {name === 'streaming-timeline' && <StreamingTimeline t={t.streamingTimeline} />}
+{name === 'rag-two-pipelines' && <RagTwoPipelines t={t.ragTwoPipelines} />}
+{name === 'hybrid-fusion' && <HybridFusion t={t.hybridFusion} />}
+{name === 'eval-loop' && <EvalLoop t={t.evalLoop} />}

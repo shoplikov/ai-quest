@@ -57,7 +57,7 @@ const breaks = await Promise.all(
   d.breaks.map(async (b) => ({
     ...b,
     doHtml: await renderMarkdown(lang, b.do),
-    seeHtml: await renderCode(lang, b.see, 'text'),
+    seeHtml: b.seeKind === 'description' ? `<p class="break-see-text">${renderInline(b.see)}</p>` : await renderCode(lang, b.see, 'text'),
     whyHtml: await renderMarkdown(lang, b.why),
     fixHtml: await renderMarkdown(lang, b.fix),
   })),
@@ -159,6 +159,8 @@ const clientData = {
       <section id="missions" data-anchor aria-labelledby="h-missions">
         <h2 id="h-missions" class="section-title">{S.missions}</h2>
         {missions.map((m, i) => (
+          <Fragment>
+          {m.week && <h3 class="mission-week">{m.week}</h3>}
           <Card as="article" class="mission" id={`mission-${m.id}`} aria-labelledby={`mt-${m.id}`}>
             <p class="mission-kicker">{fill(L.missionNumber, { n: i + 1 })}</p>
             <h3 id={`mt-${m.id}`} class="mission-title">{m.title}</h3>
@@ -170,6 +172,7 @@ const clientData = {
             <p class="mission-check"><strong>{L.check}:</strong> <Fragment set:html={renderInline(m.check)} /></p>
             <TickRow id={`tick-${m.id}`} kind="mission" level={d.id} item={m.id} class="tick-main">{L.missionTick}</TickRow>
           </Card>
+          </Fragment>
         ))}
       </section>
 

@@ -1,0 +1,37 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['hybridFusion'];
+}
+const { t } = Astro.props;
+const lists = [
+  { y: 20, title: t.vector, items: [t.refund, t.giftcards, t.receipts], fill: 'var(--teal-soft)' },
+  { y: 170, title: t.keyword, items: [t.order, t.refund, t.holidays], fill: 'var(--sun-soft)' },
+];
+const fused = [t.refundBoth, t.order, t.giftcards];
+---
+<Frame id="dg-fusion" w={720} h={310} title={t.title} desc={t.desc}>
+  {lists.map((l, k) => (
+    <g>
+      <Box x={20} y={l.y} w={250} h={120} fill={l.fill} seed={340 + k} />
+      <Label x={36} y={l.y + 22} text={l.title} anchor="start" size={13} weight={800} />
+      {l.items.map((item, i) => (
+        <Label x={36} y={l.y + 52 + i * 24} text={`${i + 1}  ${item}`} anchor="start" size={12} weight={item === t.refund ? 800 : 600} />
+      ))}
+    </g>
+  ))}
+  <Arrow x1={274} y1={84} x2={476} y2={130} color="var(--ink-soft)" />
+  <Arrow x1={274} y1={226} x2={476} y2={180} color="var(--ink-soft)" />
+  <Label x={372} y={155} text={t.formula} size={11} weight={800} mono color="var(--lilac-ink)" />
+
+  <Box x={480} y={90} w={224} h={130} fill="var(--card-2)" seed={345} />
+  <Label x={496} y={112} text={t.fused} anchor="start" size={13} weight={800} />
+  {fused.map((item, i) => (
+    <Label x={496} y={142 + i * 24} text={`${i + 1}  ${item}`} anchor="start" size={12} weight={i === 0 ? 800 : 600} />
+  ))}
+  <Label x={592} y={250} text={t.note} size={11} weight={700} color="var(--ink-soft)" />
+</Frame>

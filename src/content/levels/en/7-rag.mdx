@@ -1,0 +1,738 @@
+---
+id: 7
+slug: rag
+title: "Production RAG"
+tagline: "Give the model an open book — and make sure it opens the right page."
+weeks: 3
+landmark: book
+badge: { name: "Retrieval Ranger", emoji: "📖" }
+skill:
+  name: "RAG"
+  junior: "I followed a tutorial; it answers sometimes."
+  growing: "I build ingest and retrieval and can see which chunks were used."
+  middle: "I measure retrieval and answer quality, know which stage fails, and improve it with evidence."
+itsNormal: >
+  A first RAG works in an afternoon, and then gives a confident wrong
+  answer in front of someone important. Everyone's does. The gap between
+  "demo" and "trustworthy" is the whole job — and it is why this level has
+  three weeks instead of one.
+analogy:
+  emoji: "📖"
+  title: "An open-book exam"
+  text: >
+    The model is a clever student who has never read your documents.
+    Retrieval is the helper who runs to the shelf and brings back pages. If
+    the helper brings the wrong pages, the student still writes a fluent
+    answer — from the wrong pages. Most "the model is hallucinating"
+    problems are really "the helper brought the wrong page".
+missions:
+  - id: m1
+    week: "Week 1 — make it work end to end"
+    title: "Fill the shelf"
+    why: "You turn a folder of documents into chunks in Postgres, each one with its source, and read them with your own eyes."
+    steps:
+      - |
+        Write the Otter Café handbook: a folder `handbook/` with 6–8 short markdown files. (Or take any small set of public documents you like — the steps are the same.) One file for each topic, with `##` headings inside. Here is the first one, `handbook/refunds.md`:
+        ```markdown
+        # Refunds and payments
+
+        ## Refunds
+
+        Refunds are allowed within 14 days. After that, only store credit is given, and only with a receipt.
+        If a guest is unhappy with a drink, make it again, free of charge. This is not a refund and needs no receipt.
+
+        ## Gift cards
+
+        Gift cards never expire. They cannot be exchanged for money, and change is given as a new gift card.
+
+        ## Payments
+
+        We take cards and cash. If the card machine fails, take cash only and write down the time in the shift book.
+        ```
+      - "Write the others yourself, with real-sounding facts: opening hours (and holidays), allergies, a menu with short codes such as `D-12`, staff rules, closing time, and `catering.md` with at least six catering orders — each under its own heading, each with a number such as `KZ-4471`, a customer and a day. You will need those exact codes in Week 2."
+      - "Clear the shelf of the twenty loose sentences from Level 5: `docker compose exec db psql -U postgres -c \"DELETE FROM chunks; DELETE FROM documents;\"`"
+      - |
+        Every chunk should remember which part of the file it came from. Add a column to `Chunk` in `app/models.py`:
+        ```python
+            section: Mapped[str] = mapped_column(String(200), server_default="")
+        ```
+        Then, in the terminal where you exported `DATABASE_URL` (Level 5): `alembic revision --autogenerate -m "add section to chunks"` and `alembic upgrade head`.
+      - |
+        Write `app/ingest.py`. It cuts each file at its headings, packs whole sentences into chunks, and puts the heading in front of every chunk, so each one makes sense alone:
+        ```python
+        import re
+        import sys
+        from pathlib import Path
+
+        from sqlalchemy import delete, func, select
+
+        from app.db import SessionLocal
+        from app.models import Chunk, Document
+        from app.services.embeddings import embed_passages
+
+        MAX_CHARS = 800
+        OVERLAP_SENTENCES = 1
+
+
+        def split_sections(text: str) -> list[tuple[str, str]]:
+            """Cut a markdown file at its headings: [(heading, text under it), ...]."""
+            sections, heading, lines = [], "", []
+            for line in text.splitlines():
+                if line.startswith("#"):
+                    if "".join(lines).strip():
+                        sections.append((heading, "\n".join(lines).strip()))
+                    heading, lines = line.lstrip("#").strip(), []
+                else:
+                    lines.append(line)
+            if "".join(lines).strip():
+                sections.append((heading, "\n".join(lines).strip()))
+            return sections
+
+
+        def split_sentences(text: str) -> list[str]:
+            return [s for s in re.split(r"(?<=[.!?])\s+", text) if s]
+
+
+        def chunk_section(text: str) -> list[str]:
+            """Pack whole sentences into chunks of at most MAX_CHARS; a new chunk repeats the last sentences."""
+            chunks, current = [], []
+            for sentence in split_sentences(text):
+                if current and len(" ".join(current + [sentence])) > MAX_CHARS:
+                    chunks.append(" ".join(current))
+                    current = current[len(current) - OVERLAP_SENTENCES :]
+                current.append(sentence)
+            if current:
+                chunks.append(" ".join(current))
+            return chunks
+
+
+        def ingest_file(session, path: Path) -> int:
+            source = path.name
+            # Ingesting a file again replaces it: remove its old chunks first.
+            old = select(Document.id).where(Document.source == source)
+            session.execute(delete(Chunk).where(Chunk.document_id.in_(old)))
+            session.execute(delete(Document).where(Document.source == source))
+
+            sections = split_sections(path.read_text(encoding="utf-8"))
+            document = Document(title=sections[0][0] or path.stem, source=source)
+            session.add(document)
+            session.flush()
+
+            # The heading goes into every chunk, so each chunk makes sense alone.
+            pieces = [(heading, f"{heading}\n{text}") for heading, body in sections for text in chunk_section(body)]
+            vectors = embed_passages([content for _, content in pieces])
+            session.add_all(
+                Chunk(document_id=document.id, section=heading, content=content, embedding=vector)
+                for (heading, content), vector in zip(pieces, vectors)
+            )
+            return len(pieces)
+
+
+        def main(folder: str) -> None:
+            with SessionLocal() as session:
+                for path in sorted(Path(folder).glob("*.md")):
+                    print(f"{path.name}: {ingest_file(session, path)} chunks")
+                session.commit()
+                sample = session.scalars(select(Chunk).order_by(func.random()).limit(5)).all()
+                for chunk in sample:
+                    print(f"\n--- chunk {chunk.id}, section: {chunk.section}\n{chunk.content}")
+
+
+        if __name__ == "__main__":
+            main(sys.argv[1])
+        ```
+      - "Rebuild, so the handbook is inside the box, and fill the shelf: `docker compose up -d --build`, then `docker compose exec api python -m app.ingest handbook`. Run it a second time: the number of chunks stays the same, because each file replaces its old chunks."
+      - "Read the five random chunks it prints, slowly. Would each one make sense to a new colleague who sees only that chunk? If not, fix the handbook or the chunking now — everything later depends on it."
+    check: "`SELECT count(*) FROM chunks;` is above 0, and the five printed chunks each make sense alone."
+  - id: m2
+    title: "First open-book answer"
+    why: "`/ask` looks things up before it answers, and shows exactly which chunks it used."
+    steps:
+      - |
+        Write `app/services/retrieval.py`. `Found` is one chunk with everything a citation needs:
+        ```python
+        import re
+        from dataclasses import dataclass
+        from functools import lru_cache
+
+        from sqlalchemy import select, text
+
+        from app.models import Chunk, Document
+        from app.services.embeddings import embed_query
+
+
+        @dataclass
+        class Found:
+            id: int
+            content: str
+            document: str
+            section: str
+
+
+        def vector_search(session, question: str, k: int) -> list[Found]:
+            distance = Chunk.embedding.cosine_distance(embed_query(question))
+            rows = session.execute(
+                select(Chunk.id, Chunk.content, Chunk.section, Document.source)
+                .join(Document, Document.id == Chunk.document_id)
+                .order_by(distance)
+                .limit(k)
+            ).all()
+            return [Found(r.id, r.content, r.source, r.section) for r in rows]
+        ```
+        (`re`, `lru_cache` and `text` are for Week 2.)
+      - |
+        The rules for the model go into `prompts/rag_v1.txt`:
+        ```
+        You are the helper of the Otter Café. Answer the question using only the numbered sources.
+        After each fact, cite its source like [1].
+        Answer in the language of the question.
+        ```
+      - |
+        Replace `llm_answer` in `app/services/answer.py` with the open-book version (keep `load_prompt`, and add `from app.db import SessionLocal` and `from app.services.retrieval import Found, vector_search` at the top):
+        ```python
+        RAG_PROMPT = "rag_v1"
+
+
+        def build_prompt(question: str, chunks: list[Found]) -> str:
+            sources = "\n\n".join(f"[{i}] {chunk.content}" for i, chunk in enumerate(chunks, start=1))
+            return f"Sources:\n{sources}\n\nQuestion: {question}"
+
+
+        def answer_from(question: str, chunks: list[Found]) -> str:
+            start = time.perf_counter()
+            response = client.chat.completions.create(
+                model=settings.llm_model,
+                messages=[
+                    {"role": "system", "content": load_prompt(RAG_PROMPT)},
+                    {"role": "user", "content": build_prompt(question, chunks)},
+                ],
+                temperature=0,
+                max_tokens=300,
+            )
+            ms = (time.perf_counter() - start) * 1000
+            log.info(
+                "llm model=%s prompt=%s in=%d out=%d %.0fms chunks=%s",
+                settings.llm_model, RAG_PROMPT, response.usage.prompt_tokens,
+                response.usage.completion_tokens, ms, [c.id for c in chunks],
+            )
+            return response.choices[0].message.content
+
+
+        def rag_answer(question: str) -> tuple[str, list[Found]]:
+            with SessionLocal() as session:
+                chunks = vector_search(session, question, 5)
+            return answer_from(question, chunks), chunks
+        ```
+      - |
+        Sources become real objects. In `app/schemas.py`, add `Source` and change `AskResponse`:
+        ```python
+        class Source(BaseModel):
+            chunk_id: int
+            document: str
+            section: str
+
+
+        class AskResponse(BaseModel):
+            answer: str
+            sources: list[Source]
+        ```
+      - |
+        In `app/routers/ask.py`, import `Source`, and `rag_answer` instead of `llm_answer`, and let `/ask` use them:
+        ```python
+        @router.post("/ask", response_model=AskResponse)
+        def ask(body: AskRequest) -> AskResponse:
+            answer, chunks = rag_answer(body.question)
+            sources = [Source(chunk_id=c.id, document=c.document, section=c.section) for c in chunks]
+            return AskResponse(answer=answer, sources=sources)
+        ```
+        In `tests/test_api.py`, the stand-in now replaces `rag_answer`: `monkeypatch.setattr("app.routers.ask.rag_answer", lambda question: ("We open at 8.", []))`. Run `pytest`.
+      - "Rebuild and ask `When does the café open on Sunday?`. Read the answer, find the `[n]`, then look up that source in `sources` and read the chunk: `docker compose exec db psql -U postgres -c \"SELECT content FROM chunks WHERE id = 7;\"` (your id). Is the fact really there?"
+    check: "An answer cites `[n]`, and the cited chunk really contains what the answer says."
+  - id: m3
+    week: "Week 2 — make it good"
+    title: "Two search engines"
+    why: "You add keyword search for the exact things vector search blurs, and merge the two lists fairly."
+    steps:
+      - |
+        Postgres can keep a searchable word list for every chunk, updated by itself. Add to `Chunk` in `app/models.py` (with `Computed` in the `sqlalchemy` import and `from sqlalchemy.dialects.postgresql import TSVECTOR`):
+        ```python
+            tsv = mapped_column(TSVECTOR, Computed("to_tsvector('simple', content)", persisted=True))
+        ```
+        and the index for it inside `__table_args__`, after the vector index:
+        ```python
+                Index("chunks_tsv_idx", "tsv", postgresql_using="gin"),
+        ```
+        `'simple'` means: lower-case every word, nothing more. It does not know any language, so it treats English and Russian the same. Then `alembic revision --autogenerate -m "add keyword search"` and `alembic upgrade head`.
+      - |
+        Add keyword search and the merge to `app/services/retrieval.py`:
+        ```python
+        KEYWORD_SQL = text("""
+            SELECT chunks.id, chunks.content, chunks.section, documents.source
+            FROM chunks
+            JOIN documents ON documents.id = chunks.document_id,
+                 websearch_to_tsquery('simple', :words) AS q
+            WHERE chunks.tsv @@ q
+            ORDER BY ts_rank(chunks.tsv, q) DESC
+            LIMIT :k
+        """)
+
+
+        def keyword_search(session, question: str, k: int) -> list[Found]:
+            # Any of the words may match, not all of them: "a or b or c".
+            words = " or ".join(re.findall(r"[\w-]+", question))
+            rows = session.execute(KEYWORD_SQL, {"words": words, "k": k}).all()
+            return [Found(r.id, r.content, r.source, r.section) for r in rows]
+
+
+        def rrf(*lists: list[Found], k: int = 60) -> list[Found]:
+            """Reciprocal rank fusion: each chunk scores 1 / (k + rank) in every list it is in."""
+            scores: dict[int, float] = {}
+            by_id: dict[int, Found] = {}
+            for results in lists:
+                for rank, found in enumerate(results, start=1):
+                    scores[found.id] = scores.get(found.id, 0) + 1 / (k + rank)
+                    by_id[found.id] = found
+            return [by_id[i] for i in sorted(scores, key=scores.get, reverse=True)]
+
+
+        def hybrid_search(session, question: str, k: int = 20) -> list[Found]:
+            return rrf(vector_search(session, question, k), keyword_search(session, question, k))
+        ```
+        Why the `or`: `websearch_to_tsquery` alone joins the words with AND, so a whole question — "What is order KZ-4471?" — must match every word, and finds nothing.
+      - "Before you switch, measure. For questions about exact codes (`Who gets order KZ-6642?`), write down where the right chunk lands in `vector_search(session, q, 20)` and in `hybrid_search(session, q, 20)` — a quick `python -c` in the box, or a small script. Find three questions where vector search alone puts it low and hybrid puts it higher. If your handbook is too small to show it, add more catering orders."
+      - "In `rag_answer`, use `hybrid_search(session, question)[:5]` instead of `vector_search`, rebuild, and ask your three questions through `/ask`."
+    check: "A small table: three questions, the rank of the right chunk before and after."
+  - id: m4
+    title: "Second opinion"
+    why: "A reranker reads every candidate together with the question and keeps the few that really answer it — and the model learns to say \"I don't know\"."
+    steps:
+      - |
+        Add the reranker to `app/services/retrieval.py`. A cross-encoder is slower than vector search but much sharper, so it only reads the 20 candidates that search found. This one is multilingual and runs on CPU; it is downloaded on first use into your `hf-cache` volume:
+        ```python
+        RERANK_MODEL = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
+        CANDIDATES = 20
+
+
+        @lru_cache
+        def get_reranker():
+            from sentence_transformers import CrossEncoder
+
+            return CrossEncoder(RERANK_MODEL)
+
+
+        def rerank(question: str, found: list[Found]) -> list[Found]:
+            """The cross-encoder reads the question and each chunk together; best first."""
+            if not found:
+                return []
+            scores = get_reranker().predict([(question, f.content) for f in found])
+            return [f for f, _ in sorted(zip(found, scores), key=lambda pair: pair[1], reverse=True)]
+
+
+        def retrieve(session, question: str) -> list[Found]:
+            return rerank(question, hybrid_search(session, question, CANDIDATES))
+        ```
+      - "In `app/services/answer.py`, import `retrieve` instead of `vector_search`, add `KEEP = 4` under `RAG_PROMPT`, and in `rag_answer` use `chunks = retrieve(session, question)[:KEEP]`: search wide (20), keep few (4)."
+      - |
+        The rule that keeps the student honest. Copy the prompt to `prompts/rag_v2.txt`, add one line, and set `RAG_PROMPT = "rag_v2"`:
+        ```
+        If the sources do not contain the answer, say only: "This is not in the documents."
+        ```
+      - "Rebuild. Ask your three code questions again — the right chunk should now be `[1]`. Then ask five questions the handbook cannot answer: parking, pets, the manager's phone number, beans to take home, a student discount. If one slips through, write it down: that is exactly what Week 3 measures."
+    check: "All five get an honest \"This is not in the documents\"."
+  - id: m5
+    week: "Week 3 — prove it is good"
+    title: "The golden set"
+    why: "One command tells you how good your system is, in four numbers you can compare tomorrow."
+    steps:
+      - |
+        Write `eval/golden.jsonl`: 30 real questions, one JSON per line. `contains` is a short phrase copied exactly from the handbook, so a chunk holds the answer if it contains that phrase — whatever the chunk size. Five of the questions have no answer in the handbook (`"contains": null`):
+        ```json
+        {"question": "Can I get my money back after three weeks?", "contains": "only store credit is given", "answer": "No. After 14 days there is only store credit, and only with a receipt."}
+        {"question": "Who gets order KZ-4471?", "contains": "Order KZ-4471 is the standing Friday order", "answer": "The city library, every Friday."}
+        {"question": "Do you have parking for guests?", "contains": null, "answer": "This is not in the documents."}
+        ```
+      - |
+        The judge gets a fixed prompt, kept in a file like any prompt — `eval/judge_v1.txt`:
+        ```
+        You check one answer from a question-answering system. Return JSON with two fields.
+        faithful: true if every fact in the answer is supported by the sources. An answer that says the information is not in the documents is faithful.
+        correct: true if the answer means the same as the reference answer. Extra details are fine; missing or different facts are not.
+        ```
+      - |
+        Write `eval/run.py` (and an empty `eval/__init__.py`):
+        ```python
+        import json
+        import sys
+        from datetime import date
+        from pathlib import Path
+
+        from pydantic import BaseModel
+
+        from app.config import settings
+        from app.db import SessionLocal
+        from app.llm import client
+        from app.services.answer import KEEP, answer_from, build_prompt
+        from app.services.retrieval import retrieve
+
+        HERE = Path(__file__).parent
+        HEADER = "| date | change | hit@5 | MRR | faithfulness | correctness |\n|---|---|---|---|---|---|\n"
+
+
+        class Verdict(BaseModel):
+            faithful: bool
+            correct: bool
+
+
+        def judge(question: str, reference: str, chunks, answer: str) -> Verdict:
+            task = f"{build_prompt(question, chunks)}\n\nReference answer: {reference}\n\nAnswer to check: {answer}"
+            response = client.chat.completions.create(
+                model=settings.llm_model,
+                messages=[
+                    {"role": "system", "content": (HERE / "judge_v1.txt").read_text()},
+                    {"role": "user", "content": task},
+                ],
+                temperature=0,
+                max_tokens=100,
+                response_format={"type": "json_schema", "json_schema": {"name": "verdict", "schema": Verdict.model_json_schema()}},
+            )
+            return Verdict.model_validate_json(response.choices[0].message.content)
+
+
+        def main(change: str) -> None:
+            golden = [json.loads(line) for line in (HERE / "golden.jsonl").read_text().splitlines() if line.strip()]
+            hits = reciprocal = faithful = correct = 0.0
+            answerable = 0
+            for item in golden:
+                with SessionLocal() as session:
+                    ranked = retrieve(session, item["question"])
+                if item["contains"]:
+                    answerable += 1
+                    rank = next((i for i, c in enumerate(ranked, start=1) if item["contains"] in c.content), None)
+                    if rank is not None:
+                        hits += rank <= 5
+                        reciprocal += 1 / rank
+                chunks = ranked[:KEEP]
+                answer = answer_from(item["question"], chunks)
+                verdict = judge(item["question"], item["answer"], chunks, answer)
+                faithful += verdict.faithful
+                correct += verdict.correct
+                print(f"{'ok ' if verdict.correct else 'BAD'} {item['question']}\n    {answer}")
+
+            n = len(golden)
+            numbers = [hits / answerable, reciprocal / answerable, faithful / n, correct / n]
+            print("hit@5 {:.2f}  MRR {:.2f}  faithfulness {:.2f}  correctness {:.2f}".format(*numbers))
+            results = HERE / "results.md"
+            if not results.exists():
+                results.write_text(HEADER)
+            with results.open("a") as f:
+                f.write(f"| {date.today()} | {change} | " + " | ".join(f"{x:.2f}" for x in numbers) + " |\n")
+
+
+        if __name__ == "__main__":
+            main(sys.argv[1] if len(sys.argv) > 1 else "no description")
+        ```
+      - "The results file must outlive the box, so lend the box your `eval/` folder: under the `api` service in `compose.yaml`, add `./eval:/app/eval` to its `volumes:` list, next to `hf-cache`. Then `docker compose up -d --build`."
+      - "Run it: `docker compose exec api python -m eval.run \"baseline\"`. It takes a few minutes: every question is answered and judged. Read the `BAD` lines before you read the numbers."
+      - "Check the judge, too: pick five answers and decide yourself whether they are faithful and correct. The judge is a model too: on our test handbook it marked \"You can look for a small brown flag\" as wrong, though that was the right answer. If you disagree with the judge more than once, fix `judge_v1.txt` before you trust any number."
+    check: "One command prints four numbers and adds a row to `eval/results.md`."
+  - id: m6
+    title: "Improve with evidence"
+    why: "You change the system the way engineers do: one thing at a time, kept or reverted because of numbers."
+    steps:
+      - "Pick three changes and write them down before you start — for example `MAX_CHARS = 400` instead of 800, `KEEP = 2` instead of 4, and one sentence changed in the prompt (as `rag_v3.txt`)."
+      - "Make the first change only. If it touches chunking, ingest again: `docker compose exec api python -m app.ingest handbook`. Then run `docker compose exec api python -m eval.run \"MAX_CHARS 400\"`."
+      - "Compare the new row with the one above it. Better? Keep it. Worse or the same? Revert it — the simpler system wins a tie. Under the table in `eval/results.md`, write one sentence: what you changed, what the numbers did, what you decided."
+      - "Repeat for the second and the third change, always starting from what you kept."
+      - "Add a section \"How good is it?\" to your README with today's four numbers and the date."
+    check: "`eval/results.md` has at least 4 rows, with one sentence about each decision."
+breaks:
+  - id: b1
+    title: "Two different maps"
+    do: "In `app/services/embeddings.py`, let questions use another model: in `embed_query`, replace `get_model()` with `SentenceTransformer(\"sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2\")` (import it at the top). Rebuild, then ask Level 5's vector-only search: `curl -s \"localhost:8000/search?q=money+back+after+three+weeks\"`."
+    see: "The refund rule is gone from the top; a catering order and oat milk are there instead."
+    seeKind: description
+    why: "Each model draws its own map of meaning. The documents sit on one map, the question lands on another, and every distance between them is nonsense. Nothing crashes: both models make 384 numbers, so pgvector measures happily. On a tiny handbook, keyword search and the reranker can hide the damage in `/ask`; on a real one they cannot. On the handbook we tested with, vector search alone fell from hit@5 1.00 to 0.27."
+    fix: "Undo the change: questions and documents always use the same model, with its own prefixes (`query: ` and `passage: ` for e5). A new model means re-embedding everything."
+  - id: b2
+    title: "Confetti chunks"
+    do: "In `chunk_section`, put this as the first line: `return [text[i : i + 60] for i in range(0, len(text), 60)]` — blind cuts of 60 characters, no overlap. Rebuild, ingest again, and read the refund chunks: `docker compose exec db psql -U postgres -c \"SELECT content FROM chunks WHERE section = 'Refunds';\"`. Then run the evaluation."
+    see: "The first chunk ends in the middle of a word: `Refunds are allowed within 14 days. After that, only store c`"
+    seeKind: description
+    why: "No chunk holds a whole idea any more — \"store credit\" is cut into \"store c\" and \"redit\". The retriever finds half a fact, and the model guesses the other half. On the handbook we tested with, hit@5 fell from 1.00 to 0.69, even with hybrid search and the reranker."
+    fix: "Remove the line and ingest again. Chunks follow the structure of the text — headings, paragraphs, sentences — and are big enough to hold one idea."
+  - id: b3
+    title: "The confident student"
+    do: "Write the prompt many first versions have — `prompts/helpful.txt`: `You are the friendly helper of the Otter Café. Always give the guest a helpful answer. Cite the numbered sources like [1].` Set `RAG_PROMPT = \"helpful\"`, rebuild and ask `Do you have parking for guests?`."
+    see: "A friendly answer about public car parks nearby — with a citation, `[2]`, to a source that says nothing about parking."
+    seeKind: description
+    why: "The prompt lost \"only from the sources\" and the \"not in the documents\" rule, and gained \"always helpful\". So the model did what it was asked: it filled the gap with something plausible, and even dressed it up with a citation. (\"Only from the numbered sources\" alone already stopped most inventions in our tests; the explicit rule makes refusing reliable and gives you one exact phrase to test for.)"
+    fix: "Back to `rag_v2`. And keep unanswerable questions in the golden set, so you notice the day this breaks again."
+  - id: b4
+    title: "Too many pages"
+    do: "Set `CANDIDATES = 40` and `KEEP = 40` — on a small handbook, that is every chunk — and run the evaluation. Read `in=` in `docker compose logs api` for one question, before and after."
+    see: "The evaluation takes longer, and `in=` grows several times over — on our test handbook from about 300 to about 950 tokens for one question."
+    seeKind: description
+    why: "Every extra chunk costs tokens and time, and gives the right chunk more places to hide. Models read the start and the end of a long prompt more carefully than the middle. On a small handbook the answers may not get worse yet — ours did not. On a big document set they do, as the right chunk drowns among forty."
+    fix: "Back to a few chunks. The reranker exists so that you can keep few and still keep the right one."
+traps:
+  - error: "It sounds right, but it is wrong"
+    meaning: "Almost always retrieval: the right chunk never reached the prompt."
+    firstMove: "Print the retrieved chunks for that question."
+  - error: "The right document is never retrieved"
+    meaning: "Parsing or chunking lost it."
+    firstMove: "Read the parsed text and the chunks of that page."
+  - error: "Exact names, codes or numbers are not found"
+    meaning: "Vector search blurs them."
+    firstMove: "Add keyword search and fuse the two lists."
+  - error: "Works in one language, weak in another"
+    meaning: "The embedding model is not multilingual, or the text-search config is for another language."
+    firstMove: "Use a multilingual model; check the `tsvector` config (`'simple'` treats all languages alike)."
+  - error: "The same chunk appears twice in the prompt"
+    meaning: "The document was ingested twice."
+    firstMove: "Delete its chunks by document before ingesting it again."
+  - error: "expected 384 dimensions, not 1024"
+    meaning: "The embedding model changed."
+    firstMove: "Re-embed everything with the new model."
+  - error: "Slow answers"
+    meaning: "Usually reranking too many chunks, or a missing index."
+    firstMove: "Measure every stage and log the times."
+  - error: "\"I changed the prompt and it feels better\""
+    meaning: "Feelings are not a metric."
+    firstMove: "Run the golden set and compare the numbers."
+deliverable:
+  repo: "`quest-api` with ingest, hybrid retrieval, rerank and citations; `eval/` with the golden set and the results history; a README section \"How good is it?\" with today's numbers."
+  sketch: "Both pipelines with your real settings — chunk size, k, models — and your numbers next to each stage."
+  demo: "Ask three questions live: one answered with a citation, one honestly refused, and one that used to fail — with how you fixed it and the before and after numbers."
+selfCheck:
+  - "When an answer is wrong, I look at the retrieved chunks before I touch the prompt."
+  - "I can say what my hit rate@5 is today."
+  - "I change one thing at a time and measure."
+  - "My system says \"I don't know\" when it should."
+  - "I can explain to a non-engineer why RAG can still be wrong."
+quiz:
+  - q: "The answer is fluent but wrong, and the right chunk was not among the retrieved ones. What do you fix?"
+    options:
+      - "Retrieval: parsing, chunking or search"
+      - "Use a bigger model"
+      - "Raise the temperature"
+    answer: 0
+    why: "The student wrote a good answer from the wrong pages. A bigger student with the same wrong pages writes a more convincing wrong answer."
+  - q: "Vector search finds nothing relevant for the order code `KZ-4471`. What helps?"
+    options:
+      - "Add keyword search and fuse the results"
+      - "Make the chunks larger"
+      - "Buy more GPUs"
+    answer: 0
+    why: "Embeddings capture meaning, and a code has very little meaning — `KZ-4471` and `KZ-6642` look almost the same to them. Keyword search matches the exact characters."
+  - q: "Hit rate@5 is 0.95, but the answers are often wrong. Where do you look?"
+    options:
+      - "The generation side: the prompt, too much context, citations"
+      - "Chunking"
+      - "Embeddings"
+    answer: 0
+    why: "The right chunk is almost always there, so retrieval is doing its job. The trouble starts after it: what the model is told and how much it has to read."
+  - q: "You switched to another embedding model. What has to happen?"
+    options:
+      - "Re-embed all documents"
+      - "Only new documents use the new model"
+      - "Nothing"
+    answer: 0
+    why: "Old and new vectors sit on different maps. A question on the new map cannot be compared with documents on the old one."
+  - q: "How do you know a prompt change helped?"
+    options:
+      - "Run the golden set and compare the numbers"
+      - "The answers read nicer"
+      - "Ask a colleague what they think"
+    answer: 0
+    why: "A few answers that read nicer can hide two that broke. The golden set checks all of them, the same way every time."
+links:
+  - title: "pgvector README: hybrid search"
+    url: "https://github.com/pgvector/pgvector"
+    why: "Vector search in Postgres, and how to combine it with keyword search."
+  - title: "PostgreSQL full-text search"
+    url: "https://www.postgresql.org/docs/current/textsearch.html"
+    why: "`tsvector`, `tsquery`, configurations and ranking — the official chapter."
+  - title: "Sentence Transformers: retrieve & re-rank"
+    url: "https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html"
+    why: "Why a fast search plus a careful reranker beats either one alone."
+  - title: "Anthropic: Contextual Retrieval"
+    url: "https://www.anthropic.com/news/contextual-retrieval"
+    why: "Giving each chunk its context before embedding it — the grown-up version of putting the heading in."
+  - title: "Ragas docs"
+    url: "https://docs.ragas.io/"
+    why: "Ideas and ready-made metrics for evaluating RAG, faithfulness included."
+cheatsheetKind: notes
+cheatsheet:
+  - { cmd: "1. Read the parsed text", does: "What the program saw, not what you think the file says. Lost tables and repeated headers start here." }
+  - { cmd: "2. Read the chunks", does: "Does each one make sense alone? Is any fact cut in half?" }
+  - { cmd: "3. Print the retrieved chunks", does: "For the failing question: is the right chunk there at all, and where?" }
+  - { cmd: "4. Check the hit rate", does: "Run the golden set. Is it this one question, or many?" }
+  - { cmd: "5. Only then touch the prompt", does: "Right chunk present but a wrong answer: now it is the prompt's turn." }
+  - { cmd: "6. Only then think about the model", does: "Last, not first. A bigger model does not fix the wrong pages." }
+  - { cmd: "hit rate@k", does: "The share of questions whose right chunk is in the top k results." }
+  - { cmd: "MRR", does: "The average of 1 / rank of the right chunk: 1 if it is first, ½ if second, 0 if it is missing." }
+  - { cmd: "RRF", does: "Each chunk scores 1 / (60 + rank) in each list it is in; add the scores and sort." }
+  - { cmd: "faithfulness", does: "Is every claim in the answer supported by the retrieved chunks?" }
+  - { cmd: "correctness", does: "Does the answer mean the same as the reference answer?" }
+kindNote: >
+  You can now do what most RAG demos cannot: say how good the system is,
+  with numbers, and which part to fix next. Anyone can make a model sound
+  clever. You can show when it is right, when it says "I don't know", and
+  why it failed when it does. That is rare, and it is exactly the skill
+  teams look for when they call someone "middle" or above. Porto has
+  started citing sources at dinner.
+---
+
+import Diagram from '../../../components/Diagram.astro';
+import Analogy from '../../../components/Analogy.astro';
+import ChunkingVisualiser from '../../../components/widgets/ChunkingVisualiser';
+import RagPipeline from '../../../components/widgets/RagPipeline';
+
+In Level 6 the model answered from memory, and when it did not know the
+café's opening hours, it made some up. In this level it gets the handbook.
+**RAG** — retrieval-augmented generation — means: find the right pages
+first, then answer from them, and say which pages you used. Building one
+takes an afternoon. Making it trustworthy takes the three weeks of this
+level.
+
+<Analogy />
+
+## Two pipelines
+
+A RAG system is two pipelines that meet in the database. **Ingest** runs
+once per document: parse it, clean it, cut it into chunks, embed every
+chunk and store it with its source. **Query** runs for every question:
+embed the question, retrieve candidate chunks, rerank them, build the
+prompt, generate the answer and cite the sources.
+
+<Diagram name="rag-two-pipelines" />
+
+Follow one question through every stage. Turn on "Break retrieval" and
+watch what happens to an answer that is built on the wrong pages.
+
+<RagPipeline client:visible strings={props.ui.ragPipeline} />
+
+## Parsing: where quality is won or lost
+
+Before anything is chunked, a program has to read your documents — and
+programs read badly. PDFs lose their tables, the same header repeats on
+every page, a scanned page is a picture with no text at all until OCR
+reads it. **Always look at the parsed text with your own eyes**, at least
+for a few pages of each kind of document.
+
+Keep the metadata as you go: the source file, the page, the section
+title. They become your citations, and they let you delete a document's
+chunks when the document changes.
+
+## Chunking
+
+A chunk should be **one idea that makes sense alone**. Too small, and a
+fact gets cut in half. Too big, and the chunk is about five things at
+once, so it matches every question a little and none of them well.
+
+Start with a few hundred tokens and 10–20% overlap. Prefer cutting where
+the text already has seams — headings, paragraphs, sentences — over
+counting characters blindly. Putting the section heading in front of each
+chunk helps it make sense alone.
+
+<ChunkingVisualiser client:visible strings={props.ui.chunkingVisualiser} />
+
+## Embeddings
+
+The same embedding model has to embed both the documents and the
+questions, or they land on different maps. Some models expect a prefix:
+e5 wants `passage: ` in front of documents and `query: ` in front of
+questions. And a new model means re-embedding everything — Level 5 told
+you why.
+
+## Hybrid search
+
+Vector search finds **meaning**: "money back" finds the refund rule.
+Keyword search finds **exact things**: order numbers, names, codes. To an
+embedding, `KZ-4471` and `KZ-6642` look almost alike; to keyword search
+they are different words. Use both.
+
+Postgres has keyword search built in:
+
+```sql
+ALTER TABLE chunks ADD COLUMN tsv tsvector
+  GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED;
+CREATE INDEX ON chunks USING gin (tsv);
+
+SELECT id, ts_rank(tsv, q) AS score
+FROM chunks, websearch_to_tsquery('simple', 'refund or receipt') q
+WHERE tsv @@ q ORDER BY score DESC LIMIT 20;
+```
+
+Then merge the two lists with **reciprocal rank fusion**: each chunk
+scores `1 / (60 + rank)` in each list it appears in, and the scores are
+added. Ranks, not raw scores — so the two engines do not have to agree on
+what a "score" means. A chunk that both engines like rises to the top.
+
+<Diagram name="hybrid-fusion" />
+
+## Reranking
+
+Search is fast because it compares the question with each chunk
+separately. A **cross-encoder reranker** reads the question and a chunk
+together, which is slower and much sharper. So: retrieve wide (20–30
+candidates), then let the reranker keep the best 3–5.
+
+## The prompt
+
+Tell the model to answer only from the numbered sources, to cite them
+like `[1]`, and — most important — to say so when the sources do not
+contain the answer. Return the sources to the caller, so a person can
+check the citation.
+
+## Evaluation: the part that makes you middle-level
+
+Build a **golden set**: 30 or more real questions, each with the chunk
+(or the document and page) that holds the answer and a short reference
+answer. Include a few questions the documents cannot answer. Then measure
+two halves separately:
+
+- **Retrieval.** **Hit rate@k**: in what share of questions is the right
+  chunk in the top k? **MRR**: on average, how high is it? (1 for first
+  place, ½ for second, ⅓ for third.)
+- **Answers.** **Faithfulness**: is every claim supported by the
+  retrieved chunks? **Correctness**: does it mean the same as the
+  reference? An LLM judges both with a fixed prompt — and you check a
+  sample of its verdicts yourself.
+
+Run the evaluation after every change and keep a results table.
+
+<Diagram name="eval-loop" />
+
+## When an answer is wrong
+
+Look at the retrieved chunks first. **Right chunk missing?** It is a
+retrieval problem: parsing, chunking or search. **Right chunk present?**
+It is a generation problem: the prompt, too much context, the model. This
+one rule saves days of tweaking the wrong thing.
+
+## In production
+
+**Changed documents.** Re-ingest a changed document by deleting its old
+chunks by document id first; otherwise the old and new versions both
+answer.
+
+**Access rules.** Filter by metadata in the query itself. Never retrieve
+what the user may not see — a chunk in the prompt is a chunk the model
+can repeat.
+
+**Caching.** Questions repeat. Cache embeddings of frequent questions,
+and whole answers where the documents rarely change (Level 5's sticky
+notes).
+
+**A latency budget.** Give each stage a budget — embed, search, rerank,
+generate — and log the time of each. When answers get slow, you will know
+which stage to blame instead of guessing.
+
+## What to remember
+
+1. **Wrong answer? Read the retrieved chunks first.** Most hallucinations are retrieval failures.
+2. **A chunk is one idea that makes sense alone.**
+3. **Vectors for meaning, keywords for exact things, a reranker to choose.**
+4. **"Not in the documents" is a feature.**
+5. **Change one thing, run the golden set, keep or revert.**

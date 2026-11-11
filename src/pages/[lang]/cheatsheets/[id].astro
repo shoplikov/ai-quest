@@ -24,6 +24,8 @@ const C = dict.cheatsheet;
 const L = dict.level;
 const d = entry.data;
 const n = d.id;
+const notes = d.cheatsheetKind === 'notes';
+const head = notes ? { title: C.notes, cmd: C.item, does: C.meaning } : { title: C.commands, cmd: C.command, does: C.does };
 ---
 
 <Base lang={lang} title={fill(C.pageTitle, { title: d.title })} description={d.tagline} active="cheatsheets">
@@ -39,17 +41,21 @@ const n = d.id;
     </header>
 
     <section aria-labelledby="cs-commands">
-      <h2 id="cs-commands" class="cs-title">{C.commands}</h2>
-      <table class="cs-table cs-commands">
+      <h2 id="cs-commands" class="cs-title">{head.title}</h2>
+      <table class:list={['cs-table', 'cs-commands', { 'cs-notes': notes }]}>
         <thead>
-          <tr><th scope="col">{C.command}</th><th scope="col">{C.does}</th></tr>
+          <tr><th scope="col">{head.cmd}</th><th scope="col">{head.does}</th></tr>
         </thead>
         <tbody>
           {
             d.cheatsheet.map((row) => (
               <tr>
-                <td data-label={C.command}><code>{row.cmd}</code></td>
-                <td data-label={C.does} set:html={renderInline(row.does)} />
+                {notes ? (
+                  <td data-label={head.cmd} set:html={renderInline(row.cmd)} />
+                ) : (
+                  <td data-label={head.cmd}><code>{row.cmd}</code></td>
+                )}
+                <td data-label={head.does} set:html={renderInline(row.does)} />
               </tr>
             ))
           }

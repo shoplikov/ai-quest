@@ -1,0 +1,740 @@
+---
+id: 7
+slug: rag
+title: "RAG в продакшене"
+tagline: "Дай модели открытую книгу — и проследи, чтобы она открыла нужную страницу."
+weeks: 3
+landmark: book
+badge: { name: "Следопыт поиска", emoji: "📖" }
+skill:
+  name: "RAG"
+  junior: "Прошла туториал; иногда отвечает."
+  growing: "Строю загрузку и поиск и вижу, какие чанки пошли в ответ."
+  middle: "Измеряю качество поиска и ответов, знаю, какой этап сломался, и улучшаю его на основе данных."
+itsNormal: >
+  Первый RAG заводится за полдня, а потом уверенно отвечает неправду
+  перед кем-нибудь важным. Так бывает у всех. Разрыв между «демо» и «можно
+  доверять» — это и есть вся работа, и именно поэтому на этот уровень
+  отведено три недели, а не одна.
+analogy:
+  emoji: "📖"
+  title: "Экзамен с открытой книгой"
+  text: >
+    Модель — умная студентка, которая никогда не читала твоих документов.
+    Поиск — помощник, который бегает к полке и приносит страницы. Если
+    помощник принёс не те страницы, студентка всё равно напишет гладкий
+    ответ — по не тем страницам. Большинство проблем «модель галлюцинирует»
+    на самом деле означают «помощник принёс не ту страницу».
+missions:
+  - id: m1
+    week: "Неделя 1 — заставь работать от начала до конца"
+    title: "Заполни полку"
+    why: "Ты превращаешь папку документов в чанки в Postgres, у каждого — свой источник, и читаешь их своими глазами."
+    steps:
+      - |
+        Напиши справочник Otter Café: папку `handbook/` с 6–8 короткими markdown-файлами. (Или возьми любой небольшой набор открытых документов — шаги те же.) Один файл на тему, внутри — заголовки `##`. Вот первый, `handbook/refunds.md`:
+        ```markdown
+        # Возвраты и оплата
+
+        ## Возвраты
+
+        Вернуть деньги можно в течение 14 дней. После этого — только бонусы на счёт, и только с чеком.
+        Если гостю не понравился напиток, приготовь его заново бесплатно. Это не возврат, и чек для этого не нужен.
+
+        ## Подарочные карты
+
+        Подарочные карты бессрочные. Обменять их на деньги нельзя, а сдача выдаётся новой подарочной картой.
+
+        ## Оплата
+
+        Принимаем карты и наличные. Если терминал сломался, принимай только наличные и запиши время в журнал смены.
+        ```
+      - "Остальные напиши сама, с правдоподобными фактами: часы работы (и праздники), аллергии, меню с короткими кодами вроде `D-12`, правила для персонала, закрытие смены и `catering.md` минимум с шестью заказами кейтеринга — каждый под своим заголовком, с номером вроде `KZ-4471`, заказчиком и днём. Эти точные коды понадобятся на второй неделе."
+      - "Убери с полки двадцать разрозненных предложений из уровня 5: `docker compose exec db psql -U postgres -c \"DELETE FROM chunks; DELETE FROM documents;\"`"
+      - |
+        Каждый чанк должен помнить, из какой части файла он взят. Добавь колонку в `Chunk` в `app/models.py`:
+        ```python
+            section: Mapped[str] = mapped_column(String(200), server_default="")
+        ```
+        Потом в терминале, где ты экспортировала `DATABASE_URL` (уровень 5): `alembic revision --autogenerate -m "add section to chunks"` и `alembic upgrade head`.
+      - |
+        Напиши `app/ingest.py`. Он режет каждый файл по заголовкам, упаковывает целые предложения в чанки и ставит заголовок перед каждым чанком, чтобы тот был понятен сам по себе:
+        ```python
+        import re
+        import sys
+        from pathlib import Path
+
+        from sqlalchemy import delete, func, select
+
+        from app.db import SessionLocal
+        from app.models import Chunk, Document
+        from app.services.embeddings import embed_passages
+
+        MAX_CHARS = 800
+        OVERLAP_SENTENCES = 1
+
+
+        def split_sections(text: str) -> list[tuple[str, str]]:
+            """Cut a markdown file at its headings: [(heading, text under it), ...]."""
+            sections, heading, lines = [], "", []
+            for line in text.splitlines():
+                if line.startswith("#"):
+                    if "".join(lines).strip():
+                        sections.append((heading, "\n".join(lines).strip()))
+                    heading, lines = line.lstrip("#").strip(), []
+                else:
+                    lines.append(line)
+            if "".join(lines).strip():
+                sections.append((heading, "\n".join(lines).strip()))
+            return sections
+
+
+        def split_sentences(text: str) -> list[str]:
+            return [s for s in re.split(r"(?<=[.!?])\s+", text) if s]
+
+
+        def chunk_section(text: str) -> list[str]:
+            """Pack whole sentences into chunks of at most MAX_CHARS; a new chunk repeats the last sentences."""
+            chunks, current = [], []
+            for sentence in split_sentences(text):
+                if current and len(" ".join(current + [sentence])) > MAX_CHARS:
+                    chunks.append(" ".join(current))
+                    current = current[len(current) - OVERLAP_SENTENCES :]
+                current.append(sentence)
+            if current:
+                chunks.append(" ".join(current))
+            return chunks
+
+
+        def ingest_file(session, path: Path) -> int:
+            source = path.name
+            # Ingesting a file again replaces it: remove its old chunks first.
+            old = select(Document.id).where(Document.source == source)
+            session.execute(delete(Chunk).where(Chunk.document_id.in_(old)))
+            session.execute(delete(Document).where(Document.source == source))
+
+            sections = split_sections(path.read_text(encoding="utf-8"))
+            document = Document(title=sections[0][0] or path.stem, source=source)
+            session.add(document)
+            session.flush()
+
+            # The heading goes into every chunk, so each chunk makes sense alone.
+            pieces = [(heading, f"{heading}\n{text}") for heading, body in sections for text in chunk_section(body)]
+            vectors = embed_passages([content for _, content in pieces])
+            session.add_all(
+                Chunk(document_id=document.id, section=heading, content=content, embedding=vector)
+                for (heading, content), vector in zip(pieces, vectors)
+            )
+            return len(pieces)
+
+
+        def main(folder: str) -> None:
+            with SessionLocal() as session:
+                for path in sorted(Path(folder).glob("*.md")):
+                    print(f"{path.name}: {ingest_file(session, path)} chunks")
+                session.commit()
+                sample = session.scalars(select(Chunk).order_by(func.random()).limit(5)).all()
+                for chunk in sample:
+                    print(f"\n--- chunk {chunk.id}, section: {chunk.section}\n{chunk.content}")
+
+
+        if __name__ == "__main__":
+            main(sys.argv[1])
+        ```
+      - "Пересобери, чтобы справочник оказался внутри бокса, и заполни полку: `docker compose up -d --build`, потом `docker compose exec api python -m app.ingest handbook`. Запусти ещё раз: число чанков не меняется, потому что каждый файл заменяет свои старые чанки."
+      - "Медленно прочитай пять случайных чанков, которые он печатает. Понял бы каждый из них новый коллега, если бы видел только этот чанк? Если нет — исправь справочник или нарезку сейчас: от этого зависит всё дальнейшее."
+    check: "`SELECT count(*) FROM chunks;` больше 0, и каждый из пяти напечатанных чанков понятен сам по себе."
+  - id: m2
+    title: "Первый ответ с открытой книгой"
+    why: "`/ask` сначала ищет, потом отвечает — и показывает, какие именно чанки использовал."
+    steps:
+      - |
+        Напиши `app/services/retrieval.py`. `Found` — это один чанк со всем, что нужно для ссылки на источник:
+        ```python
+        import re
+        from dataclasses import dataclass
+        from functools import lru_cache
+
+        from sqlalchemy import select, text
+
+        from app.models import Chunk, Document
+        from app.services.embeddings import embed_query
+
+
+        @dataclass
+        class Found:
+            id: int
+            content: str
+            document: str
+            section: str
+
+
+        def vector_search(session, question: str, k: int) -> list[Found]:
+            distance = Chunk.embedding.cosine_distance(embed_query(question))
+            rows = session.execute(
+                select(Chunk.id, Chunk.content, Chunk.section, Document.source)
+                .join(Document, Document.id == Chunk.document_id)
+                .order_by(distance)
+                .limit(k)
+            ).all()
+            return [Found(r.id, r.content, r.source, r.section) for r in rows]
+        ```
+        (`re`, `lru_cache` и `text` понадобятся на второй неделе.)
+      - |
+        Правила для модели — в `prompts/rag_v1.txt`:
+        ```
+        Ты — помощник кафе Otter Café. Отвечай на вопрос только по пронумерованным источникам.
+        После каждого факта ставь ссылку на источник, например [1].
+        Отвечай на языке вопроса.
+        ```
+      - |
+        Замени `llm_answer` в `app/services/answer.py` версией с открытой книгой (`load_prompt` оставь, а наверх добавь `from app.db import SessionLocal` и `from app.services.retrieval import Found, vector_search`):
+        ```python
+        RAG_PROMPT = "rag_v1"
+
+
+        def build_prompt(question: str, chunks: list[Found]) -> str:
+            sources = "\n\n".join(f"[{i}] {chunk.content}" for i, chunk in enumerate(chunks, start=1))
+            return f"Sources:\n{sources}\n\nQuestion: {question}"
+
+
+        def answer_from(question: str, chunks: list[Found]) -> str:
+            start = time.perf_counter()
+            response = client.chat.completions.create(
+                model=settings.llm_model,
+                messages=[
+                    {"role": "system", "content": load_prompt(RAG_PROMPT)},
+                    {"role": "user", "content": build_prompt(question, chunks)},
+                ],
+                temperature=0,
+                max_tokens=300,
+            )
+            ms = (time.perf_counter() - start) * 1000
+            log.info(
+                "llm model=%s prompt=%s in=%d out=%d %.0fms chunks=%s",
+                settings.llm_model, RAG_PROMPT, response.usage.prompt_tokens,
+                response.usage.completion_tokens, ms, [c.id for c in chunks],
+            )
+            return response.choices[0].message.content
+
+
+        def rag_answer(question: str) -> tuple[str, list[Found]]:
+            with SessionLocal() as session:
+                chunks = vector_search(session, question, 5)
+            return answer_from(question, chunks), chunks
+        ```
+      - |
+        Источники становятся настоящими объектами. В `app/schemas.py` добавь `Source` и поменяй `AskResponse`:
+        ```python
+        class Source(BaseModel):
+            chunk_id: int
+            document: str
+            section: str
+
+
+        class AskResponse(BaseModel):
+            answer: str
+            sources: list[Source]
+        ```
+      - |
+        В `app/routers/ask.py` импортируй `Source`, а вместо `llm_answer` — `rag_answer`, и пусть `/ask` ими пользуется:
+        ```python
+        @router.post("/ask", response_model=AskResponse)
+        def ask(body: AskRequest) -> AskResponse:
+            answer, chunks = rag_answer(body.question)
+            sources = [Source(chunk_id=c.id, document=c.document, section=c.section) for c in chunks]
+            return AskResponse(answer=answer, sources=sources)
+        ```
+        В `tests/test_api.py` дублёр теперь подменяет `rag_answer`: `monkeypatch.setattr("app.routers.ask.rag_answer", lambda question: ("We open at 8.", []))`. Запусти `pytest`.
+      - "Пересобери и спроси `Во сколько кафе открывается в воскресенье?`. Прочитай ответ, найди `[n]`, найди этот источник в `sources` и прочитай сам чанк: `docker compose exec db psql -U postgres -c \"SELECT content FROM chunks WHERE id = 7;\"` (подставь свой id). Факт действительно там?"
+    check: "Ответ ссылается на `[n]`, и в этом чанке действительно написано то, что говорит ответ."
+  - id: m3
+    week: "Неделя 2 — сделай хорошо"
+    title: "Два поисковика"
+    why: "Ты добавляешь поиск по словам для точных вещей, которые векторный поиск размывает, и честно сливаешь два списка."
+    steps:
+      - |
+        Postgres может хранить для каждого чанка список слов для поиска и сам его обновлять. Добавь в `Chunk` в `app/models.py` (с `Computed` в импорте из `sqlalchemy` и `from sqlalchemy.dialects.postgresql import TSVECTOR`):
+        ```python
+            tsv = mapped_column(TSVECTOR, Computed("to_tsvector('simple', content)", persisted=True))
+        ```
+        и индекс для него в `__table_args__`, после векторного:
+        ```python
+                Index("chunks_tsv_idx", "tsv", postgresql_using="gin"),
+        ```
+        `'simple'` значит: привести слова к нижнему регистру, и только. Он не знает ни одного языка, поэтому одинаково обращается с русским и английским. Потом `alembic revision --autogenerate -m "add keyword search"` и `alembic upgrade head`.
+      - |
+        Добавь поиск по словам и слияние в `app/services/retrieval.py`:
+        ```python
+        KEYWORD_SQL = text("""
+            SELECT chunks.id, chunks.content, chunks.section, documents.source
+            FROM chunks
+            JOIN documents ON documents.id = chunks.document_id,
+                 websearch_to_tsquery('simple', :words) AS q
+            WHERE chunks.tsv @@ q
+            ORDER BY ts_rank(chunks.tsv, q) DESC
+            LIMIT :k
+        """)
+
+
+        def keyword_search(session, question: str, k: int) -> list[Found]:
+            # Any of the words may match, not all of them: "a or b or c".
+            words = " or ".join(re.findall(r"[\w-]+", question))
+            rows = session.execute(KEYWORD_SQL, {"words": words, "k": k}).all()
+            return [Found(r.id, r.content, r.source, r.section) for r in rows]
+
+
+        def rrf(*lists: list[Found], k: int = 60) -> list[Found]:
+            """Reciprocal rank fusion: each chunk scores 1 / (k + rank) in every list it is in."""
+            scores: dict[int, float] = {}
+            by_id: dict[int, Found] = {}
+            for results in lists:
+                for rank, found in enumerate(results, start=1):
+                    scores[found.id] = scores.get(found.id, 0) + 1 / (k + rank)
+                    by_id[found.id] = found
+            return [by_id[i] for i in sorted(scores, key=scores.get, reverse=True)]
+
+
+        def hybrid_search(session, question: str, k: int = 20) -> list[Found]:
+            return rrf(vector_search(session, question, k), keyword_search(session, question, k))
+        ```
+        Зачем `or`: сам по себе `websearch_to_tsquery` соединяет слова через AND, и целый вопрос — «Что за заказ KZ-4471?» — должен совпасть каждым словом, поэтому не находит ничего.
+      - "Прежде чем переключаться, измерь. Для вопросов про точные коды (`Кто получает заказ KZ-6642?`) запиши, на каком месте оказывается нужный чанк в `vector_search(session, q, 20)` и в `hybrid_search(session, q, 20)` — хватит быстрого `python -c` в боксе или маленького скрипта. Найди три вопроса, где векторный поиск сам по себе ставит его низко, а гибридный — выше. Если справочник слишком мал, чтобы это увидеть, добавь ещё заказов."
+      - "В `rag_answer` используй `hybrid_search(session, question)[:5]` вместо `vector_search`, пересобери и задай свои три вопроса через `/ask`."
+    check: "Маленькая таблица: три вопроса и место нужного чанка до и после."
+  - id: m4
+    title: "Второе мнение"
+    why: "Реранкер читает каждого кандидата вместе с вопросом и оставляет те немногие, что действительно отвечают, — а модель учится говорить «не знаю»."
+    steps:
+      - |
+        Добавь реранкер в `app/services/retrieval.py`. Кросс-энкодер медленнее векторного поиска, но гораздо точнее, поэтому он читает только 20 кандидатов, которых нашёл поиск. Этот — многоязычный и работает на CPU; он скачается при первом использовании в твой том `hf-cache`:
+        ```python
+        RERANK_MODEL = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
+        CANDIDATES = 20
+
+
+        @lru_cache
+        def get_reranker():
+            from sentence_transformers import CrossEncoder
+
+            return CrossEncoder(RERANK_MODEL)
+
+
+        def rerank(question: str, found: list[Found]) -> list[Found]:
+            """The cross-encoder reads the question and each chunk together; best first."""
+            if not found:
+                return []
+            scores = get_reranker().predict([(question, f.content) for f in found])
+            return [f for f, _ in sorted(zip(found, scores), key=lambda pair: pair[1], reverse=True)]
+
+
+        def retrieve(session, question: str) -> list[Found]:
+            return rerank(question, hybrid_search(session, question, CANDIDATES))
+        ```
+      - "В `app/services/answer.py` импортируй `retrieve` вместо `vector_search`, добавь `KEEP = 4` под `RAG_PROMPT`, а в `rag_answer` напиши `chunks = retrieve(session, question)[:KEEP]`: искать широко (20), оставлять мало (4)."
+      - |
+        Правило, которое не даёт студентке сочинять. Скопируй промпт в `prompts/rag_v2.txt`, добавь одну строку и поставь `RAG_PROMPT = "rag_v2"`:
+        ```
+        Если в источниках нет ответа, скажи только: «Этого нет в документах».
+        ```
+      - "Пересобери. Снова задай три вопроса про коды — теперь нужный чанк должен быть `[1]`. Потом задай пять вопросов, на которые в справочнике нет ответа: парковка, животные, телефон управляющего, зёрна навынос, скидка для студентов. Если какой-то проскочит, запиши его: именно это и измеряет третья неделя."
+    check: "Все пять получают честное «Этого нет в документах»."
+  - id: m5
+    week: "Неделя 3 — докажи, что хорошо"
+    title: "Эталонный набор"
+    why: "Одна команда говорит, насколько хороша твоя система, — четырьмя числами, которые можно сравнить завтра."
+    steps:
+      - |
+        Напиши `eval/golden.jsonl`: 30 настоящих вопросов, по одному JSON на строку. `contains` — короткая фраза, скопированная из справочника слово в слово: чанк содержит ответ, если в нём есть эта фраза, — каким бы ни был размер чанка. У пяти вопросов ответа в справочнике нет (`"contains": null`):
+        ```json
+        {"question": "Можно вернуть деньги через три недели?", "contains": "только бонусы на счёт", "answer": "Нет. После 14 дней — только бонусы на счёт, и только с чеком."}
+        {"question": "Кто получает заказ KZ-4471?", "contains": "Заказ KZ-4471 — постоянный пятничный заказ", "answer": "Городская библиотека, каждую пятницу."}
+        {"question": "Есть ли парковка для гостей?", "contains": null, "answer": "Этого нет в документах."}
+        ```
+      - |
+        Судья получает неизменный промпт, и хранится он в файле, как любой промпт, — `eval/judge_v1.txt`:
+        ```
+        Ты проверяешь один ответ системы, которая отвечает на вопросы. Верни JSON с двумя полями.
+        faithful: true, если каждый факт в ответе подтверждается источниками. Ответ, что информации нет в документах, считается достоверным.
+        correct: true, если ответ означает то же, что эталонный. Лишние подробности не мешают; пропущенные или другие факты — мешают.
+        ```
+      - |
+        Напиши `eval/run.py` (и пустой `eval/__init__.py`):
+        ```python
+        import json
+        import sys
+        from datetime import date
+        from pathlib import Path
+
+        from pydantic import BaseModel
+
+        from app.config import settings
+        from app.db import SessionLocal
+        from app.llm import client
+        from app.services.answer import KEEP, answer_from, build_prompt
+        from app.services.retrieval import retrieve
+
+        HERE = Path(__file__).parent
+        HEADER = "| date | change | hit@5 | MRR | faithfulness | correctness |\n|---|---|---|---|---|---|\n"
+
+
+        class Verdict(BaseModel):
+            faithful: bool
+            correct: bool
+
+
+        def judge(question: str, reference: str, chunks, answer: str) -> Verdict:
+            task = f"{build_prompt(question, chunks)}\n\nReference answer: {reference}\n\nAnswer to check: {answer}"
+            response = client.chat.completions.create(
+                model=settings.llm_model,
+                messages=[
+                    {"role": "system", "content": (HERE / "judge_v1.txt").read_text()},
+                    {"role": "user", "content": task},
+                ],
+                temperature=0,
+                max_tokens=100,
+                response_format={"type": "json_schema", "json_schema": {"name": "verdict", "schema": Verdict.model_json_schema()}},
+            )
+            return Verdict.model_validate_json(response.choices[0].message.content)
+
+
+        def main(change: str) -> None:
+            golden = [json.loads(line) for line in (HERE / "golden.jsonl").read_text().splitlines() if line.strip()]
+            hits = reciprocal = faithful = correct = 0.0
+            answerable = 0
+            for item in golden:
+                with SessionLocal() as session:
+                    ranked = retrieve(session, item["question"])
+                if item["contains"]:
+                    answerable += 1
+                    rank = next((i for i, c in enumerate(ranked, start=1) if item["contains"] in c.content), None)
+                    if rank is not None:
+                        hits += rank <= 5
+                        reciprocal += 1 / rank
+                chunks = ranked[:KEEP]
+                answer = answer_from(item["question"], chunks)
+                verdict = judge(item["question"], item["answer"], chunks, answer)
+                faithful += verdict.faithful
+                correct += verdict.correct
+                print(f"{'ok ' if verdict.correct else 'BAD'} {item['question']}\n    {answer}")
+
+            n = len(golden)
+            numbers = [hits / answerable, reciprocal / answerable, faithful / n, correct / n]
+            print("hit@5 {:.2f}  MRR {:.2f}  faithfulness {:.2f}  correctness {:.2f}".format(*numbers))
+            results = HERE / "results.md"
+            if not results.exists():
+                results.write_text(HEADER)
+            with results.open("a") as f:
+                f.write(f"| {date.today()} | {change} | " + " | ".join(f"{x:.2f}" for x in numbers) + " |\n")
+
+
+        if __name__ == "__main__":
+            main(sys.argv[1] if len(sys.argv) > 1 else "no description")
+        ```
+      - "Файл с результатами должен пережить бокс, поэтому одолжи боксу свою папку `eval/`: у сервиса `api` в `compose.yaml` добавь `./eval:/app/eval` в список `volumes:`, рядом с `hf-cache`. Потом `docker compose up -d --build`."
+      - "Запусти: `docker compose exec api python -m eval.run \"baseline\"`. Это займёт несколько минут: на каждый вопрос нужно ответить и каждый ответ — оценить. Прочитай строки `BAD`, прежде чем смотреть на числа."
+      - "Проверь и судью: возьми пять ответов и сама реши, достоверны ли они и правильны ли. Судья — тоже модель: на нашем тестовом справочнике он признал неверным ответ «Ищи маленький коричневый флажок», хотя ответ был правильный. Если ты не согласна с судьёй больше одного раза, исправь `judge_v1.txt`, прежде чем верить хоть одному числу."
+    check: "Одна команда печатает четыре числа и добавляет строку в `eval/results.md`."
+  - id: m6
+    title: "Улучшай на основе данных"
+    why: "Ты меняешь систему так, как это делают инженеры: по одной вещи за раз, оставляя или откатывая изменение из-за чисел."
+    steps:
+      - "Выбери три изменения и запиши их до начала — например, `MAX_CHARS = 400` вместо 800, `KEEP = 2` вместо 4 и одно предложение, изменённое в промпте (как `rag_v3.txt`)."
+      - "Сделай только первое изменение. Если оно касается нарезки, загрузи справочник заново: `docker compose exec api python -m app.ingest handbook`. Потом запусти `docker compose exec api python -m eval.run \"MAX_CHARS 400\"`."
+      - "Сравни новую строку с предыдущей. Лучше? Оставь. Хуже или так же? Откати — при ничьей побеждает система попроще. Под таблицей в `eval/results.md` напиши одно предложение: что поменяла, что сделали числа, что решила."
+      - "Повтори для второго и третьего изменения — каждый раз начиная с того, что оставила."
+      - "Добавь в README раздел «How good is it?» с сегодняшними четырьмя числами и датой."
+    check: "В `eval/results.md` минимум 4 строки и по одному предложению о каждом решении."
+breaks:
+  - id: b1
+    title: "Две разные карты"
+    do: "В `app/services/embeddings.py` пусть вопросы встраиваются другой моделью: в `embed_query` замени `get_model()` на `SentenceTransformer(\"sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2\")` (импортируй его наверху). Пересобери и спроси векторный поиск из уровня 5: `curl -s \"localhost:8000/search?q=вернуть+деньги+через+три+недели\"`."
+    see: "Правила возврата пропали из верха списка; вместо них — чанки, которые с вопросом никак не связаны."
+    seeKind: description
+    why: "Каждая модель рисует свою карту смыслов. Документы лежат на одной карте, вопрос попадает на другую, и любое расстояние между ними — бессмыслица. Ничего не падает: обе модели выдают по 384 числа, и pgvector спокойно всё измеряет. На крошечном справочнике поиск по словам и реранкер могут скрыть ущерб в `/ask`; на настоящем — не смогут. На справочнике, на котором мы проверяли, один векторный поиск упал с hit@5 1.00 до 0.27."
+    fix: "Верни как было: вопросы и документы всегда встраиваются одной и той же моделью, с её собственными префиксами (`query: ` и `passage: ` у e5). Новая модель — значит, заново встроить всё."
+  - id: b2
+    title: "Конфетти из чанков"
+    do: "Поставь первой строкой в `chunk_section`: `return [text[i : i + 60] for i in range(0, len(text), 60)]` — слепые куски по 60 символов, без перекрытия. Пересобери, загрузи справочник заново и прочитай чанки про возвраты: `docker compose exec db psql -U postgres -c \"SELECT content FROM chunks WHERE section = 'Возвраты';\"`. Потом запусти оценку."
+    see: "Первый чанк обрывается посреди фразы: `Вернуть деньги можно в течение 14 дней. После этого — только`"
+    seeKind: description
+    why: "Ни один чанк больше не держит целую мысль: «только» осталось в одном чанке, а «бонусы на счёт» уехали в другой. Поиск находит половину факта, а вторую половину модель додумывает. На справочнике, на котором мы проверяли, hit@5 упал с 1.00 до 0.69 — даже с гибридным поиском и реранкером."
+    fix: "Убери эту строку и загрузи справочник заново. Чанки следуют структуре текста — заголовкам, абзацам, предложениям — и достаточно велики, чтобы вместить одну мысль."
+  - id: b3
+    title: "Уверенная студентка"
+    do: "Напиши промпт, какой бывает у многих первых версий, — `prompts/helpful.txt`: `Ты — дружелюбный помощник кафе Otter Café. Всегда давай гостю полезный ответ. Ссылайся на пронумерованные источники, например [1].` Поставь `RAG_PROMPT = \"helpful\"`, пересобери и спроси `Есть ли парковка для гостей?`."
+    see: "Дружелюбный ответ про городские парковки неподалёку — со ссылкой `[2]` на источник, где о парковке ни слова."
+    seeKind: description
+    why: "Из промпта пропали «только по источникам» и правило «нет в документах», зато появилось «всегда полезный». И модель сделала, что просили: заполнила пробел чем-то правдоподобным и даже приукрасила это ссылкой. (В наших проверках одно «только по пронумерованным источникам» уже останавливало большинство выдумок; явное правило делает отказ надёжным и даёт одну точную фразу, которую можно проверять.)"
+    fix: "Обратно на `rag_v2`. И держи вопросы без ответа в эталонном наборе, чтобы заметить тот день, когда это снова сломается."
+  - id: b4
+    title: "Слишком много страниц"
+    do: "Поставь `CANDIDATES = 40` и `KEEP = 40` — на маленьком справочнике это все чанки — и запусти оценку. Посмотри `in=` в `docker compose logs api` для одного вопроса до и после."
+    see: "Оценка идёт дольше, а `in=` вырастает в разы — на нашем тестовом справочнике примерно с 300 до 950 токенов на один вопрос."
+    seeKind: description
+    why: "Каждый лишний чанк стоит токенов и времени и даёт нужному чанку больше мест, где спрятаться. Модели внимательнее читают начало и конец длинного промпта, чем середину. На маленьком справочнике ответы могут ещё не ухудшиться — у нас не ухудшились. На большом наборе документов ухудшатся: нужный чанк тонет среди сорока."
+    fix: "Обратно к нескольким чанкам. Реранкер для того и нужен, чтобы оставлять мало и всё равно оставлять нужный."
+traps:
+  - error: "Звучит правильно, но неверно"
+    meaning: "Почти всегда виноват поиск: нужный чанк так и не попал в промпт."
+    firstMove: "Выведи найденные чанки для этого вопроса."
+  - error: "Нужный документ никогда не находится"
+    meaning: "Его потеряли разбор или нарезка."
+    firstMove: "Прочитай разобранный текст и чанки этой страницы."
+  - error: "Точные имена, коды или числа не находятся"
+    meaning: "Векторный поиск их размывает."
+    firstMove: "Добавь поиск по словам и слей два списка."
+  - error: "На одном языке работает, на другом — слабо"
+    meaning: "Модель эмбеддингов не многоязычная или конфигурация полнотекстового поиска — для другого языка."
+    firstMove: "Возьми многоязычную модель; проверь конфигурацию `tsvector` (`'simple'` одинаково обращается со всеми языками)."
+  - error: "Один и тот же чанк дважды в промпте"
+    meaning: "Документ загрузили дважды."
+    firstMove: "Перед повторной загрузкой удали чанки этого документа."
+  - error: "expected 384 dimensions, not 1024"
+    meaning: "Поменялась модель эмбеддингов."
+    firstMove: "Заново встрой всё новой моделью."
+  - error: "Медленные ответы"
+    meaning: "Обычно реранкинг слишком многих чанков или нет индекса."
+    firstMove: "Измерь каждый этап и пиши время в лог."
+  - error: "«Я поменяла промпт, и вроде стало лучше»"
+    meaning: "Ощущения — не метрика."
+    firstMove: "Прогони эталонный набор и сравни числа."
+deliverable:
+  repo: "`quest-api` с загрузкой, гибридным поиском, реранкингом и ссылками на источники; `eval/` с эталонным набором и историей результатов; раздел README «How good is it?» с сегодняшними числами."
+  sketch: "Оба пайплайна с твоими настоящими настройками — размер чанка, k, модели — и твоими числами рядом с каждым этапом."
+  demo: "Задай вживую три вопроса: на один система отвечает со ссылкой, на другой честно отказывается, а третий раньше ломался — расскажи, как ты это исправила, и покажи числа до и после."
+selfCheck:
+  - "Когда ответ неверный, я смотрю на найденные чанки раньше, чем трогаю промпт."
+  - "Я могу назвать свой сегодняшний hit rate@5."
+  - "Я меняю по одной вещи за раз и измеряю."
+  - "Моя система говорит «не знаю», когда должна."
+  - "Я могу объяснить не-инженеру, почему RAG всё равно может ошибаться."
+quiz:
+  - q: "Ответ гладкий, но неверный, а нужного чанка среди найденных не было. Что чинить?"
+    options:
+      - "Поиск: разбор, нарезку или сам поиск"
+      - "Взять модель побольше"
+      - "Поднять температуру"
+    answer: 0
+    why: "Студентка написала хороший ответ по не тем страницам. Студентка побольше с теми же страницами напишет более убедительный неверный ответ."
+  - q: "Векторный поиск не находит ничего полезного по номеру заказа `KZ-4471`. Что поможет?"
+    options:
+      - "Добавить поиск по словам и слить результаты"
+      - "Сделать чанки крупнее"
+      - "Купить ещё GPU"
+    answer: 0
+    why: "Эмбеддинги ловят смысл, а у кода смысла почти нет — для них `KZ-4471` и `KZ-6642` выглядят почти одинаково. Поиск по словам сравнивает точные символы."
+  - q: "Hit rate@5 равен 0.95, но ответы часто неверные. Куда смотреть?"
+    options:
+      - "На сторону генерации: промпт, слишком много контекста, ссылки"
+      - "На нарезку"
+      - "На эмбеддинги"
+    answer: 0
+    why: "Нужный чанк почти всегда на месте, значит, поиск свою работу делает. Беда начинается после него: что сказали модели и сколько ей приходится читать."
+  - q: "Ты перешла на другую модель эмбеддингов. Что нужно сделать?"
+    options:
+      - "Заново встроить все документы"
+      - "Новой моделью встраивать только новые документы"
+      - "Ничего"
+    answer: 0
+    why: "Старые и новые векторы лежат на разных картах. Вопрос на новой карте нельзя сравнить с документами на старой."
+  - q: "Как понять, что изменение промпта помогло?"
+    options:
+      - "Прогнать эталонный набор и сравнить числа"
+      - "Ответы стали приятнее читаться"
+      - "Спросить мнение коллеги"
+    answer: 0
+    why: "Несколько ответов, которые стали приятнее, могут скрыть два, которые сломались. Эталонный набор проверяет все — и каждый раз одинаково."
+links:
+  - title: "README pgvector: гибридный поиск"
+    url: "https://github.com/pgvector/pgvector"
+    why: "Векторный поиск в Postgres и как совместить его с поиском по словам. На английском."
+  - title: "Полнотекстовый поиск в PostgreSQL"
+    url: "https://www.postgresql.org/docs/current/textsearch.html"
+    why: "`tsvector`, `tsquery`, конфигурации и ранжирование — официальная глава. На английском."
+  - title: "Sentence Transformers: поиск и реранкинг"
+    url: "https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html"
+    why: "Почему быстрый поиск плюс внимательный реранкер лучше, чем каждый по отдельности. На английском."
+  - title: "Anthropic: Contextual Retrieval"
+    url: "https://www.anthropic.com/news/contextual-retrieval"
+    why: "Дать каждому чанку его контекст до эмбеддинга — взрослая версия заголовка перед чанком. На английском."
+  - title: "Документация Ragas"
+    url: "https://docs.ragas.io/"
+    why: "Идеи и готовые метрики для оценки RAG, включая достоверность. На английском."
+cheatsheetKind: notes
+cheatsheet:
+  - { cmd: "1. Прочитай разобранный текст", does: "То, что увидела программа, а не то, что, как тебе кажется, написано в файле. Потерянные таблицы и повторяющиеся заголовки начинаются здесь." }
+  - { cmd: "2. Прочитай чанки", does: "Понятен ли каждый сам по себе? Не разрезан ли какой-то факт пополам?" }
+  - { cmd: "3. Выведи найденные чанки", does: "Для вопроса, на котором ломается: есть ли нужный чанк вообще и на каком месте?" }
+  - { cmd: "4. Проверь hit rate", does: "Прогони эталонный набор. Дело в одном вопросе или во многих?" }
+  - { cmd: "5. Только потом трогай промпт", does: "Нужный чанк на месте, а ответ неверный: теперь очередь промпта." }
+  - { cmd: "6. Только потом думай о модели", does: "В последнюю очередь, а не в первую. Модель побольше не исправит не те страницы." }
+  - { cmd: "hit rate@k", does: "Доля вопросов, у которых нужный чанк оказался в первых k результатах." }
+  - { cmd: "MRR", does: "Среднее от 1 / место нужного чанка: 1, если он первый, ½ — если второй, 0 — если его нет." }
+  - { cmd: "RRF", does: "Чанк получает 1 / (60 + место) в каждом списке, где он есть; баллы складываются и сортируются." }
+  - { cmd: "достоверность (faithfulness)", does: "Подтверждается ли каждое утверждение ответа найденными чанками?" }
+  - { cmd: "правильность (correctness)", does: "Означает ли ответ то же, что эталонный?" }
+kindNote: >
+  Теперь ты умеешь то, чего не умеет большинство RAG-демо: сказать, насколько
+  хороша система, — числами, — и какую часть чинить следующей. Заставить
+  модель звучать умно может кто угодно. А ты можешь показать, когда она
+  права, когда говорит «не знаю» и почему ошиблась, когда ошиблась. Это
+  редкость, и именно этот навык команды ищут, когда называют кого-то
+  «middle» и выше. Порто начал ссылаться на источники за ужином.
+---
+
+import Diagram from '../../../components/Diagram.astro';
+import Analogy from '../../../components/Analogy.astro';
+import ChunkingVisualiser from '../../../components/widgets/ChunkingVisualiser';
+import RagPipeline from '../../../components/widgets/RagPipeline';
+
+На уровне 6 модель отвечала по памяти, а когда не знала часов работы
+кафе, просто их выдумывала. На этом уровне она получает справочник.
+**RAG** — retrieval-augmented generation, генерация с поиском — значит:
+сначала найти нужные страницы, потом ответить по ним и сказать, какими
+страницами ты пользовалась. Собрать такое можно за полдня. Сделать так,
+чтобы ему можно было доверять, — это три недели этого уровня.
+
+<Analogy />
+
+## Два пайплайна
+
+RAG-система — это два пайплайна, которые встречаются в базе данных.
+**Загрузка** работает один раз на документ: разобрать его, почистить,
+разрезать на чанки, превратить каждый чанк в эмбеддинг и сохранить вместе
+с источником. **Запрос** работает на каждый вопрос: превратить вопрос в
+эмбеддинг, найти чанки-кандидаты, переранжировать их, собрать промпт,
+сгенерировать ответ и сослаться на источники.
+
+<Diagram name="rag-two-pipelines" />
+
+Проведи один вопрос через все этапы. Включи «Сломать поиск» и посмотри,
+что происходит с ответом, построенным на не тех страницах.
+
+<RagPipeline client:visible strings={props.ui.ragPipeline} />
+
+## Разбор: здесь качество выигрывается или проигрывается
+
+Прежде чем что-то резать на чанки, программа должна прочитать твои
+документы, — а читают программы плохо. PDF теряют таблицы, один и тот же
+колонтитул повторяется на каждой странице, а отсканированная страница —
+это картинка без текста, пока её не прочитает OCR. **Всегда смотри на
+разобранный текст своими глазами** — хотя бы на несколько страниц каждого
+вида документов.
+
+По ходу сохраняй метаданные: исходный файл, страницу, заголовок раздела.
+Из них получатся ссылки на источники, и по ним ты сможешь удалить чанки
+документа, когда документ поменяется.
+
+## Нарезка на чанки
+
+Чанк должен быть **одной мыслью, понятной самой по себе**. Слишком
+маленький — и факт разрезан пополам. Слишком большой — и чанк сразу про
+пять вещей, поэтому немного подходит к любому вопросу и ни к одному —
+хорошо.
+
+Начни с нескольких сотен токенов и перекрытия 10–20%. Режь там, где у
+текста уже есть швы, — по заголовкам, абзацам, предложениям, — а не
+вслепую по числу символов. Заголовок раздела перед каждым чанком помогает
+чанку быть понятным самому по себе.
+
+<ChunkingVisualiser client:visible strings={props.ui.chunkingVisualiser} />
+
+## Эмбеддинги
+
+Документы и вопросы должна встраивать одна и та же модель эмбеддингов,
+иначе они окажутся на разных картах. Некоторые модели ждут префикс: e5
+хочет `passage: ` перед документами и `query: ` перед вопросами. А новая
+модель — значит, заново встроить всё; почему, ты узнала на уровне 5.
+
+## Гибридный поиск
+
+Векторный поиск находит **смысл**: «вернуть деньги» находит правило о
+возвратах. Поиск по словам находит **точные вещи**: номера заказов, имена,
+коды. Для эмбеддинга `KZ-4471` и `KZ-6642` выглядят почти одинаково, а для
+поиска по словам это разные слова. Используй оба.
+
+В Postgres поиск по словам встроен:
+
+```sql
+ALTER TABLE chunks ADD COLUMN tsv tsvector
+  GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED;
+CREATE INDEX ON chunks USING gin (tsv);
+
+SELECT id, ts_rank(tsv, q) AS score
+FROM chunks, websearch_to_tsquery('simple', 'возврат or чек') q
+WHERE tsv @@ q ORDER BY score DESC LIMIT 20;
+```
+
+Потом слей два списка через **reciprocal rank fusion** (слияние по
+рангам): чанк получает `1 / (60 + место)` в каждом списке, где он есть, и
+баллы складываются. Именно места, а не сырые оценки, — поэтому двум
+поисковикам не нужно договариваться, что такое «оценка». Чанк, который
+нравится обоим, поднимается наверх.
+
+<Diagram name="hybrid-fusion" />
+
+## Реранкинг
+
+Поиск быстрый, потому что сравнивает вопрос с каждым чанком по
+отдельности. **Кросс-энкодер-реранкер** читает вопрос и чанк вместе — это
+медленнее и гораздо точнее. Поэтому: искать широко (20–30 кандидатов), а
+потом пусть реранкер оставит лучшие 3–5.
+
+## Промпт
+
+Скажи модели отвечать только по пронумерованным источникам, ссылаться на
+них так: `[1]`, — и, главное, честно говорить, когда в источниках ответа
+нет. Возвращай источники тому, кто спрашивал, чтобы человек мог проверить
+ссылку.
+
+## Оценка: то, что делает тебя middle
+
+Собери **эталонный набор (golden set)**: 30 или больше настоящих
+вопросов, у каждого — чанк (или документ и страница), где лежит ответ, и
+короткий эталонный ответ. Добавь несколько вопросов, на которые в
+документах ответа нет. Потом измеряй две половины по отдельности:
+
+- **Поиск.** **Hit rate@k**: в какой доле вопросов нужный чанк попал в
+  первые k? **MRR**: насколько высоко он в среднем? (1 за первое место, ½
+  за второе, ⅓ за третье.)
+- **Ответы.** **Достоверность (faithfulness)**: подтверждается ли каждое
+  утверждение найденными чанками? **Правильность (correctness)**: означает
+  ли ответ то же, что эталонный? Обе оценивает LLM по неизменному
+  промпту — а ты сама проверяешь часть её вердиктов.
+
+Запускай оценку после каждого изменения и веди таблицу результатов.
+
+<Diagram name="eval-loop" />
+
+## Когда ответ неверный
+
+Сначала посмотри на найденные чанки. **Нужного чанка нет?** Это проблема
+поиска: разбор, нарезка или сам поиск. **Нужный чанк есть?** Это проблема
+генерации: промпт, слишком много контекста, модель. Одно это правило
+экономит дни, потраченные на подкручивание не того.
+
+## В продакшене
+
+**Изменённые документы.** Перед повторной загрузкой документа удали его
+старые чанки по id документа — иначе отвечать будут и старая, и новая
+версия.
+
+**Права доступа.** Фильтруй по метаданным прямо в запросе. Никогда не
+доставай то, что пользователю видеть нельзя: чанк в промпте — это чанк,
+который модель может пересказать.
+
+**Кэш.** Вопросы повторяются. Кэшируй эмбеддинги частых вопросов, а там,
+где документы меняются редко, — и целые ответы (стикеры из уровня 5).
+
+**Бюджет задержки.** Дай каждому этапу свой бюджет — эмбеддинг, поиск,
+реранкинг, генерация — и пиши время каждого в лог. Когда ответы станут
+медленными, ты будешь знать, какой этап виноват, а не гадать.
+
+## Что запомнить
+
+1. **Ответ неверный? Сначала прочитай найденные чанки.** Большинство галлюцинаций — это провалы поиска.
+2. **Чанк — одна мысль, понятная сама по себе.**
+3. **Векторы — для смысла, слова — для точных вещей, реранкер — чтобы выбрать.**
+4. **«Этого нет в документах» — это фича.**
+5. **Поменяй одну вещь, прогони эталонный набор, оставь или откати.**

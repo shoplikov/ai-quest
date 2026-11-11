@@ -205,6 +205,22 @@
 }
 
 /* Missions and breaks */
+.break-see-text {
+  margin: 0;
+  padding: var(--s2) var(--s3);
+  border-left: 4px solid var(--coral);
+  background: var(--card-2);
+  border-radius: 0 var(--r-ctl) var(--r-ctl) 0;
+  font-weight: 700;
+}
+.mission-week {
+  margin: var(--s6) 0 var(--s3);
+  font-size: 1.15rem;
+  color: var(--teal-ink);
+}
+.mission-week:first-of-type {
+  margin-top: var(--s4);
+}
 .mission-kicker {
   margin: 0;
   font-size: var(--fs-small);

@@ -1,0 +1,29 @@
+---
+import Frame from './Frame.astro';
+import Box from './Box.astro';
+import Arrow from './Arrow.astro';
+import Label from './Label.astro';
+import type { Dict } from '../../i18n';
+interface Props {
+  t: Dict['diagrams']['evalLoop'];
+}
+const { t } = Astro.props;
+---
+<Frame id="dg-eval" w={720} h={320} title={t.title} desc={t.desc}>
+  <Box x={40} y={30} w={230} h={74} fill="var(--card-2)" seed={350} />
+  <Label x={155} y={67} text={t.change} size={13} weight={800} />
+  <Box x={450} y={30} w={230} h={74} fill="var(--teal-soft)" seed={351} />
+  <Label x={565} y={67} text={t.run} size={13} weight={800} />
+  <Box x={450} y={190} w={230} h={96} fill="var(--sun-soft)" seed={352} />
+  <Label x={565} y={222} text={t.read} size={13} weight={800} />
+  <Label x={565} y={258} text={t.metrics} size={11} weight={700} mono />
+  <Box x={40} y={190} w={230} h={96} fill="var(--coral-soft)" seed={353} />
+  <Label x={155} y={225} text={t.decide} size={13} weight={800} />
+  <Label x={155} y={262} text={t.log} size={11} weight={700} mono color="var(--ink-soft)" />
+
+  <Arrow x1={274} y1={67} x2={446} y2={67} color="var(--ink)" />
+  <Arrow x1={565} y1={108} x2={565} y2={186} color="var(--ink)" />
+  <Arrow x1={446} y1={238} x2={274} y2={238} color="var(--ink)" />
+  <Arrow x1={155} y1={186} x2={155} y2={108} color="var(--ink)" />
+  <Label x={360} y={152} text={t.center} size={13} weight={800} color="var(--lilac-ink)" />
+</Frame>
