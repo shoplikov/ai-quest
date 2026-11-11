@@ -4,7 +4,7 @@
   --map-ground: rgba(42, 36, 64, 0.08);
   --map-hill: #f6e6c8;
   --map-hill-2: #efd9b3;
-  --map-cloud: #e6edf7;
+  --map-cloud: #dbe6f5;
   --map-tree: #1fa89a;
   --map-trunk: #94603a;
   position: relative;
@@ -38,6 +38,7 @@
 
 .map-stage {
   position: relative;
+  container-type: inline-size; /* clouds and birds travel in cqw */
 }
 .map-svg {
   position: relative;
@@ -55,111 +56,317 @@
   pointer-events: none;
 }
 .sky-item,
+.fx-item,
 .map-ping,
 .map-porto,
 .map-tip {
   position: absolute;
 }
-.sky-item {
+.sky-item,
+.fx-item {
   height: auto;
   overflow: visible;
 }
 .sky-cloud {
+  left: 8%;
   fill: var(--map-cloud);
 }
-.sky-sun {
-  fill: var(--sun);
-  opacity: 0.75;
+.sky-cloud:nth-of-type(odd) {
+  left: 52%;
 }
-.sky-glow {
+.sky-sun .sun-disc {
   fill: var(--sun);
-  opacity: 0.22;
 }
-.sky-birds {
-  fill: none;
-  stroke: var(--ink-soft);
+.sky-sun .sun-ink {
+  fill: var(--map-ink);
+  stroke: var(--map-ink);
   stroke-width: 2.4;
+  stroke-linejoin: round;
   stroke-linecap: round;
+}
+.sky-sun .sun-smile,
+.sky-rays path,
+.sky-bird path {
+  fill: none;
+  stroke-linecap: round;
+}
+.sky-sun .sun-smile {
+  stroke: var(--map-ink);
+  stroke-width: 2.4;
+}
+.sky-rays path {
+  stroke: var(--sun);
+  stroke-width: 4.5;
+}
+.sky-bird {
+  left: 30%;
+}
+.sky-bird svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+.sky-bird path {
+  stroke: var(--ink-soft);
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+}
+
+/* Landmark parts that move. Without motion they simply stay where they are. */
+.fx-beam {
+  opacity: 0.45;
+  transform-origin: 0 53%;
+}
+.fx-fire {
+  transform-origin: 50% 100%;
+}
+.fx-flame {
+  transform-origin: 50% 0;
+}
+.fx-flag {
+  transform-origin: 0 50%;
+}
+.fx-puff-2 {
+  translate: 70% -50%;
+  scale: 0.8;
+}
+.fx-puff-3 {
+  display: none;
+}
+
+/* Porto on the map: place (WAAPI walk) > facing > hop > drawing. */
+.map-porto-flip,
+.map-porto-hop {
+  display: block;
+  transform-origin: 50% 100%;
 }
 .map-porto .porto {
   display: block;
   width: 100%;
   height: auto;
 }
+
+.quest-map.is-loading:not(.is-ready) :is(.map-porto, .map-ping) {
+  visibility: hidden;
+}
+
+/* Two rings leave the current node, one after the other. */
 .map-ping {
   aspect-ratio: 1;
-  margin: 0;
   translate: -50% -50%;
-  border: 3px solid var(--coral);
+}
+.map-ping::before,
+.map-ping::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--coral);
   border-radius: 50%;
   opacity: 0;
 }
+
 @media (prefers-reduced-motion: no-preference) {
   .sky-cloud {
-    animation: cloud-drift 18s ease-in-out infinite alternate;
-    animation-delay: calc(var(--n) * -3.1s);
+    left: 0;
+    animation: sky-cross var(--dur) linear var(--delay) infinite;
   }
-  .sky-glow {
-    animation: sun-glow 5s ease-in-out infinite alternate;
+  .sky-cloud:nth-of-type(odd) {
+    left: 0;
   }
-  .sky-birds {
-    animation: birds-fly 36s linear infinite;
-    animation-delay: calc(var(--n) * -9s);
+  .sky-rays {
+    animation: sky-spin 90s linear infinite;
   }
-  .map-porto .porto {
-    animation: porto-bob 3.2s ease-in-out infinite;
+  .sky-bird {
+    left: 0;
+    animation: bird-cross var(--dur) linear var(--delay) infinite;
   }
-  .map-ping {
-    animation: map-ping 2.2s cubic-bezier(0.2, 0, 0, 1) infinite;
+  .sky-bird svg {
+    transform-origin: 50% 70%;
+    animation: bird-flap 340ms ease-in-out var(--delay) infinite alternate;
   }
-  .quest-map.is-away :is(.sky-item, .map-ping, .map-porto .porto) {
+  .fx-beam {
+    animation: beam-sweep 3.8s ease-in-out infinite alternate;
+  }
+  .fx-fire {
+    animation: fire-flicker 460ms ease-in-out infinite alternate;
+  }
+  .fx-flame {
+    animation: flame-flicker 240ms ease-in-out infinite alternate;
+  }
+  .fx-flag {
+    animation: flag-wave 1.3s ease-in-out infinite alternate;
+  }
+  .fx-puff {
+    display: block;
+    translate: none;
+    scale: none;
+    animation: puff-rise 3.6s linear infinite;
+  }
+  .fx-puff-2 {
+    animation-delay: -1.2s;
+  }
+  .fx-puff-3 {
+    animation-delay: -2.4s;
+  }
+  .map-porto-hop {
+    animation: porto-idle 7s var(--ease) infinite;
+  }
+  .map-ping::before,
+  .map-ping::after {
+    animation: map-ping 2.6s cubic-bezier(0.2, 0, 0, 1) infinite;
+  }
+  .map-ping::after {
+    animation-delay: 1.3s;
+  }
+  .quest-map.is-away :is(.sky-item, .sky-bird svg, .fx-item, .map-porto-hop, .porto-pupil),
+  .quest-map.is-away .map-ping::before,
+  .quest-map.is-away .map-ping::after {
     animation-play-state: paused;
   }
+
+  /* First map of a session: nodes pop in along the road. */
+  .quest-map.is-intro .node-dot {
+    animation: node-in 460ms var(--ease-pop) calc(var(--i) * 70ms + 120ms) backwards;
+  }
+  .quest-map.is-intro .node-label {
+    animation: label-in 300ms var(--ease) calc(var(--i) * 70ms + 240ms) backwards;
+  }
 }
-@keyframes cloud-drift {
+@keyframes sky-cross {
   from {
-    translate: -14px 0;
+    translate: -110% 0;
   }
   to {
-    translate: 18px 0;
+    translate: calc(100cqw + 10%) 0;
   }
 }
-@keyframes sun-glow {
+@keyframes sky-spin {
   to {
-    scale: 1.22;
+    rotate: 360deg;
   }
 }
-@keyframes birds-fly {
+@keyframes bird-cross {
   from {
-    translate: -60px 8px;
+    translate: -150% 0;
+  }
+  25% {
+    translate: 25cqw -90%;
+  }
+  50% {
+    translate: 50cqw 30%;
+  }
+  75% {
+    translate: 75cqw -70%;
+  }
+  to {
+    translate: calc(100cqw + 50%) 0;
+  }
+}
+@keyframes bird-flap {
+  from {
+    scale: 1 1;
+  }
+  to {
+    scale: 0.92 0.15;
+  }
+}
+@keyframes beam-sweep {
+  from {
+    rotate: -16deg;
+    opacity: 0.25;
+  }
+  to {
+    rotate: 12deg;
+    opacity: 0.6;
+  }
+}
+@keyframes fire-flicker {
+  from {
+    transform: scale(1, 0.92) skewX(-4deg);
+  }
+  to {
+    transform: scale(0.9, 1.14) skewX(5deg);
+  }
+}
+@keyframes flame-flicker {
+  from {
+    transform: scaleY(0.75);
+  }
+  to {
+    transform: scaleY(1.3);
+  }
+}
+@keyframes flag-wave {
+  from {
+    transform: skewY(-8deg) scaleX(0.94);
+  }
+  to {
+    transform: skewY(8deg) scaleX(1);
+  }
+}
+@keyframes puff-rise {
+  from {
+    transform: translate(0, 20%) scale(0.45);
     opacity: 0;
   }
-  10%,
-  80% {
+  15% {
     opacity: 1;
   }
-  50% {
-    translate: 60px -10px;
+  70% {
+    opacity: 0.8;
   }
   to {
-    translate: 150px 4px;
+    transform: translate(120%, -230%) scale(1.5);
     opacity: 0;
   }
 }
-@keyframes porto-bob {
-  50% {
-    translate: 0 -4px;
+/* Mostly he breathes; now and then he cannot stand still. */
+@keyframes porto-idle {
+  0%,
+  28%,
+  56%,
+  80% {
+    transform: none;
+  }
+  14%,
+  42%,
+  70% {
+    transform: scale(1.04, 0.95);
+  }
+  84% {
+    transform: scale(1.12, 0.86);
+  }
+  89% {
+    transform: translateY(-24%) scale(0.95, 1.07) rotate(6deg);
+  }
+  94% {
+    transform: scale(1.1, 0.88);
+  }
+  100% {
+    transform: none;
   }
 }
 @keyframes map-ping {
   from {
     scale: 1;
-    opacity: 0.85;
+    opacity: 0.7;
   }
-  70%,
+  80%,
   to {
-    scale: 1.5;
+    scale: 1.7;
     opacity: 0;
+  }
+}
+@keyframes node-in {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+@keyframes label-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
 }
 
@@ -293,10 +500,22 @@
 .node-pulse {
   fill: none;
   stroke: var(--coral);
-  stroke-width: 4;
+  stroke-width: 3;
+  stroke-opacity: 0.35;
   display: none;
+}
+.node-dot {
   transform-box: fill-box;
   transform-origin: center;
+  transition: transform 180ms var(--ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  a.map-node:hover .node-dot {
+    transform: scale(1.08);
+  }
+}
+a.map-node:active .node-dot {
+  transform: scale(0.96);
 }
 .node-focus {
   fill: none;

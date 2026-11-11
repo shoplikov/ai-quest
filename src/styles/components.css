@@ -669,8 +669,44 @@ html[data-view-mode] .site-header {
 }
 @media (prefers-reduced-motion: no-preference) {
   .porto-wave {
-    transform-origin: 81px 74px;
+    transform-origin: 78px 82px;
     animation: porto-wave 2.4s var(--ease) 0.4s 2;
+  }
+}
+/* Googly eyes: the pupils rattle now and then, each on its own clock. */
+@media (prefers-reduced-motion: no-preference) {
+  .porto-pupil {
+    animation: porto-googly 5.2s steps(1, end) infinite;
+  }
+  .porto-eye:nth-of-type(2) .porto-pupil {
+    animation-duration: 6.7s;
+    animation-delay: -2.3s;
+  }
+  /* The buddy's eyes follow the pointer instead. */
+  .buddy.is-watching .porto-pupil {
+    animation: none;
+    transition: transform 120ms var(--ease);
+  }
+}
+@keyframes porto-googly {
+  0%,
+  100% {
+    transform: none;
+  }
+  82% {
+    transform: translate(1.8px, 1.2px);
+  }
+  85% {
+    transform: translate(-1.6px, 0.6px);
+  }
+  88% {
+    transform: translate(0.8px, -1.6px);
+  }
+  91% {
+    transform: translate(-0.6px, 1.4px);
+  }
+  94% {
+    transform: none;
   }
 }
 @keyframes porto-wave {

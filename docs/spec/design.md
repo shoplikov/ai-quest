@@ -80,16 +80,23 @@ you use and adjust a shade if one fails.
 
 ## Mascot: Porto the otter
 
-An original character. A small round otter holding a tiny lantern (he
-"shines a light on which port is open"). Name pun: Porto ↔ port.
+An original character: an otter who has clearly had too much coffee. He
+holds a tiny lantern (he "shines a light on which port is open"). Name
+pun: Porto ↔ port. He must look funny and a bit unhinged, never cute and soft.
 
-- Flat vector, drawn as inline SVG, about 12 shapes: round body in warm
-  brown `#B5794A`, cream belly and muzzle `#FFE9C9`, dot eyes, small round
-  ears, short tail, lantern in `--sun` with a soft glow circle.
-- Four moods as separate SVG components sharing one base: `hello`
-  (waving), `thinking` (paw on chin), `cheer` (both paws up, lantern
-  raised), `cozy` (eyes closed, smiling — used for "it's normal" boxes and
-  the 404 page).
+- A sticker: flat vector, inline SVG, a 2.5px ink outline on every shape
+  (the same look as the map landmarks). Big wide head, small body, noodle
+  arms, big flappy feet, a kinked tail, a tuft of hair, one bent ear.
+- Two googly eyes of different sizes that look in different directions,
+  buck teeth, the tongue out, kinked whiskers, a belly button drawn as ×.
+- Fur `#C4783C`, dark fur `#8F5326`, cream belly and muzzle `#FFE9C9`,
+  lantern in `--sun` with a soft glow circle.
+- Four moods as one component (`src/components/porto/Porto.tsx`): `hello`
+  (waving, tongue out), `thinking` (one eye squeezed shut, paw on chin),
+  `cheer` (both paws up, mouth wide open, lantern raised), `cozy` (asleep
+  and drooling — used for "it's normal" boxes).
+- The pupils rattle now and then. The corner buddy's pupils follow the
+  pointer.
 - He never scolds the learner; he is sarcastic about technology and
   himself. Lines are short (max 16 words). Line pools live in
   `src/data/porto.en.ts` and `porto.ru.ts`, picked by situation: first visit, returning after a
@@ -139,14 +146,25 @@ has a `<title>` and `<desc>` for screen readers. Max width 720px, scales down.
 - Animate only `transform`, `translate`, `scale` and `opacity`. No
   `backdrop-filter`, no animated `filter: drop-shadow`, no
   `background-attachment: fixed`, no `transition: all`.
-- Nothing loops inside the map SVG. Clouds, sun glow, birds, Porto and the
-  ring around the current node are HTML layers above and below the SVG
-  (`.map-sky`, `.map-fx`); they pause while the map is off screen.
+- Nothing loops inside the map SVG. Everything that moves all the time is
+  its own layer under or over the SVG (`.map-sky`, `.map-fx`) and pauses
+  while the map is off screen:
+  - clouds cross the whole sky at different speeds (90–170s, linear);
+  - the sun wears sunglasses and its rays turn slowly;
+  - birds cross the sky and flap their wings;
+  - landmark parts: campfire and rocket flame flicker, smoke rises from the
+    workshop chimney, the lighthouse beam sweeps, the castle flag waves;
+  - two rings leave the current node, one after the other;
+  - Porto breathes and now and then hops on the spot.
+- The first map of a browser session: the nodes pop in along the road
+  (70ms apart). Later visits show the map at once.
+- A node grows a little on hover (1.08) and shrinks on press (0.96).
 - Scroll reveal runs once per block, only for blocks that start below the
   fold. A tick restored from saved progress does not animate.
 - The theme switch turns transitions off for one frame.
-- Path drawing on the map: 900ms once. Porto walks from the node the map
-  last showed to the current one.
+- Path drawing on the map: 900ms once. Porto hops along the drawn road
+  from the node the map last showed to the current one (squash on landing,
+  stretch in the air, facing the way he goes), then does one big jump.
 - Confetti: own small canvas implementation (no library), 120 pieces in
   palette colours, 1.8 seconds, then the canvas removes itself.
 - All motion off under `prefers-reduced-motion: reduce`.

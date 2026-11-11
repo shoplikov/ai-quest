@@ -34,21 +34,28 @@ type Layout = {
   scenery: string;
   sky: Sky[];
 };
-type Shape = { cx: number; cy: number; rx: number; ry?: number };
 type Sky =
-  | { kind: 'cloud' | 'sun' | 'glow'; shapes: Shape[] }
-  | { kind: 'birds'; paths: string[]; box: [number, number, number, number] };
+  | { kind: 'cloud' | 'bird'; top: number; w: number; dur: number; delay: number }
+  | { kind: 'sun'; cx: number; cy: number; r: number };
 
-// The box of a sky item in map units, and its place as percentages.
-function boxOf(item: Sky): [number, number, number, number] {
-  if (item.kind === 'birds') return item.box;
-  const x0 = Math.min(...item.shapes.map((s) => s.cx - s.rx));
-  const x1 = Math.max(...item.shapes.map((s) => s.cx + s.rx));
-  const y0 = Math.min(...item.shapes.map((s) => s.cy - (s.ry ?? s.rx)));
-  const y1 = Math.max(...item.shapes.map((s) => s.cy + (s.ry ?? s.rx)));
-  return [x0, y0, x1 - x0, y1 - y0];
-}
 const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(3)}%`;
+
+// Moving parts of the landmarks, in landmark units (see Landmark.astro):
+// box = [x, y, width, height], body = the drawing inside that box.
+type Fx = { cls: string; box: [number, number, number, number]; body: string };
+const INK = 'stroke="var(--map-ink)" stroke-width="2" stroke-linejoin="round"';
+const puff = (n: number): Fx => ({
+  cls: `fx-puff fx-puff-${n}`,
+  box: [20, -73, 12, 12],
+  body: `<circle cx="6" cy="6" r="5" fill="var(--card)" ${INK}/>`,
+});
+const landmarkFx: Record<string, Fx[]> = {
+  tent: [{ cls: 'fx-fire', box: [31, -22, 12, 20], body: `<path d="M2 19 q3 -14 3 -16 q6 8 4 16 Z" fill="var(--sun)" ${INK}/>` }],
+  workshop: [puff(1), puff(2), puff(3)],
+  lighthouse: [{ cls: 'fx-beam', box: [6, -80, 56, 32], body: '<path d="M0 17 L56 0 L56 32 Z" fill="var(--sun)"/>' }],
+  rocket: [{ cls: 'fx-flame', box: [-7, -21, 14, 18], body: `<path d="M1 1 Q7 17 13 1 Z" fill="var(--sun)" ${INK}/>` }],
+  castle: [{ cls: 'fx-flag', box: [0, -88, 24, 16], body: `<path d="M0 2 L22 8 L0 15 Z" fill="var(--coral)" ${INK}/>` }],
+};
 
 const layouts: Layout[] = [
   {
@@ -68,16 +75,17 @@ const layouts: Layout[] = [
     ],
     label: (p) => ({ x: p.x - 80, y: p.y + 36, w: 160, h: 72, align: 'center' }),
     porto: (p) => ({ x: p.x + 30, y: p.y + 20 }),
-    portoSize: 52,
+    portoSize: 64,
     scenery: 'desktop',
     sky: [
-      { kind: 'glow', shapes: [{ cx: 610, cy: 84, rx: 46 }] },
-      { kind: 'sun', shapes: [{ cx: 610, cy: 84, rx: 28 }] },
-      { kind: 'cloud', shapes: [{ cx: 140, cy: 90, rx: 46, ry: 16 }, { cx: 170, cy: 78, rx: 28, ry: 16 }] },
-      { kind: 'cloud', shapes: [{ cx: 480, cy: 70, rx: 54, ry: 16 }, { cx: 508, cy: 58, rx: 30, ry: 15 }] },
-      { kind: 'cloud', shapes: [{ cx: 320, cy: 170, rx: 34, ry: 11 }] },
-      { kind: 'birds', paths: ['M250 120 q7 -9 14 0 q7 -9 14 0', 'M286 144 q5 -7 10 0 q5 -7 10 0'], box: [246, 106, 64, 42] },
-      { kind: 'birds', paths: ['M700 132 q6 -8 12 0 q6 -8 12 0'], box: [696, 120, 32, 16] },
+      { kind: 'sun', cx: 610, cy: 84, r: 28 },
+      { kind: 'cloud', top: 52, w: 132, dur: 120, delay: -18 },
+      { kind: 'cloud', top: 28, w: 168, dur: 170, delay: -95 },
+      { kind: 'cloud', top: 150, w: 92, dur: 90, delay: -52 },
+      { kind: 'cloud', top: 96, w: 110, dur: 140, delay: -118 },
+      { kind: 'bird', top: 118, w: 28, dur: 34, delay: -6 },
+      { kind: 'bird', top: 142, w: 20, dur: 34, delay: -7.6 },
+      { kind: 'bird', top: 236, w: 22, dur: 46, delay: -30 },
     ],
   },
   {
@@ -101,15 +109,15 @@ const layouts: Layout[] = [
         : p.x < 180
           ? { x: p.x + 40, y: p.y - 34, w: 170, h: 76, align: 'left' }
           : { x: p.x - 210, y: p.y - 34, w: 170, h: 76, align: 'right' },
-    porto: (p) => ({ x: p.x + (p.x < 180 ? -64 : 18), y: p.y + 4 }),
-    portoSize: 46,
+    porto: (p) => ({ x: p.x + (p.x < 180 ? -74 : 20), y: p.y + 8 }),
+    portoSize: 54,
     scenery: 'phone',
     sky: [
-      { kind: 'glow', shapes: [{ cx: 290, cy: 60, rx: 34 }] },
-      { kind: 'sun', shapes: [{ cx: 290, cy: 60, rx: 20 }] },
-      { kind: 'cloud', shapes: [{ cx: 60, cy: 60, rx: 38, ry: 13 }, { cx: 84, cy: 50, rx: 22, ry: 12 }] },
-      { kind: 'cloud', shapes: [{ cx: 300, cy: 150, rx: 40, ry: 12 }] },
-      { kind: 'cloud', shapes: [{ cx: 60, cy: 600, rx: 30, ry: 10 }] },
+      { kind: 'sun', cx: 290, cy: 60, r: 20 },
+      { kind: 'cloud', top: 36, w: 84, dur: 80, delay: -12 },
+      { kind: 'cloud', top: 132, w: 96, dur: 110, delay: -64 },
+      { kind: 'cloud', top: 586, w: 70, dur: 95, delay: -40 },
+      { kind: 'bird', top: 250, w: 18, dur: 26, delay: -9 },
     ],
   },
 ];
@@ -159,22 +167,43 @@ const ariaOf = (i: number, state: string) =>
         <div
           class={`map-stage map-${L.key}`}
           data-stage
+          data-w={L.w}
+          data-h={L.h}
           data-nodes={JSON.stringify(L.points.map((p) => [pct(p.x, L.w), pct(p.y, L.h)]))}
           data-porto={JSON.stringify(L.points.map((p) => { const at = L.porto(p); return [(at.x / L.w) * 100, ((at.y - L.portoSize) / L.h) * 100]; }))}
         >
         <div class="map-sky" aria-hidden="true">
-          {L.sky.map((item, i) => {
-            const [x, y, w, h] = boxOf(item);
-            return (
-              <svg
-                class={`sky-item sky-${item.kind}`}
-                viewBox={`${x} ${y} ${w} ${h}`}
-                style={`left:${pct(x, L.w)};top:${pct(y, L.h)};width:${pct(w, L.w)};--n:${i}`}
-              >
-                {item.kind === 'birds'
-                  ? item.paths.map((d) => <path d={d} />)
-                  : item.shapes.map((s) => <ellipse cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry ?? s.rx} />)}
+          {[...L.sky].sort((a, b) => Number(a.kind === 'sun') - Number(b.kind === 'sun')).map((item) => {
+            if (item.kind === 'sun') {
+              const d = item.r * 3.6;
+              const place = `left:${pct(item.cx - d / 2, L.w)};top:${pct(item.cy - d / 2, L.h)};width:${pct(d, L.w)}`;
+              return (
+                <>
+                  <svg class="sky-item sky-rays" viewBox="-50 -50 100 100" style={place}>
+                    {Array.from({ length: 12 }, (_, k) => (
+                      <path d="M0 -36 V-45" transform={`rotate(${k * 30})`} />
+                    ))}
+                  </svg>
+                  <svg class="sky-item sky-sun" viewBox="-50 -50 100 100" style={place}>
+                    <circle r="27.5" class="sun-disc" />
+                    {/* sunglasses and a smirk */}
+                    <path class="sun-ink" d="M-21 -9 H21 M-19 -9 v5 a7.5 7.5 0 0 0 15 0 v-5 Z M4 -9 v5 a7.5 7.5 0 0 0 15 0 v-5 Z" />
+                    <path class="sun-smile" d="M-7 12 Q2 18 10 9" />
+                  </svg>
+                </>
+              );
+            }
+            const style = `top:${pct(item.top, L.h)};width:${pct(item.w, L.w)};--dur:${item.dur}s;--delay:${item.delay}s`;
+            return item.kind === 'cloud' ? (
+              <svg class="sky-item sky-cloud" viewBox="0 0 120 48" style={style}>
+                <path d="M18 44 Q2 44 4 32 Q5 22 18 22 Q22 6 42 8 Q54 2 66 14 Q84 8 90 24 Q112 22 114 36 Q114 44 100 44 Z" />
               </svg>
+            ) : (
+              <span class="sky-item sky-bird" style={style}>
+                <svg viewBox="0 0 24 12">
+                  <path d="M1 9 Q7 0 12 8 Q17 0 23 9" />
+                </svg>
+              </span>
             );
           })}
         </div>
@@ -239,13 +268,15 @@ const ariaOf = (i: number, state: string) =>
             const href = hrefOf(i);
             const inner = (
               <>
-                <circle class="node-pulse" cx={p.x} cy={p.y} r="38" />
-                <circle class="node-focus" cx={p.x} cy={p.y} r="40" />
-                <circle class="node-bg" cx={p.x} cy={p.y} r="32" />
-                <text class="node-num" x={p.x} y={p.y} dy="0.36em" text-anchor="middle">
-                  {i === 8 ? '★' : n}
-                </text>
-                <path class="node-check" d={`M${p.x - 12} ${p.y + 1} l8 8 l16 -18`} />
+                <g class="node-dot" style={`--i:${i}`}>
+                  <circle class="node-pulse" cx={p.x} cy={p.y} r="38" />
+                  <circle class="node-focus" cx={p.x} cy={p.y} r="40" />
+                  <circle class="node-bg" cx={p.x} cy={p.y} r="32" />
+                  <text class="node-num" x={p.x} y={p.y} dy="0.36em" text-anchor="middle">
+                    {i === 8 ? '★' : n}
+                  </text>
+                  <path class="node-check" d={`M${p.x - 12} ${p.y + 1} l8 8 l16 -18`} />
+                </g>
                 <g class="icon node-badge" transform={`translate(${p.x + 14} ${p.y - 40}) scale(1.05)`}>
                   <circle class="node-badge-bg" cx="12" cy="12" r="15" />
                   <Fragment set:html={iconBody(i === 8 ? '🏰' : levels[i]!.badge.emoji) ?? ''} />
@@ -286,9 +317,29 @@ const ariaOf = (i: number, state: string) =>
 
         </svg>
         <div class="map-fx" aria-hidden="true">
+          {L.points.flatMap((p, i) => {
+            const sc = L.key === 'phone' ? 0.82 : 1;
+            const oy = p.y - (i === 8 ? 28 : 20);
+            return (landmarkFx[landmarkOf(i)] ?? []).map((f) => (
+              <svg
+                class={`fx-item ${f.cls}`}
+                viewBox={`0 0 ${f.box[2]} ${f.box[3]}`}
+                style={`left:${pct(p.x + f.box[0] * sc, L.w)};top:${pct(oy + f.box[1] * sc, L.h)};width:${pct(f.box[2] * sc, L.w)}`}
+                set:html={f.body}
+              />
+            ));
+          })}
           <span class="map-ping" data-ping style={`width:${pct(64, L.w)}`} />
-          <span class="map-porto" data-map-porto style={`width:${pct(L.portoSize, L.w)}`}>
-            <Porto mood="hello" size={L.portoSize} />
+          <span
+            class="map-porto"
+            data-map-porto
+            style={`width:${pct(L.portoSize, L.w)};left:${pct(L.porto(L.points[0]!).x, L.w)};top:${pct(L.porto(L.points[0]!).y - L.portoSize, L.h)}`}
+          >
+            <span class="map-porto-flip" data-porto-flip>
+              <span class="map-porto-hop" data-porto-hop>
+                <Porto mood="hello" size={L.portoSize} />
+              </span>
+            </span>
           </span>
           {L.key === 'desktop' &&
             levels.map((lv, i) => {
@@ -312,6 +363,18 @@ const ariaOf = (i: number, state: string) =>
     })
   }
 </div>
+<script is:inline>
+  // Until the saved progress is read, Porto and the ring stay hidden, so
+  // they never flash at the wrong node.
+  document.querySelector('[data-quest-map]').classList.add('is-loading');
+  // First map of the session: the nodes pop in one after another.
+  try {
+    if (!sessionStorage.getItem('aiquest:mapSeen') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      sessionStorage.setItem('aiquest:mapSeen', '1');
+      document.querySelector('[data-quest-map]').classList.add('is-intro');
+    }
+  } catch (e) {}
+</script>
 
 <script>
   import { BOSS, currentLevel, levelState, type NodeState } from '../../lib/progress';
@@ -349,7 +412,7 @@ const ariaOf = (i: number, state: string) =>
   }
 
   // Porto stands by the current node (by the boss when all is done) and
-  // walks there from where the map last showed him.
+  // hops there along the road from where the map last showed him.
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let shown = 0;
   try {
@@ -357,8 +420,11 @@ const ariaOf = (i: number, state: string) =>
   } catch {
     /* no walk, that is all */
   }
+  let running: Animation[] = [];
   function placePorto(current: number) {
     const at = current || 9;
+    running.forEach((a) => a.cancel());
+    running = [];
     root!.querySelectorAll<HTMLElement>('[data-stage]').forEach((stage) => {
       const spots = JSON.parse(stage.dataset.porto!) as [number, number][];
       const nodes = JSON.parse(stage.dataset.nodes!) as [string, string][];
@@ -369,17 +435,8 @@ const ariaOf = (i: number, state: string) =>
       porto.style.top = `${top}%`;
       ping.hidden = !current;
       if (current) [ping.style.left, ping.style.top] = nodes[current - 1]!;
-
       if (calm || !shown || shown === at || !stage.clientWidth) return;
-      // Up to three hops go node by node; a longer trip is one glide.
-      const dir = at > shown ? 1 : -1;
-      const hops = Math.abs(at - shown);
-      const stops = hops <= 3 ? Array.from({ length: hops + 1 }, (_, i) => shown + i * dir) : [shown, at];
-      const frames = stops.map((n) => {
-        const [l, t] = spots[n - 1]!;
-        return { translate: `${((l - left) / 100) * stage.clientWidth}px ${((t - top) / 100) * stage.clientHeight}px` };
-      });
-      porto.animate(frames, { duration: 520 * (stops.length - 1) + 200, easing: 'cubic-bezier(0.45, 0, 0.2, 1)', delay: 350, fill: 'backwards' });
+      hopAlongRoad(stage, porto, shown, at, spots, nodes);
     });
     shown = at;
     try {
@@ -387,6 +444,87 @@ const ariaOf = (i: number, state: string) =>
     } catch {
       /* fine */
     }
+  }
+
+  // Porto hops along the drawn road from node `from` to node `to`.
+  function hopAlongRoad(
+    stage: HTMLElement,
+    porto: HTMLElement,
+    from: number,
+    to: number,
+    spots: [number, number][],
+    nodePct: [string, string][],
+  ) {
+    const W = Number(stage.dataset.w);
+    const H = Number(stage.dataset.h);
+    const road = [...stage.querySelectorAll<SVGPathElement>('.path-ahead')];
+    const nodes = nodePct.map(([x, y]) => [parseFloat(x), parseFloat(y)] as const);
+    // Where Porto stands, measured from the node he stands by (in % of the stage).
+    const off = (n: number) => [spots[n - 1]![0] - nodes[n - 1]![0], spots[n - 1]![1] - nodes[n - 1]![1]] as const;
+    const dir = to > from ? 1 : -1;
+    const pts: [number, number][] = [];
+    let length = 0;
+    for (let n = from; n !== to; n += dir) {
+      const seg = road[(dir > 0 ? n : n - 1) - 1];
+      if (!seg) return;
+      const len = seg.getTotalLength();
+      length += len;
+      const a = off(n);
+      const b = off(n + dir);
+      const steps = 10;
+      for (let k = pts.length ? 1 : 0; k <= steps; k++) {
+        const t = k / steps;
+        const at = seg.getPointAtLength(len * (dir > 0 ? t : 1 - t));
+        pts.push([(at.x / W) * 100 + a[0] + (b[0] - a[0]) * t, (at.y / H) * 100 + a[1] + (b[1] - a[1]) * t]);
+      }
+    }
+    const [endX, endY] = pts[pts.length - 1]!;
+    const px = ([x, y]: [number, number]) =>
+      `${(((x - endX) / 100) * stage.clientWidth).toFixed(1)}px ${(((y - endY) / 100) * stage.clientHeight).toFixed(1)}px`;
+    const duration = Math.min(3200, Math.max(800, length * 4.4));
+    const hops = Math.max(2, Math.round(duration / 280));
+    const delay = 200;
+
+    // He faces the way he goes.
+    let face = 1;
+    const faces = pts.map((p, i) => {
+      const dx = (pts[i + 1] ?? p)[0] - p[0];
+      if (Math.abs(dx) > 0.15) face = dx < 0 ? -1 : 1;
+      return { transform: `scaleX(${face})`, easing: 'steps(1, end)' };
+    });
+    faces.push({ transform: 'scaleX(1)', easing: 'linear' });
+
+    const flip = porto.querySelector<HTMLElement>('[data-porto-flip]')!;
+    const hop = porto.querySelector<HTMLElement>('[data-porto-hop]')!;
+    const walk = porto.animate(pts.map((p) => ({ translate: px(p) })), { duration, delay, easing: 'linear', fill: 'backwards' });
+    running.push(
+      walk,
+      flip.animate(faces, { duration, delay, fill: 'backwards' }),
+      hop.animate(
+        [
+          { transform: 'translateY(0) scale(1.12, 0.86)', easing: 'cubic-bezier(0.2, 0.6, 0.4, 1)' },
+          { transform: 'translateY(-36%) scale(0.94, 1.08)', easing: 'cubic-bezier(0.6, 0, 0.8, 0.4)' },
+          { transform: 'translateY(0) scale(1.12, 0.86)' },
+        ],
+        { duration: duration / hops, iterations: hops, delay },
+      ),
+    );
+    // One big happy jump on arrival.
+    walk.finished
+      .then(() => {
+        running.push(
+          hop.animate(
+            [
+              { transform: 'translateY(0) scale(1.15, 0.82)', easing: 'cubic-bezier(0.2, 0.6, 0.4, 1)' },
+              { transform: 'translateY(-70%) scale(0.92, 1.1) rotate(-8deg)', easing: 'cubic-bezier(0.6, 0, 0.8, 0.4)' },
+              { transform: 'translateY(0) scale(1.15, 0.82)', easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+              { transform: 'none' },
+            ],
+            { duration: 620 },
+          ),
+        );
+      })
+      .catch(() => {});
   }
 
   // Hover preview (desktop map only).

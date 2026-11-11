@@ -112,6 +112,32 @@ export function initFun(d: FunData): void {
     count('pokes');
   });
 
+  // His googly eyes follow the pointer.
+  if (buddy && matchMedia('(hover: hover) and (pointer: fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const pupils = [...buddy.querySelectorAll<SVGGElement>('[data-pupil]')];
+    let frame = 0;
+    addEventListener(
+      'pointermove',
+      (e) => {
+        if (frame) return;
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          buddy.classList.add('is-watching');
+          for (const pupil of pupils) {
+            const eye = pupil.parentElement!.getBoundingClientRect();
+            const dx = e.clientX - (eye.left + eye.width / 2);
+            const dy = e.clientY - (eye.top + eye.height / 2);
+            const far = Math.hypot(dx, dy) || 1;
+            const reach = Number(pupil.dataset.reach) * Math.min(1, far / 80);
+            const [x0, y0] = pupil.dataset.at!.split(',').map(Number) as [number, number];
+            pupil.style.transform = `translate(${((dx / far) * reach - x0).toFixed(1)}px, ${((dy / far) * reach - y0).toFixed(1)}px)`;
+          }
+        });
+      },
+      { passive: true },
+    );
+  }
+
   // Idle.
   let idle = window.setTimeout(() => remark('idle'), IDLE_MS);
   const awake = () => {
