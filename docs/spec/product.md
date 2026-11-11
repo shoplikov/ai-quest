@@ -2,10 +2,11 @@
 
 ## Purpose
 
-One learner, one mentor. The learner is a junior AI engineer who finds
+One learner, one mentor. The learner is an AI engineer early in their career who finds
 ports, Docker, backend and production work hard. After about 12 weeks they
 should be able to take a feature from idea to production alone, debug their
-own problems, and know when to ask.
+own problems, and know when to ask. The site is a path of improvement:
+it never promises or measures a job grade ("middle"), it shows growth.
 
 The learner likes visuals, humour and kind encouragement. The site must feel like a
 gift someone made with care, not a corporate training portal.
@@ -92,7 +93,7 @@ table of contents (top chips on phones):
 7. **Classic traps**: table of error → what it really means → first move.
 8. **Quiz**: "What does this error mean?" (see widgets spec).
 9. **Deliverable**: three tick boxes — repo, one-page sketch, 10-minute demo.
-10. **You're middle-level here when…**: self-check tick boxes.
+10. **This topic is yours when…**: self-check tick boxes.
 11. **Go deeper**: links with one line each on why it's worth the learner's time.
 12. **Finish level** button. Enabled when all missions and all three
     deliverable boxes are ticked. On click: confetti, badge awarded, kind
@@ -111,10 +112,10 @@ big confetti, a certificate card with the learner's hero name and the date, and 
 ### `/skills`
 
 Skills matrix from `levels.md`. Eight skill areas (one per level). For each
-area: three columns Junior / Growing / Middle with a short description, and
-a 0–3 self-rating control (0 = not yet, 3 = middle). A radar chart (inline
-SVG, 8 axes) shows the learner's self-rating as a filled shape and the "middle"
-target as an outline. Text under it: ratings are for the learner, not a grade.
+area: three columns Starting / Growing / Confident with a short description, and
+a 0–3 self-rating control (0 = not yet, 3 = confident). A radar chart (inline
+SVG, 8 axes) shows the learner's self-rating as a filled shape and the "confident
+level" target as an outline. Text under it: ratings are for the learner, not a grade.
 
 ### `/glossary`
 
@@ -167,7 +168,7 @@ Derived values (never stored):
   point (best score) + 100 per finished level + 500 for the boss.
 - **Rank title** from XP: 0 "Brave Beginner", 300 "Curious Tinkerer",
   800 "Bug Tamer", 1500 "Reliable Builder", 2400 "Production Pal",
-  3200 "Middle Engineer (unofficial but true)".
+  3200 "Engineer Who Ships (unofficial but true)".
 - **Streak** = number of consecutive days ending today or yesterday in
   `days`. If the streak is broken, show no guilt: "Welcome back! The map
   kept your place."

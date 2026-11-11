@@ -15,7 +15,8 @@ itsNormal: >
   A first RAG works in an afternoon, and then gives a confident wrong
   answer in front of someone important. Everyone's does. The gap between
   "demo" and "trustworthy" is the whole job — and it is why this level has
-  three weeks instead of one.
+  three weeks instead of one. The demo always works: in its whole life it
+  has been asked three questions.
 analogy:
   emoji: "📖"
   title: "An open-book exam"
@@ -476,7 +477,7 @@ breaks:
     fix: "Back to a few chunks. The reranker exists so that you can keep few and still keep the right one."
 traps:
   - error: "It sounds right, but it is wrong"
-    meaning: "Almost always retrieval: the right chunk never reached the prompt."
+    meaning: "Almost always retrieval: the right chunk never reached the prompt. The model filled the gap with confidence, which it has in unlimited supply."
     firstMove: "Print the retrieved chunks for that question."
   - error: "The right document is never retrieved"
     meaning: "Parsing or chunking lost it."
@@ -497,7 +498,7 @@ traps:
     meaning: "Usually reranking too many chunks, or a missing index."
     firstMove: "Measure every stage and log the times."
   - error: "\"I changed the prompt and it feels better\""
-    meaning: "Feelings are not a metric."
+    meaning: "Feelings are not a metric. If they were, every release would be the best one in history."
     firstMove: "Run the golden set and compare the numbers."
 deliverable:
   repo: "`quest-api` with ingest, hybrid retrieval, rerank and citations; `eval/` with the golden set and the results history; a README section \"How good is it?\" with today's numbers."
@@ -523,7 +524,7 @@ quiz:
       - "Make the chunks larger"
       - "Buy more GPUs"
     answer: 0
-    why: "Embeddings capture meaning, and a code has very little meaning — `KZ-4471` and `KZ-6642` look almost the same to them. Keyword search matches the exact characters."
+    why: "Embeddings capture meaning, and a code has very little meaning — `KZ-4471` and `KZ-6642` look almost the same to them. Keyword search matches the exact characters. To an embedding, an order code is a licence plate: technically text, emotionally nothing."
   - q: "Hit rate@5 is 0.95, but the answers are often wrong. Where do you look?"
     options:
       - "The generation side: the prompt, too much context, citations"
@@ -579,8 +580,8 @@ kindNote: >
   with numbers, and which part to fix next. Anyone can make a model sound
   clever. You can show when it is right, when it says "I don't know", and
   why it failed when it does. That is rare, and it is exactly the skill
-  teams look for when they call someone "middle" or above. Porto has
-  started citing sources at dinner.
+  teams look for when they decide who to trust with a real system. Porto
+  has started citing sources at dinner.
 ---
 
 import Diagram from '../../../components/Diagram.astro';
@@ -685,7 +686,7 @@ like `[1]`, and — most important — to say so when the sources do not
 contain the answer. Return the sources to the caller, so a person can
 check the citation.
 
-## Evaluation: the part that makes you middle-level
+## Evaluation: the part that separates guessing from engineering
 
 Build a **golden set**: 30 or more real questions, each with the chunk
 (or the document and page) that holds the answer and a short reference

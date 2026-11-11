@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A static learning site that takes a junior AI engineer to middle level.",
+  "description": "A quest map for growing as an AI engineer: eight levels, one final boss, about twelve weeks.",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",

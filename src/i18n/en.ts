@@ -91,7 +91,7 @@ export const en = {
     nodeLabel: 'Level {n}: {title}, {state}',
     bossLabel: 'Final boss: {title}, {state}',
   },
-  ranks: ['Brave Beginner', 'Curious Tinkerer', 'Bug Tamer', 'Reliable Builder', 'Production Pal', 'Middle Engineer (unofficial but true)'],
+  ranks: ['Brave Beginner', 'Curious Tinkerer', 'Bug Tamer', 'Reliable Builder', 'Production Pal', 'Engineer Who Ships (unofficial but true)'],
   badges: {
     firstStep: { name: 'First Step', emoji: '👣' },
     chaosGremlin: { name: 'Chaos Gremlin', emoji: '👾' },
@@ -115,7 +115,7 @@ export const en = {
       traps: 'Classic traps',
       quiz: 'Quiz',
       deliverable: 'Deliverable',
-      middle: "You're middle-level here when…",
+      middle: 'This topic is yours when…',
       deeper: 'Go deeper',
       finish: 'Finish',
     },

@@ -2,7 +2,7 @@
 
 # AI Engineer Quest
 
-**A quest map that takes a junior AI engineer to middle level: eight levels, one final boss, about twelve weeks.**
+**A quest map for growing as an AI engineer: eight levels, one final boss, about twelve weeks.**
 
 ![Astro](https://img.shields.io/badge/Astro-7-BC52EE?logo=astro&logoColor=white)
 ![Preact](https://img.shields.io/badge/Preact-islands-673AB8?logo=preact&logoColor=white)
@@ -16,7 +16,7 @@
 
 ## What it is
 
-A static learning website for one learner and one mentor. It covers the things a junior AI engineer usually finds hard: the terminal, ports, backend, Docker, databases, LLM serving, production RAG and shipping. Every level explains the idea, lets the learner play with it, gives missions to build, things to break on purpose, a quiz and a deliverable.
+A static learning website for one learner and one mentor. It covers the things that are usually hard early in an AI engineering career: the terminal, ports, backend, Docker, databases, LLM serving, production RAG and shipping. Every level explains the idea, lets the learner play with it, gives missions to build, things to break on purpose, a quiz and a deliverable.
 
 There is no backend and no account. Progress is saved in the browser, and a share link shows the map to the mentor read-only. The whole site is in English and Russian.
 
@@ -38,7 +38,7 @@ flowchart LR
 | Quest map | `/en/`, `/ru/` | The map, XP, rank, streak, badges, "today's next step", share link |
 | Level | `/en/level/1` … `8` | Explanation, diagrams, widgets, missions, breaks, traps, quiz, deliverable |
 | Final boss | `/en/boss` | Project brief, 12 requirements, rubric, printable certificate |
-| Skills | `/en/skills` | Junior → middle matrix with self-rating and a radar chart |
+| Skills | `/en/skills` | Starting → confident matrix with self-rating and a radar chart |
 | Glossary | `/en/glossary` | 46 terms, one plain sentence and one analogy each, with a filter |
 | Cheat sheets | `/en/cheatsheets` | One printable page per level |
 | Mentor guide | `/en/mentor` | Weekly 30-minute agenda, how to review, pacing |

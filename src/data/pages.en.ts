@@ -58,14 +58,14 @@ export const pages: Pages = {
   skills: {
     title: 'Skills',
     intro: 'This page is for you, not for a review. Rate yourself honestly today, and again in a month. The shape growing is the point.',
-    columns: ['Junior', 'Growing', 'Middle'],
+    columns: ['Starting', 'Growing', 'Confident'],
     ratingLegend: 'Where are you today?',
     ratings: ['Not yet', 'With help', 'Mostly alone', 'Alone, and I can explain it'],
     radarTitle: 'Your shape today',
-    radarDesc: 'A radar chart with eight axes, one per skill area. The outline is the middle-level target; the filled shape is your own rating.',
+    radarDesc: 'A radar chart with eight axes, one per skill area. The outline is the confident-level target; the filled shape is your own rating.',
     you: 'You today',
-    target: 'Middle level',
-    middleTitle: 'What "middle" really means',
+    target: 'Confident level',
+    middleTitle: 'What "confident" really means',
     middle: [
       'You finish things: from idea to running in production.',
       'You debug your own problems, hop by hop, before asking.',
@@ -139,7 +139,7 @@ export const pages: Pages = {
         ],
       },
       {
-        title: 'Signs the learner is becoming middle-level',
+        title: 'Signs the learner is growing',
         list: [
           'They tell you the cause, not only the symptom.',
           'Their questions contain what they already ruled out.',
@@ -153,7 +153,7 @@ export const pages: Pages = {
         list: [
           'The weeks are a guide. Level 7 often takes four weeks; that is fine.',
           'If a level drags past double its time, cut the last mission, do the deliverable, move on. Momentum matters more than completeness.',
-          'If the learner is flying, add: "explain this level to another junior".',
+          'If the learner is flying, add: "explain this level to someone who is just starting".',
         ],
       },
       {

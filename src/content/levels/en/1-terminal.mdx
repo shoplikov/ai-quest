@@ -15,7 +15,8 @@ itsNormal: >
   The terminal gives no hints and has no undo button, so at first it feels
   hostile. It is not. It is only quiet: it does exactly what you type and
   says nothing unless something is wrong. And everybody looks up the flags
-  for `tar`. Everybody. Forever.
+  for `tar`. Everybody. Forever. Somebody has had that manual open since
+  1979.
 analogy:
   emoji: "🏠"
   title: "The server is a house with the lights off"
@@ -134,10 +135,10 @@ traps:
     meaning: "The server does not know your key, or you are logging in as the wrong user."
     firstMove: "`ssh -v host`, then check `IdentityFile` and `User` in `~/.ssh/config`"
   - error: "No space left on device"
-    meaning: "The disk is full."
+    meaning: "The disk is full. Usually of logs that nobody has ever read."
     firstMove: "`df -h`, then `du -sh * | sort -h` in the fullest place"
   - error: "I pressed something and the terminal froze"
-    meaning: "Probably Ctrl+s, which pauses the output. Nothing is broken."
+    meaning: "Probably Ctrl+s, which pauses the output. Nothing is broken. It is a feature from the 1970s, still here, still surprising people."
     firstMove: "Press Ctrl+q to let it flow again."
 deliverable:
   repo: "A repo `quest-level-1` with your `ticker.sh`, your `REPORT.md` and the `Host` block from your `~/.ssh/config`. The config block only — never a key."
@@ -179,7 +180,7 @@ quiz:
       - "Reboot the machine"
       - "Run `kill 4242` ten more times"
     answer: 0
-    why: "Plain `kill` asks politely, and a busy program may ignore it. `-9` forces it to stop at once — the last resort, not the first."
+    why: "Plain `kill` asks politely, and a busy program may ignore it. `-9` forces it to stop at once — the last resort, not the first. And yes, the polite command is called `kill`. Unix names things with confidence."
   - q: "Python is installed, but you get this. What is the likely cause?"
     code: "python: command not found"
     options:

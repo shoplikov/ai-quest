@@ -751,7 +751,7 @@ validated. That is the difference between a demo and a product.
 7. The prompt: answer only from the numbered sources; cite like `[1]`;
    if the sources do not contain the answer, say so. Return the sources
    to the caller.
-8. Evaluation — the part that makes you middle-level. Build a **golden
+8. Evaluation — the part that separates guessing from engineering. Build a **golden
    set**: 30+ real questions, each with the chunk (or document and page)
    that holds the answer and a short reference answer. Measure:
    - retrieval: **hit rate@k** (is the right chunk in the top k?) and
@@ -853,8 +853,8 @@ the prompt → 6 only then think about the model. Plus the two formulas
 
 **kindNote** idea: the learner can now do what most RAG demos cannot — say how
 good the system is, with numbers, and which part to fix next. That is
-rare, and it is exactly the skill teams look for when they call someone
-"middle" or above.
+rare, and it is exactly the skill teams look for when they decide who to
+trust with a real system.
 
 ---
 

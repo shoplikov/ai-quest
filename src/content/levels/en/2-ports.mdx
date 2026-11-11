@@ -15,7 +15,8 @@ itsNormal: >
   Networking feels like magic because you cannot see it. Every engineer has
   lost an hour to a wrong port, and most have lost a whole day. It stops
   being scary the moment you learn to ask three questions in order — and
-  this level is those three questions.
+  this level is those three questions. The network is not hiding anything
+  from you. It is only very bad at explaining itself.
 analogy:
   emoji: "🚪"
   title: "A machine is an apartment building"
@@ -127,7 +128,7 @@ traps:
     meaning: "The name has no address. DNS problem or a typo."
     firstMove: "dig +short <name>"
   - error: "Address already in use"
-    meaning: "Another program already holds that port."
+    meaning: "Another program already holds that port. Often it is your own app from ten minutes ago: still running, very loyal."
     firstMove: "ss -tlnp | grep :<port>"
   - error: "502 Bad Gateway"
     meaning: "The reverse proxy is fine; the app behind it is down or on another port."
@@ -175,7 +176,7 @@ quiz:
       - "In nginx itself — it is not running"
       - "In the app behind nginx — down, or on a different port than nginx expects"
     answer: 2
-    why: "If nginx were down you would get 'connection refused'. A 502 is nginx telling you it could not reach the app behind it."
+    why: "If nginx were down you would get 'connection refused'. A 502 is nginx telling you it could not reach the app behind it. nginx itself is fine, and would like that on the record."
   - q: "What does `ssh -L 5433:127.0.0.1:5432 user@db-server` do?"
     options:
       - "Opens port 5432 on the server to the whole internet"

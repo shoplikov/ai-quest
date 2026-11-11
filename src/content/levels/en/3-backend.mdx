@@ -16,6 +16,8 @@ itsNormal: >
   strangers who send it strange things. That is a different way of
   thinking, and it takes a few weeks to settle. If your first endpoints
   feel clumsy, that is exactly how everyone's first endpoints felt.
+  Somewhere, right now, a stranger is sending an emoji into a field called
+  `age`.
 analogy:
   emoji: "🍽️"
   title: "An API is a restaurant"
@@ -236,7 +238,7 @@ traps:
     meaning: "Right path, wrong method — GET where the route wants POST."
     firstMove: "Check the method in `/docs` (the `allow` header lists it too)."
   - error: "500 Internal Server Error"
-    meaning: "An exception in your code."
+    meaning: "An exception in your code. The server knows exactly what happened and tells the client nothing. Professional discretion."
     firstMove: "Read the server log: the bottom line of the traceback first."
   - error: "ModuleNotFoundError"
     meaning: "The venv is not active, or the package is not installed."
@@ -245,7 +247,7 @@ traps:
     meaning: "You called an `async` function and forgot `await`."
     firstMove: "Add `await` in front of the call."
   - error: "blocked by CORS policy (but curl works)"
-    meaning: "The browser needs permission headers before a page from another origin may call you."
+    meaning: "The browser needs permission headers before a page from another origin may call you. curl never asks anyone for permission, which is why it works."
     firstMove: "Add `CORSMiddleware` with the front-end's origin."
 deliverable:
   repo: "A repo `quest-api` with the structure from this level, a `README.md` (how to run it, how to test it, example curl calls) and passing tests."
@@ -279,7 +281,7 @@ quiz:
       - "In `config.py`"
       - "In the README"
     answer: 0
-    why: "Anything committed stays in git history forever. Settings come from the environment; the code only knows the names."
+    why: "Anything committed stays in git history forever: git is an elephant with a hard drive. Settings come from the environment; the code only knows the names."
   - q: "curl works, but the browser front-end fails with a CORS error. What do you do?"
     options:
       - "Add CORS middleware that allows the front-end's origin"

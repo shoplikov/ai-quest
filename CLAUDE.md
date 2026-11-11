@@ -1,7 +1,8 @@
 # AI Engineer Quest — instructions for the building agent
 
-This repo is a static learning website that takes a junior AI engineer to
-middle level. The design is finished. Your job is to build it exactly as
+This repo is a static learning website: a quest map for growing as an AI
+engineer (eight levels, one final boss, about twelve weeks). It is a path
+of improvement, not a ladder to a job title. The design is finished. Your job is to build it exactly as
 specified.
 
 ## Read these first, in this order

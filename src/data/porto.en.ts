@@ -67,7 +67,7 @@ export const portoLines = {
     'All lanterns lit. I have nothing left to teach. I had four things anyway.',
     'You shipped it. Now it is your pager that rings. Congratulations and condolences.',
     'Finished. The map was practice. The real map has more meetings.',
-    'Middle engineer detected. Please remain calm. This is normal.',
+    'Competent engineer detected. Please remain calm. This is normal.',
     'You broke it, fixed it, deployed it, rolled it back. Chef. Kiss.',
     'I guarded every port for you. Invoice follows. It is fish.',
     'The end! Unless production goes down. Then it is the beginning.',

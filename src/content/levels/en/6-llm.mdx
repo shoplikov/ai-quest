@@ -16,6 +16,8 @@ itsNormal: >
   every time you ask the same question. If that makes you uneasy, good:
   that unease is a correct engineering instinct. This level turns it into
   habits — limits, timeouts, validation — so the uneasy part stays small.
+  The model is also the first colleague who answers every question with
+  total confidence, including questions about things that do not exist.
 analogy:
   emoji: "👩‍🍳"
   title: "A brilliant chef with a small table"
@@ -399,7 +401,7 @@ traps:
     meaning: "Prompt plus `max_tokens` do not fit in the context window."
     firstMove: "Shorten the input or lower `max_tokens`."
   - error: "429 Too Many Requests"
-    meaning: "You are sending faster than the server allows."
+    meaning: "You are sending faster than the server allows. Somewhere a GPU is sweating."
     firstMove: "Limit parallel calls (`Semaphore`) and retry with growing pauses."
   - error: "Connection refused / 503"
     meaning: "The model server is down or still loading the model."
@@ -408,7 +410,7 @@ traps:
     meaning: "`finish_reason` is `length`: the answer ran out of `max_tokens`."
     firstMove: "Raise `max_tokens`, and always check `finish_reason`."
   - error: "JSONDecodeError"
-    meaning: "The model wrapped the JSON in text or code fences."
+    meaning: "The model wrapped the JSON in text or code fences. It was asked for JSON and chose to say hello first. Manners above all."
     firstMove: "Use the server's structured output (`response_format`) and validate with Pydantic."
   - error: "Same question, different answer"
     meaning: "That is sampling: the model picks among likely next tokens."
@@ -431,7 +433,7 @@ quiz:
       - "The model crashed"
       - "The network was cut"
     answer: 0
-    why: "`length` means the answer hit its size limit. A crash or a cut network would give you an error, not a tidy response."
+    why: "`length` means the answer hit its size limit. A crash or a cut network would give you an error, not a tidy response. The model had more to say. It always has more to say."
   - q: "The server answers with `400` and a message about the context length. What happened?"
     options:
       - "The prompt plus the requested output do not fit in the window"

@@ -15,7 +15,8 @@ itsNormal: >
   Production is scary because real people are on the other side. That
   fear does not go away — it turns into checklists. Every calm engineer
   you know is calm because of a checklist, and by the end of this level
-  you will have written your own.
+  you will have written your own. (The other reason they are calm: they
+  do not deploy on Friday evening.)
 analogy:
   emoji: "☕"
   title: "Opening a café"
@@ -322,7 +323,7 @@ breaks:
     fix: "Remove the `#` and the `print`, and rebuild. In a service, `logging` is the diary; `print` is for scripts."
 traps:
   - error: "Works locally, fails on the server"
-    meaning: "The two places differ in something outside the code."
+    meaning: "The two places differ in something outside the code. The code is innocent. For once."
     firstMove: "Compare the environment variables, the image tag and the data."
   - error: "The container shows Restarting, forever"
     meaning: "The app crashes at startup, and the restart policy keeps trying."
@@ -334,7 +335,7 @@ traps:
     meaning: "Old images and logs filled the server's disk."
     firstMove: "`docker system df`, then `docker image prune`; set up log rotation."
   - error: "\"Which version is running?\""
-    meaning: "Only the tag `latest` was used, so nobody can tell."
+    meaning: "Only the tag `latest` was used, so nobody can tell. `latest` is the 'final_v2_really_final.docx' of Docker."
     firstMove: "Tag images with the commit hash and show it in `/health`."
   - error: "502 Bad Gateway right after a deploy"
     meaning: "The reverse proxy called the app before it was ready."
@@ -360,7 +361,7 @@ quiz:
       - "Wait an hour — it may sort itself out"
       - "Delete the server and start again"
     answer: 0
-    why: "The new version crashes at startup, and restarting it again will not change its code. Bring back the version that worked; the logs will still be there when users are happy again."
+    why: "The new version crashes at startup, and restarting it again will not change its code: the restart policy is an optimist, not a wizard. Bring back the version that worked; the logs will still be there when users are happy again."
   - q: "The average latency looks fine, but some users wait 20 seconds. Where do you look?"
     options:
       - "At p95, not at the average"

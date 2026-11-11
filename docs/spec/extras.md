@@ -62,14 +62,16 @@ take it away."
 ## Skills page
 
 Eight rows, one per level, built from each level file's `skill` block.
-Column headers: "Junior", "Growing", "Middle". Rating labels: 0 "Not
+Column headers: "Starting", "Growing", "Confident" (ru: «Начало»,
+«Расту», «Уверенно»). Rating labels: 0 "Not
 yet", 1 "With help", 2 "Mostly alone", 3 "Alone, and I can explain it".
-Radar target is 3 on every axis.
+Radar target is 3 on every axis, labelled "Confident level" (ru:
+«Уверенный уровень»).
 
 Intro text: "This page is for you, not for a review. Rate yourself
 honestly today, and again in a month. The shape growing is the point."
 
-Under the chart, "What 'middle' really means" — four lines:
+Under the chart, "What 'confident' really means" — four lines:
 - You finish things: from idea to running in production.
 - You debug your own problems, hop by hop, before asking.
 - You ask good questions, with what you tried and what you saw.
@@ -172,7 +174,7 @@ Do not take the keyboard. Ask, in order: What did you expect? What
 happened instead? What is the exact error? Which hop is it? Usually the
 answer arrives during the second question.
 
-**Signs the learner is becoming middle-level**
+**Signs the learner is growing**
 - They tell you the cause, not only the symptom.
 - Their questions contain what they already ruled out.
 - They say "I measured it" instead of "I think".
@@ -183,7 +185,8 @@ answer arrives during the second question.
 - The weeks are a guide. Level 7 often takes four weeks; that is fine.
 - If a level drags past double its time, cut the last mission, do the
   deliverable, move on. Momentum matters more than completeness.
-- If the learner is flying, add: "explain this level to another junior".
+- If the learner is flying, add: "explain this level to someone who
+  is just starting".
 
 **After the boss**
 Give the learner a real, small production task with their name on it. The map was

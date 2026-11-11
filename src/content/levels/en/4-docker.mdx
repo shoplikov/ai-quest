@@ -16,7 +16,8 @@ itsNormal: >
   confused about "which localhost is this?" is the standard experience,
   not a personal failing. Everyone asks it. The good news: the answer is
   always the same, and by the end of this level you will say it out loud
-  before anyone asks.
+  before anyone asks. Docker itself grew out of the sentence "it works on
+  my machine" — so now the machine gets shipped too.
 analogy:
   emoji: "🍱"
   title: "A container is a lunchbox"
@@ -182,7 +183,7 @@ traps:
     meaning: "The main process stopped with an error, so the container stopped too."
     firstMove: "`docker logs <name>`"
   - error: "Exited (137)"
-    meaning: "The process was killed from outside, usually for using too much memory."
+    meaning: "The process was killed from outside, usually for using too much memory. 137 is 128 + 9: signal 9, the one that does not ask."
     firstMove: "`docker stats` while it runs; give it more memory or make it use less."
   - error: "failed to compute cache key: … \"/requirements.txt\": not found"
     meaning: "`COPY` could not find the file: it is outside the build folder, or `.dockerignore` excludes it."
@@ -191,7 +192,7 @@ traps:
     meaning: "Docker is not running. (If it says `permission denied` instead, you are not in the `docker` group.)"
     firstMove: "`sudo systemctl status docker`; `groups` shows whether you are in `docker`."
   - error: "exec format error"
-    meaning: "The image was built for another type of CPU."
+    meaning: "The image was built for another type of CPU. The CPU got a book in a language it never learned, and it is being very formal about it."
     firstMove: "Build for the server's CPU: `docker build --platform linux/amd64 …`"
   - error: "My change is not in the container"
     meaning: "The container runs the old image. You did not rebuild."
@@ -242,7 +243,7 @@ quiz:
       - "A bug in Postgres"
       - "The password was wrong"
     answer: 0
-    why: "The data lived on the shelf, the volume. `down` throws away the boxes; `down -v` throws away the shelf too."
+    why: "The data lived on the shelf, the volume. `down` throws away the boxes; `down -v` throws away the shelf too. One letter. Docker does not ask 'are you sure?' — it trusts you completely, which is the unsettling part."
 links:
   - title: "Docker: Get started"
     url: "https://docs.docker.com/get-started/"

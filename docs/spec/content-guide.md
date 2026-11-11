@@ -50,9 +50,9 @@ landmark: doors            # which map landmark (see design spec)
 badge: { name: "Port Whisperer", emoji: "🚪" }
 skill:                     # used on /skills
   name: "Networking"
-  junior: "one sentence"
+  junior: "one sentence"   # shown under the column "Starting"
   growing: "one sentence"
-  middle: "one sentence"
+  middle: "one sentence"   # shown under the column "Confident"
 itsNormal: "2–3 sentences"
 analogy: { emoji: "🚪", title: "…", text: "…" }
 missions:                  # 3–6

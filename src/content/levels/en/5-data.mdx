@@ -15,7 +15,9 @@ itsNormal: >
   SQL reads like English and then refuses to behave like English. Everyone
   writes a JOIN wrong the first ten times, and everyone has once run an
   UPDATE that changed more rows than they meant. The database is strict so
-  that your data can be safe. Strict is not the same as unkind.
+  that your data can be safe. Strict is not the same as unkind. SQL was
+  designed in the 1970s so that non-programmers could talk to databases.
+  It went about as well as you would expect.
 analogy:
   emoji: "🏛️"
   title: "Three kinds of memory"
@@ -326,10 +328,10 @@ traps:
     meaning: "Autogenerate wrote a pgvector type into the migration but no import."
     firstMove: "Add `import pgvector.sqlalchemy` to the migration file."
   - error: "sorry, too many clients already"
-    meaning: "Connections were opened and never given back."
+    meaning: "Connections were opened and never given back. Like library books, except this librarian counts."
     firstMove: "One engine with a pool for the whole app; close every session (`with SessionLocal() as session:`)."
   - error: "duplicate key value violates unique constraint"
-    meaning: "You are inserting something that already exists."
+    meaning: "You are inserting something that already exists. The database has seen this one before and is not impressed."
     firstMove: "Decide on purpose: skip it, update it (`ON CONFLICT`), or fix the input."
   - error: "failed to resolve host 'db'"
     meaning: "You are running on your laptop, outside the compose network, where the name `db` means nothing. (`psql` says `could not translate host name \"db\"`.)"
@@ -373,7 +375,7 @@ quiz:
       - "The only copy of user documents"
       - "Your migrations"
     answer: 0
-    why: "Sticky notes are allowed to fall off. Keep in Redis only what you can rebuild."
+    why: "Sticky notes are allowed to fall off. Keep in Redis only what you can rebuild. Nobody keeps a passport on a sticky note. Well. Almost nobody."
   - q: "A colleague builds SQL with an f-string from user input. What is wrong?"
     options:
       - "It allows SQL injection; use query parameters"
