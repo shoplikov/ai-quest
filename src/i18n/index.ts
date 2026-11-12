@@ -59,17 +59,26 @@ export function formatDate(lang: Lang, iso: string): string {
   return new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
 }
 
+/** The site's base path without a trailing slash: "" at the root, "/ai-quest" on GitHub Pages. */
+export const BASE = (import.meta.env?.BASE_URL ?? '/').replace(/\/$/, '');
+
+/** Put the base path in front of a root path: withBase('/favicon.svg') → "/ai-quest/favicon.svg". */
+export function withBase(path = '/'): string {
+  return BASE + (path.startsWith('/') ? path : `/${path}`);
+}
+
 /** Build a URL inside one language: localePath('ru', '/level/2') → "/ru/level/2". */
 export function localePath(lang: Lang, path = '/'): string {
   const clean = path.startsWith('/') ? path : `/${path}`;
-  return clean === '/' ? `/${lang}/` : `/${lang}${clean}`;
+  return withBase(clean === '/' ? `/${lang}/` : `/${lang}${clean}`);
 }
 
 /** The same page in another language: "/en/level/2" → "/ru/level/2". */
 export function switchLangPath(pathname: string, to: Lang): string {
-  const match = pathname.match(/^\/(en|ru)(\/.*)?$/);
-  if (!match) return `/${to}/`;
-  return `/${to}${match[2] ?? '/'}`;
+  const local = BASE && pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname;
+  const match = local.match(/^\/(en|ru)(\/.*)?$/);
+  if (!match) return withBase(`/${to}/`);
+  return withBase(`/${to}${match[2] ?? '/'}`);
 }
 
 /** Pick a language for the root page: saved choice → browser language → en. */

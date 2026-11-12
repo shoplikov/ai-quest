@@ -8,6 +8,7 @@ import { pages as en } from '../data/pages.en';
 import { pages as ru } from '../data/pages.ru';
 import { en as dictEn } from '../i18n/en';
 import { ru as dictRu } from '../i18n/ru';
+import { BASE, localePath, withBase } from '../i18n';
 import '@fontsource-variable/nunito';
 import '../styles/tokens.css';
 import '../styles/base.css';
@@ -28,7 +29,7 @@ const blocks = [
     <meta name="robots" content="noindex" />
     <ThemeScript />
     <title>{`${en.notFound.title} · ${dictEn.site.name}`}</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href={withBase('/favicon.svg')} type="image/svg+xml" />
   </head>
   <body>
     <main class="container not-found crash">
@@ -41,7 +42,7 @@ const blocks = [
             {b.f.crashLines.map((line, i) => <li style={`--i:${i}`}>{line}</li>)}
           </ul>
           <p class="not-found-line">{b.t.line}</p>
-          <p><a class="btn btn-primary" href={`/${b.lang}/`}>{b.f.crashReboot}</a></p>
+          <p><a class="btn btn-primary" href={localePath(b.lang)}>{b.f.crashReboot}</a></p>
         </section>
       ))}
       <div class="crash-porto"><Porto mood="cozy" size={120} /></div>
@@ -51,10 +52,11 @@ const blocks = [
       import { hasStarted, isViewMode, updateProgress } from '../lib/store';
       if (hasStarted() && !isViewMode()) updateProgress((p) => addSecret(p, 'lost-tourist'));
     </script>
-    <script is:inline>
+    <script is:inline define:vars={{ base: BASE }}>
       (function () {
         var lang = null;
-        var m = location.pathname.match(/^\/(en|ru)(\/|$)/);
+        var path = base && location.pathname.indexOf(base) === 0 ? location.pathname.slice(base.length) : location.pathname;
+        var m = path.match(/^\/(en|ru)(\/|$)/);
         if (m) lang = m[1];
         if (!lang) {
           try {

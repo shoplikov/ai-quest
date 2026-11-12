@@ -1,5 +1,5 @@
 ---
-import { languages, switchLangPath, getDict, localePath, type Lang } from '../i18n';
+import { languages, switchLangPath, getDict, localePath, withBase, type Lang } from '../i18n';
 import LangSwitcher from '../components/LangSwitcher.astro';
 import ThemeScript from '../components/ThemeScript.astro';
 import ThemeToggle from '../components/ThemeToggle.astro';
@@ -60,16 +60,16 @@ const links = [
     <meta name="description" content={description ?? dict.site.subtitle} />
     <meta name="theme-color" content="#FFF8EE" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#161A2B" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href={withBase('/favicon.svg')} type="image/svg+xml" />
+    <link rel="apple-touch-icon" href={withBase('/apple-touch-icon.png')} />
+    <link rel="manifest" href={withBase('/manifest.webmanifest')} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={dict.site.name} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description ?? dict.site.subtitle} />
     <meta property="og:locale" content={lang === 'ru' ? 'ru_RU' : 'en_US'} />
     {languages.map((l) => <link rel="alternate" hreflang={l} href={switchLangPath(path, l)} />)}
-    <link rel="alternate" hreflang="x-default" href="/" />
+    <link rel="alternate" hreflang="x-default" href={withBase('/')} />
     <slot name="head" />
   </head>
   <body>

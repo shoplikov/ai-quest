@@ -2,6 +2,7 @@
 // Root page: picks a language and redirects. Keeps a #p= share hash.
 import { en } from '../i18n/en';
 import { ru } from '../i18n/ru';
+import { BASE, localePath } from '../i18n';
 ---
 <!doctype html>
 <html lang="en">
@@ -9,9 +10,9 @@ import { ru } from '../i18n/ru';
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{en.site.name}</title>
-    <link rel="alternate" hreflang="en" href="/en/" />
-    <link rel="alternate" hreflang="ru" href="/ru/" />
-    <script is:inline>
+    <link rel="alternate" hreflang="en" href={localePath('en')} />
+    <link rel="alternate" hreflang="ru" href={localePath('ru')} />
+    <script is:inline define:vars={{ base: BASE }}>
       (function () {
         var saved = null;
         try {
@@ -28,7 +29,7 @@ import { ru } from '../i18n/ru';
             if (l.indexOf('en') === 0) { lang = 'en'; break; }
           }
         }
-        location.replace('/' + lang + '/' + location.hash);
+        location.replace(base + '/' + lang + '/' + location.hash);
       })();
     </script>
     <style>
@@ -40,7 +41,7 @@ import { ru } from '../i18n/ru';
     <noscript>
       <h1>{en.redirect.title}</h1>
       <p>{en.redirect.choose} / <span lang="ru">{ru.redirect.choose}</span></p>
-      <p><a href="/en/" hreflang="en">{en.lang.en}</a> <a href="/ru/" hreflang="ru" lang="ru">{ru.lang.ru}</a></p>
+      <p><a href={localePath('en')} hreflang="en">{en.lang.en}</a> <a href={localePath('ru')} hreflang="ru" lang="ru">{ru.lang.ru}</a></p>
     </noscript>
   </body>
 </html>

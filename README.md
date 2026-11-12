@@ -119,14 +119,22 @@ Dockerfile, compose.yaml, nginx.conf, Caddyfile
 
 ## Deploy
 
-The repo is ready for one small server with Docker. [docs/SETUP-GITHUB-AWS.md](docs/SETUP-GITHUB-AWS.md) walks through creating the GitHub repo and an AWS instance, then:
+The site is published on GitHub Pages: **https://shoplikov.github.io/ai-quest/**
+
+Pushing a `v*` tag (or **Actions → Deploy → Run workflow**) runs `.github/workflows/deploy.yml`. It runs the checks, builds the site for the `/ai-quest/` sub-path (`BASE_PATH`) and publishes `dist/` to Pages. CI (`.github/workflows/ci.yml`) runs the checks on every branch push.
+
+```bash
+git tag v1.0.1 && git push origin v1.0.1
+```
+
+The site can still run on any server with Docker, served at the root:
 
 ```bash
 ./scripts/deploy.sh <server>
 ./scripts/rollback.sh <server> <tag>
 ```
 
-`deploy.sh` builds the image locally, tags it with the git tag on `HEAD` (or the commit if there is none), sends it over SSH and starts it. CI (`.github/workflows/ci.yml`) runs the checks on every branch push. Pushing a `v*` tag runs `.github/workflows/deploy.yml`, which checks, deploys and smoke-tests the site; it needs the `production` environment secrets from Part 4 of the setup guide.
+`deploy.sh` builds the image locally, tags it with the git tag on `HEAD` (or the commit if there is none), sends it over SSH and starts it. [docs/SETUP-GITHUB-AWS.md](docs/SETUP-GITHUB-AWS.md) walks through that server setup.
 
 ## Troubleshooting
 

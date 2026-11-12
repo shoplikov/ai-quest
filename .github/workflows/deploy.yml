@@ -1,16 +1,24 @@
 name: Deploy
 
-# Runs when a version tag is pushed:  git tag v1.0.0 && git push origin v1.0.0
+# Publishes the site to GitHub Pages at https://shoplikov.github.io/ai-quest/
+# Runs when a version tag is pushed:  git tag v1.0.1 && git push origin v1.0.1
+# or by hand: Actions → Deploy → Run workflow.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: deploy
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,46 +26,35 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - id: pages
+        uses: actions/configure-pages@v5
       - run: npm ci
       - run: npm run check
       - run: npm test
-      - run: npm run build
+      - name: Build for the Pages sub-path
+        env:
+          SITE_URL: ${{ steps.pages.outputs.origin }}
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
 
   deploy:
-    needs: check
+    needs: build
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up SSH
-        env:
-          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          # Pinned host keys: refuse to talk to a server that is not ours.
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          cat >> ~/.ssh/config <<CONF
-          Host quest
-              HostName $DEPLOY_HOST
-              User $DEPLOY_USER
-              IdentityFile ~/.ssh/deploy_key
-              StrictHostKeyChecking yes
-          CONF
-      - name: Deploy ${{ github.ref_name }}
-        env:
-          QUEST_TAG: ${{ github.ref_name }}
-        run: ./scripts/deploy.sh quest
+      - id: deployment
+        uses: actions/deploy-pages@v4
       - name: Smoke test
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           for i in 1 2 3 4 5 6; do
-            curl -fsS -o /dev/null "http://$DEPLOY_HOST/" && echo "Site is up" && exit 0
-            sleep 5
+            curl -fsS -o /dev/null "${PAGE_URL}en/" && echo "Site is up" && exit 0
+            sleep 10
           done
-          echo "Site did not answer on http://$DEPLOY_HOST/" && exit 1
+          echo "Site did not answer on ${PAGE_URL}en/" && exit 1

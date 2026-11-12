@@ -4,6 +4,9 @@ import mdx from '@astrojs/mdx';
 import preact from '@astrojs/preact';
 
 export default defineConfig({
+  // GitHub Pages serves the site under /ai-quest/; Docker serves it at the root.
+  site: process.env.SITE_URL,
+  base: process.env.BASE_PATH ?? '/',
   output: 'static',
   integrations: [mdx(), preact()],
   i18n: {
