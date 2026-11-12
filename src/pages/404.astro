@@ -8,7 +8,7 @@ import { pages as en } from '../data/pages.en';
 import { pages as ru } from '../data/pages.ru';
 import { en as dictEn } from '../i18n/en';
 import { ru as dictRu } from '../i18n/ru';
-import { BASE, localePath, withBase } from '../i18n';
+import { BASE, withBase } from '../i18n';
 import '@fontsource-variable/nunito';
 import '../styles/tokens.css';
 import '../styles/base.css';
@@ -42,7 +42,7 @@ const blocks = [
             {b.f.crashLines.map((line, i) => <li style={`--i:${i}`}>{line}</li>)}
           </ul>
           <p class="not-found-line">{b.t.line}</p>
-          <p><a class="btn btn-primary" href={localePath(b.lang)}>{b.f.crashReboot}</a></p>
+          <p><a class="btn btn-primary" href={withBase(`/${b.lang}/`)}>{b.f.crashReboot}</a></p>
         </section>
       ))}
       <div class="crash-porto"><Porto mood="cozy" size={120} /></div>
