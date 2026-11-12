@@ -50,8 +50,10 @@ flowchart TD
     MDX["Level files<br/>(MDX, en + ru)"] --> Build["astro build"]
     Dict["Interface text<br/>(src/i18n, src/data)"] --> Build
     Build --> Dist["dist/<br/>plain files"]
-    Dist --> Nginx["nginx in Docker"]
-    Nginx --> Browser["Browser"]
+    Dist --> Pages["GitHub Pages<br/>(/ai-quest/)"]
+    Dist -.-> Nginx["nginx in Docker<br/>(local / self-host)"]
+    Pages --> Browser["Browser"]
+    Nginx -.-> Browser
     Browser <--> LS[("localStorage<br/>progress")]
     Browser -. "share link (#p=…)" .-> Mentor["Mentor's browser<br/>read-only"]
 ```
@@ -134,7 +136,7 @@ The site can still run on any server with Docker, served at the root:
 ./scripts/rollback.sh <server> <tag>
 ```
 
-`deploy.sh` builds the image locally, tags it with the git tag on `HEAD` (or the commit if there is none), sends it over SSH and starts it. [docs/SETUP-GITHUB-AWS.md](docs/SETUP-GITHUB-AWS.md) walks through that server setup.
+`deploy.sh` builds the image locally, tags it with the git tag on `HEAD` (or the commit if there is none), sends it over SSH and starts it. [docs/SETUP-GITHUB-AWS.md](docs/SETUP-GITHUB-AWS.md) explains the Pages setup and keeps the original server setup.
 
 ## Troubleshooting
 

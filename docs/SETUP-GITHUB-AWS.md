@@ -1,6 +1,38 @@
 # Setup guide: GitHub and AWS
 
-How to put this site online. About 45 minutes the first time.
+> **How the live site is hosted today:** GitHub Pages, not AWS. See
+> [How it runs now](#how-it-runs-now-github-pages) below. The rest of this
+> guide is the original self-hosted setup. It still works, and Level 8
+> uses it as a real example, but nothing is running on AWS any more.
+
+## How it runs now: GitHub Pages
+
+The site is only static files, so it needs no server. It is published
+free at **https://shoplikov.github.io/ai-quest/** from the public repo.
+
+```
+your laptop ──git push + tag──▶ GitHub ──deploy.yml──▶ GitHub Pages
+```
+
+- **Release:** commit, push `main`, then tag and push the tag:
+  ```bash
+  git tag v1.0.1 && git push origin v1.0.1
+  ```
+  Or run **Actions → Deploy → Run workflow** by hand.
+- **What `deploy.yml` does:** runs `npm run check` and `npm test`, builds with
+  `BASE_PATH=/ai-quest` (the Pages sub-path), publishes `dist/`, then checks
+  that `/ai-quest/en/` answers.
+- **One-time setup (already done):** repo **Settings → Pages → Source:
+  GitHub Actions**. Pages is free only for public repos.
+- **Roll back:** run the Deploy workflow on an older tag
+  (**Run workflow → Use workflow from → Tags → v1.0.0**).
+- **Links:** because of the sub-path, every internal link must go through
+  `localePath` or `withBase` (`src/i18n`). A bare `/en/…` link works locally
+  but gives a 404 on Pages.
+
+## The original setup: one AWS server
+
+How the site was first put online. About 45 minutes the first time.
 
 You will end up with: a private GitHub repo, one small AWS server, and the
 site reachable at `http://<your-server-ip>`.
@@ -11,7 +43,7 @@ your laptop ──git push──▶ GitHub (code)
      └──scripts/deploy.sh──▶ AWS EC2 (Docker → nginx → site on port 80)
 ```
 
-## Part 1 — GitHub (10 minutes)
+### Part 1 — GitHub (10 minutes)
 
 1. Sign in at <https://github.com> (create an account if needed).
 2. Check whether your laptop already has an SSH key:
@@ -43,16 +75,16 @@ your laptop ──git push──▶ GitHub (code)
 Every push now runs the **CI** workflow, which builds the site and fails
 if something is broken. See it under the repo's **Actions** tab.
 
-## Part 2 — AWS server (20 minutes)
+### Part 2 — AWS server (20 minutes)
 
-### Before you start: cost
+#### Before you start: cost
 
 One `t3.micro` server with a public address costs roughly **12 USD a
 month** if it is not covered by free-tier credits. Check current prices at
 <https://aws.amazon.com/ec2/pricing/on-demand/>. Step 1 sets an alert so
 there are no surprises.
 
-### Steps
+#### Steps
 
 1. **Budget alert.** AWS console → search **Budgets** → Create budget →
    "Zero spend budget" or a monthly budget of 15 USD → enter your email.
@@ -94,7 +126,7 @@ there are no surprises.
 > your address changed. EC2 → Security Groups → the instance's group →
 > Edit inbound rules → SSH → Source: **My IP** → Save.
 
-## Part 3 — Deploy (5 minutes)
+### Part 3 — Deploy (5 minutes)
 
 From your laptop:
 
@@ -120,12 +152,17 @@ To update the site later: change something, commit, run the same script.
 To go back to an earlier version: `./scripts/rollback.sh quest` lists the
 versions on the server; `./scripts/rollback.sh quest <tag>` starts one.
 
-## Part 4 — Optional: deploy by pushing a version tag
+### Part 4 — Optional: deploy by pushing a version tag
 
-The repo ships with `.github/workflows/deploy.yml`. Pushing a tag that
-starts with `v` (for example `v1.0.0`) runs the checks on GitHub's
-machines, then does what `deploy.sh` does and checks that the site answers.
-Pushes to `main` only run CI; nothing goes live until you tag.
+> Today `.github/workflows/deploy.yml` publishes to GitHub Pages instead.
+> The SSH version described here is in the git history: tag `v1.0.0`
+> (`git show v1.0.0:.github/workflows/deploy.yml`). To self-host again,
+> restore that file and follow these steps.
+
+That workflow ran when a tag starting with `v` (for example `v1.0.0`) was
+pushed: it ran the checks on GitHub's machines, then did what `deploy.sh`
+does and checked that the site answered. Pushes to `main` only run CI;
+nothing goes live until you tag.
 
 Trade-off: GitHub's machines have changing addresses, so SSH (port 22) on
 the server must be open to everyone, not only your IP. Access is still by
@@ -161,7 +198,7 @@ Next release: commit, push `main`, then tag `v1.0.1` (or `v1.1.0`) and push
 the tag. The image on the server is named after the tag, so
 `./scripts/rollback.sh quest v1.0.0` goes back to that release.
 
-## Part 5 — Optional: your own name and HTTPS
+### Part 5 — Optional: your own name and HTTPS
 
 You need a domain (any registrar). Add an **A record** for, say,
 `quest.example.com` pointing to `<server-ip>`. Then on the server, move
@@ -178,14 +215,14 @@ ssh quest 'cd ~/ai-quest \
 Caddy gets a free certificate by itself in about a minute. The site is then
 at `https://quest.example.com`.
 
-## Stop paying
+### Stop paying
 
 - **Pause:** EC2 → Instances → select → Instance state → **Stop**. Disk
   and address still cost a little.
 - **Remove everything:** Instance state → **Terminate**; then Elastic IPs
   → select → **Release**. Both steps, or the address keeps costing money.
 
-## If something goes wrong
+### If something goes wrong
 
 | You see | It means | Do this |
 |---------|----------|---------|

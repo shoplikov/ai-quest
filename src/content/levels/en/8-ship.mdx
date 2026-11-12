@@ -728,10 +728,16 @@ alert means and who to call. One day that tired person will be you.
 
 ## A real example
 
-**This website is deployed exactly this way.**
-
-Its repository has `scripts/deploy.sh`, a `.github/workflows/` folder and
+**This website started out deployed exactly this way:** one small
+server, Docker, `scripts/deploy.sh`. Its repository still has
+`scripts/deploy.sh`, a `.github/workflows/` folder and
 `docs/SETUP-GITHUB-AWS.md` — after this level, you can read all three.
+
+Then it moved. The site is only plain files — no backend, no database — so
+a server running all day was paying rent for nothing. Now a version tag
+runs `.github/workflows/deploy.yml`, which builds the files and hands them
+to GitHub Pages. Same checks, same tags, no server. Pick the smallest thing
+that does the job.
 
 The journey from Level 2 once more. Under "Where would it break?", try
 each place: each now has a log line and a health check.

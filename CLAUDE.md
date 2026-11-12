@@ -37,8 +37,11 @@ specified.
   no internal IPs or hostnames.
 - No backend, no analytics, no external fonts or CDNs. Everything is
   self-hosted and works offline after load.
-- Never `git push`, never create a remote, never touch AWS. The owner does
-  those later from `docs/SETUP-GITHUB-AWS.md`.
+- Never `git push`, never push tags, never touch GitHub settings. The owner
+  publishes. The live site is on GitHub Pages
+  (https://shoplikov.github.io/ai-quest/), served under `/ai-quest/`: build
+  every internal link with `localePath` or `withBase` from `src/i18n`, never
+  a bare `/…` path. There is no AWS server any more.
 - Commit messages: short imperative subject, e.g. `Add quest map page`.
 - If a check in the build guide fails, fix it before going on. Report
   failures honestly; do not mark a task done that is not done.
